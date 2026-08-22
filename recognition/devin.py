@@ -146,9 +146,14 @@ class DevinClient:
         if max_acu is not None:
             body["max_acu_limit"] = max_acu
         if structured_output is not None:
-            body["structured_output"] = (
-                structured_output if isinstance(structured_output, str)
-                else json.dumps(structured_output)
+            # The v1 request field is `structured_output_schema` (JSON Schema
+            # object, not a string). The old name `structured_output` was
+            # silently ignored on create, which is why sessions "sometimes"
+            # answered only in prose -- the schema was never attached and the
+            # message-extraction fallback in snapshot() was carrying the run.
+            body["structured_output_schema"] = (
+                json.loads(structured_output) if isinstance(structured_output, str)
+                else structured_output
             )
         r = self._http.post(f"{self.base}/sessions", json=body)
         if r.status_code >= 400:

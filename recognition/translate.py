@@ -421,9 +421,7 @@ def _nearest_neighbour(room_id: str, rects: dict[str, Rect], exclude: set[str]
     """
     best_id, best_edge, best_len = "", None, 0.0
     for other in rects:
-        if other == room_id or other in exclude - {room_id}:
-            continue
-        if other == room_id:
+        if other == room_id or other in exclude:
             continue
         edge = shared_edge(rects[other], rects[room_id])
         if edge is None:
