@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0MXZ3JAVRWES61NG47JQFVV",
+  "strategy": "manual-commit",
+  "branch": "ui/poc",
+  "checkpoints_count": 20,
+  "files_touched": [
+    "tests/test_ui.py",
+    "ui/engine.py",
+    "ui/jobs.py",
+    "ui/static/app.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 512,
+    "cache_creation_tokens": 18225,
+    "cache_read_tokens": 1775943,
+    "output_tokens": 11753,
+    "api_call_count": 7
+  }
+}
