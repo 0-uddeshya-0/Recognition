@@ -199,6 +199,13 @@ def main(argv: list[str] | None = None) -> int:
     p_auto.add_argument("--publish", action="store_true",
                         help="copy the artifacts into web/data/ for the static Studio")
 
+    p_bun = sub.add_parser(
+        "bundle",
+        help="pack one autopilot run into a single draft-bundle JSON for the Studio")
+    p_bun.add_argument("run_dir", type=Path, help="out/autopilot/<project> directory")
+    p_bun.add_argument("--brief", type=Path, default=None)
+    p_bun.add_argument("--out", type=Path, default=Path("out/bundle.json"))
+
     p_int = sub.add_parser(
         "interview",
         help="one round of the intake interview: transcript in, structured reply out (Devin)")
@@ -209,6 +216,12 @@ def main(argv: list[str] | None = None) -> int:
     p_int.add_argument("--timeout", type=float, default=600)
 
     a = ap.parse_args(argv)
+
+    if a.cmd == "bundle":
+        from .bundle import write as write_bundle
+        p = write_bundle(a.run_dir, a.out, a.brief)
+        print(f"bundle written to {p} ({p.stat().st_size / 1024:.0f} kB)")
+        return 0
 
     if a.cmd == "interview":
         return _interview(a)

@@ -1,9 +1,16 @@
 # Recognition
 
-**Give architecture an engineer.** Describe a house in plain words; get a compliant
-building back — a 3D model, dimensioned drawings, schedules, and a compliance report
-that cites the statute behind every finding. No human in the loop between the brief
-and the artifacts.
+**Your AI architect.** Tell it what you want to build — an office for your
+startup, a 3BHK for your family, a weekend house, a small warehouse — the way
+you'd tell a person. It asks only what it genuinely needs, drafts **four
+structurally different blueprints** with dimensions, redrafts as you talk, and
+builds the **3D model** of the one you pick. Building regulations run
+underneath as the quality gate: every layout is verified against a cited
+ruleset before you ever see it, and the checks are one quiet tap away.
+
+**Devin** is the intelligence — it reads the conversation, plans layouts, and
+reviews winners; deterministic code draws every line and judges every rule.
+No human sits between a sealed brief and the finished artifacts.
 
 ![FZK-Haus ground floor sheet](examples/AC20-FZK-Haus/sheets/A-101_Erdgeschoss.png)
 
@@ -42,11 +49,19 @@ because the artifacts it is judged on are produced downstream by code it never r
 
 ## Try it
 
-**In the browser — [the Studio](https://0-uddeshya-0.github.io/Recognition/)**:
-describe the house in chat (an instant rules engine, or a live Devin session
-relayed through Actions), watch the brief sheet fill in, and open the finished
-designs in 3D and 2D. The page holds no secret; live runs use your own GitHub
-token and this repository's workflows.
+**In the browser — [recognition, live](https://0-uddeshya-0.github.io/Recognition/):**
+
+1. **Say it.** "An office for my small startup — 8 of us, an open studio, a
+   meeting room, a small kitchen." The agent understands buildings, not forms;
+   switch it to *Devin · live* for the session that genuinely reads.
+2. **Choose.** Four takes arrive as dimensioned blueprints — compact, linear,
+   open, generous. Tap a sheet to inspect it; keep talking to redraft.
+3. **Build.** Pick one and the 3D model appears; archive it and the pipeline
+   re-verifies, merges itself, and the design joins the portfolio with files
+   a builder opens (IFC, DXF, PDF).
+
+The page holds no secret: reading is tokenless, and triggering either uses
+your own GitHub token or the exact `gh` command the page hands you.
 
 Locally:
 

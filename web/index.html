@@ -3,200 +3,145 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recognition — Studio</title>
-<meta name="description" content="Describe a house in plain words. Devin plans it, deterministic code draws it, a cited rule engine verifies it — 3D model, dimensioned drawings, compliance report.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='2.5' y='2.5' width='19' height='19' rx='2' fill='none' stroke='%2315191D' stroke-width='1.8'/><rect x='7' y='7' width='10' height='10' fill='%232A62D8'/></svg>">
+<title>Recognition — your AI architect</title>
+<meta name="description" content="Describe a building in plain words. Devin plans it, deterministic code draws it, and every layout is checked against real building code — quietly. Blueprints, 3D, and files your builder can use.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='2.5' y='2.5' width='19' height='19' rx='5' fill='none' stroke='%231b2230' stroke-width='1.8'/><rect x='7' y='7' width='10' height='10' rx='2' fill='%233b5bdb'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Sora:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="glass.css">
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
 </script>
 </head>
 <body>
 
-<header class="top">
-  <a class="wordmark" href="./" aria-label="Recognition home">
+<div class="bg" aria-hidden="true"></div>
+
+<header class="bar">
+  <a class="brand glass-pill" href="./" aria-label="Recognition home">
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-      <rect x="7" y="7" width="10" height="10" fill="var(--accent)"/>
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <rect x="7" y="7" width="10" height="10" rx="2" fill="#3b5bdb"/>
     </svg>
-    Recognition
+    Recognition <em>· your AI architect</em>
   </a>
-  <span class="studio-tag">Studio</span>
-  <div class="title"><h1 id="doc-title">A house, described</h1></div>
   <span class="spacer"></span>
-  <div id="top-stamp" class="hide"></div>
+  <button id="specs-pill" class="glass-pill hide" type="button">Specs</button>
+  <button id="portfolio-pill" class="glass-pill" type="button">Portfolio</button>
   <div class="connect-wrap">
-    <button id="connect" class="ghost sm" type="button" aria-haspopup="dialog" aria-expanded="false">Connect</button>
+    <button id="connect" class="glass-pill" type="button" aria-haspopup="dialog" aria-expanded="false">Connect</button>
     <div id="connect-pop" class="pop hide" role="dialog" aria-label="Connect GitHub">
-      <h3>Live runs, from this page</h3>
-      <p class="hint">A GitHub token lets the Studio start real runs and talk to Devin
-        through this repository's Actions. It is stored only in this browser and sent
-        only to <code>api.github.com</code> — never to this site or anywhere else.</p>
-      <label class="pop-label" for="gh-token">Fine-grained token · Contents read&nbsp;&amp;&nbsp;write on this repo</label>
+      <h3>Trigger runs from this page</h3>
+      <p class="mini">A GitHub token lets the page start drafts and Devin sessions directly.
+        It stays in this browser and goes only to <code>api.github.com</code>. Without one,
+        everything still works — the page hands you each trigger command and follows the run live.</p>
+      <label class="visually-hidden" for="gh-token">Fine-grained token, Contents read &amp; write</label>
       <input id="gh-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
       <div class="pop-row">
-        <button id="gh-save" class="primary sm" type="button">Connect</button>
-        <button id="gh-clear" class="ghost sm" type="button">Forget</button>
-        <span id="gh-state" class="hint" role="status"></span>
+        <button id="gh-save" class="pill primary sm" type="button">Connect</button>
+        <button id="gh-clear" class="pill sm" type="button">Forget</button>
+        <span id="gh-state" class="mini" role="status"></span>
       </div>
     </div>
   </div>
-  <button id="restart" class="ghost hide" type="button">New design</button>
 </header>
 
-<!-- ══════════════════ 1 · BRIEF ══════════════════ -->
-<main id="view-brief" class="view brief-view">
-  <div class="brief-wrap">
-    <div class="brief-intro">
-      <p class="kicker">Give architecture an engineer</p>
-      <h2>Tell us the house. We'll draw it, check it against the code, and show our working.</h2>
-      <p class="sub">Describe it the way you'd tell a friend. <b>Devin</b> — the AI software
-        engineer — reads your words and plans the layouts; deterministic code draws and
-        verifies every one. Nothing is assumed silently.</p>
+<main class="stage" id="stage">
+  <!-- 1 · hero -->
+  <section id="st-hero" class="st">
+    <h1 class="display">Describe it.<br>I'll <b>draw</b> it.</h1>
+    <p class="sub">An office for your startup, a 3BHK, a weekend house. Say it in plain words —
+      <b>Devin</b> plans, deterministic code draws, and every layout is checked against real
+      building code, quietly. You get blueprints, a 3D model, and files your builder can open.</p>
+  </section>
+
+  <!-- 2 · drafting -->
+  <section id="st-drafting" class="st hide">
+    <div class="glass drafting">
+      <h2 id="draft-title">Drafting four takes</h2>
+      <div class="blueprint-anim" aria-hidden="true"></div>
+      <ol id="draft-steps" class="draft-steps"></ol>
+      <p id="draft-note" class="mini"></p>
+      <div id="draft-cmd"></div>
     </div>
+  </section>
 
-    <div class="mode-row" role="tablist" aria-label="How to brief">
-      <button id="mode-chat" class="mode on" role="tab" aria-selected="true">Describe it</button>
-      <button id="mode-form" class="mode" role="tab" aria-selected="false">Use the form</button>
-    </div>
+  <!-- 3 · options -->
+  <section id="st-options" class="st hide">
+    <h2 class="stage-h" id="options-h">Four takes on your brief</h2>
+    <div id="options-grid" class="options"></div>
+    <p class="mini" style="text-align:center; margin-top:14px">Tap a sheet to inspect it — pick one to build it in 3D, or keep talking and I'll redraft.</p>
+  </section>
 
-    <div class="brief-grid">
-      <!-- chat -->
-      <section id="chat" class="chat-pane" aria-label="Interview">
-        <div class="chat-head">
-          <span class="agent-dot" aria-hidden="true"></span>
-          <strong>Interview</strong>
-          <span class="hint">the agent asks only what the rules need</span>
-          <span class="spacer"></span>
-          <label class="engine-pick hint" for="chat-engine">agent</label>
-          <select id="chat-engine" aria-label="Interview agent">
-            <option value="instant" selected>Instant · rules engine</option>
-            <option value="devin">Devin · live session</option>
-          </select>
+  <!-- 4 · the model -->
+  <section id="st-detail" class="st hide">
+    <div class="detail">
+      <div class="glass viewer">
+        <div id="v3-host"></div>
+        <div id="v3-wait" class="v3-wait">building the model…</div>
+        <div id="hoverchip" class="hoverchip hide"></div>
+        <div class="viewer-foot">
+          <span id="detail-name"></span>
+          <span id="detail-metrics" class="mono"></span>
         </div>
-        <ol id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Conversation"></ol>
-        <div id="chat-chips" class="chat-chips" role="group" aria-label="Quick replies"></div>
-        <form id="composer" class="composer">
-          <label class="visually-hidden" for="chat-input">Describe your house</label>
-          <textarea id="chat-input" rows="1" placeholder="e.g. A house for our family of four — three bedrooms, a study, the living room facing the garden…"></textarea>
-          <button id="chat-send" class="primary" type="submit">Send</button>
-        </form>
-      </section>
-
-      <!-- the brief sheet — fills in like a title block -->
-      <aside class="brief-sheet" aria-label="Brief so far">
-        <div class="sheet-title">
-          <strong>DesignBrief</strong>
-          <span class="mono hint" id="sheet-schema">designbrief/v1</span>
-        </div>
-        <dl id="sheet-fields" class="sheet-fields"></dl>
-        <div class="assumed">
-          <h3>What we'll assume</h3>
-          <p class="hint">Every inferred value, with its reason. Correct any of them in the chat.</p>
-          <div class="chips" id="assumed-chips"></div>
-        </div>
-        <div class="brief-actions">
-          <button class="primary" id="go" type="button" disabled>Design it</button>
-          <select id="run-engine" aria-label="Run engine">
-            <option value="local" selected>local · deterministic, ~30 s</option>
-            <option value="devin">devin · 3 parallel sessions</option>
-          </select>
-        </div>
-        <p class="hint" id="go-hint">Nobody touches the run once it starts.</p>
+      </div>
+      <aside class="detail-side">
+        <span id="detail-pill"></span>
+        <button class="thumb" id="sheet-thumb" type="button" aria-label="Open the floor plan"></button>
+        <a id="pdf-link" class="glass-pill hide" href="#" target="_blank" rel="noopener">Sheet PDF ↗</a>
+        <button id="back-opts" class="glass-pill" type="button">← All takes</button>
+        <div id="archive-note" class="mini"></div>
       </aside>
     </div>
-
-    <!-- the classic form, same brief state -->
-    <form id="interview" class="hide" novalidate>
-      <ol class="qlist" id="qlist"></ol>
-    </form>
-
-    <section class="existing" id="existing">
-      <h3>Already built</h3>
-      <div class="proj-grid" id="proj-grid"></div>
-    </section>
-
-    <p class="colophon">The model plans; the code draws. Layouts by
-      <a href="https://devin.ai" target="_blank" rel="noopener">Devin</a> ·
-      geometry, drawings and the compliance verdict by deterministic code —
-      <a href="https://github.com/0-uddeshya-0/Recognition" target="_blank" rel="noopener">source</a>.</p>
-  </div>
-</main>
-
-<!-- ══════════════════ 2 · WORKING ══════════════════ -->
-<main id="view-working" class="view hide">
-  <div class="working-wrap">
-    <h2 id="working-title">Designing</h2>
-    <p class="sub" id="working-sub">One brief, three layouts, each checked on its own.</p>
-    <ol class="steps" id="steps"></ol>
-    <div id="run-links" class="run-links"></div>
-    <p class="hint mono" id="working-note"></p>
-    <div id="working-extra"></div>
-  </div>
-</main>
-
-<!-- ══════════════════ 3 · RESULT ══════════════════ -->
-<main id="view-result" class="view studio hide">
-  <section class="pane pane-3d">
-    <div class="pane-head">
-      <strong>3D</strong>
-      <span class="hint">drag to orbit · wheel to zoom · hover a room</span>
-      <span class="spacer"></span>
-      <span class="legend" aria-hidden="true">
-        <span class="lg"><i class="sw sw-wall"></i>wall</span>
-        <span class="lg"><i class="sw sw-door"></i>door</span>
-        <span class="lg"><i class="sw sw-window"></i>window</span>
-        <span class="lg"><i class="sw sw-room"></i>room</span>
-      </span>
-      <label class="v3-opts"><input type="checkbox" id="show-spaces" checked> rooms</label>
-    </div>
-    <div class="v3-host" id="v3-host">
-      <div class="v3-wait" id="v3-wait">loading model…</div>
-      <div class="hoverchip hide" id="hoverchip"></div>
-    </div>
   </section>
-
-  <section class="pane pane-2d">
-    <div class="pane-head">
-      <strong>2D</strong>
-      <span class="hint" id="sheet-name">floor plan</span>
-      <span class="spacer"></span>
-      <span class="zoom-ctl" role="group" aria-label="Sheet zoom">
-        <button id="z-out" class="ghost sm" type="button" aria-label="Zoom out">−</button>
-        <span id="z-val" class="mono" aria-live="off">100%</span>
-        <button id="z-in" class="ghost sm" type="button" aria-label="Zoom in">+</button>
-        <button id="z-fit" class="ghost sm" type="button">fit</button>
-      </span>
-      <a id="pdf-link" class="ghost sm" href="#" target="_blank" rel="noopener">PDF ↗</a>
-    </div>
-    <div class="sheet-host" id="sheet-host"><div class="sheet-zoom" id="sheet-zoom"></div></div>
-  </section>
-
-  <aside class="pane pane-side">
-    <div class="tabs" role="tablist">
-      <button class="on" data-tab="findings" role="tab">Compliance</button>
-      <button data-tab="rooms" role="tab">Rooms</button>
-      <button data-tab="options" role="tab">Options</button>
-      <button data-tab="code" role="tab">Code</button>
-    </div>
-    <div class="tabbody" id="tab-findings"></div>
-    <div class="tabbody hide" id="tab-rooms"></div>
-    <div class="tabbody hide" id="tab-options"></div>
-    <div class="tabbody hide" id="tab-code"></div>
-    <form id="revise" class="revise">
-      <label class="visually-hidden" for="revise-input">Request a change</label>
-      <input id="revise-input" type="text" autocomplete="off"
-             placeholder="Change it — “make the hall at least 20 m²” · “plot 20 × 30 m” · “add a bathroom”">
-      <button class="primary sm" type="submit">Rebuild</button>
-    </form>
-  </aside>
 </main>
+
+<!-- checks drawer — always one tap away, never the headline -->
+<aside id="code-drawer" class="drawer glass hide" role="dialog" aria-label="Building-code checks">
+  <div class="drawer-head"><h2>The checks</h2><button class="drawer-x" type="button" aria-label="Close">✕</button></div>
+  <div id="code-body"></div>
+</aside>
+
+<aside id="specs-drawer" class="drawer glass hide" role="dialog" aria-label="Your brief">
+  <div class="drawer-head"><h2>Your brief</h2><button class="drawer-x" type="button" aria-label="Close">✕</button></div>
+  <div id="specs-body"></div>
+</aside>
+
+<aside id="portfolio-drawer" class="drawer glass hide" role="dialog" aria-label="Portfolio">
+  <div class="drawer-head"><h2>Portfolio</h2><button class="drawer-x" type="button" aria-label="Close">✕</button></div>
+  <p class="drawer-sub">Archived designs — every one designed, verified and merged by the pipeline itself.</p>
+  <div id="portfolio-list"></div>
+</aside>
+
+<!-- sheet lightbox -->
+<div id="sheet-modal" class="modal hide" role="dialog" aria-label="Floor plan">
+  <div class="modal-bar">
+    <h2 id="sheet-title">Floor plan</h2>
+    <span class="mini" style="color:rgba(255,255,255,.75)">wheel to zoom · drag to pan · double-click to reset</span>
+    <span style="flex:1"></span>
+    <button id="sheet-close" class="glass-pill" type="button">Close</button>
+  </div>
+  <div id="sheet-big"></div>
+</div>
+
+<!-- the dock — the conversation lives here -->
+<section class="dock glass" id="dock" aria-label="Conversation">
+  <ol id="chat-log" role="log" aria-live="polite"></ol>
+  <div id="chat-chips" role="group" aria-label="Quick replies"></div>
+  <form id="composer" class="composer">
+    <label class="visually-hidden" for="chat-input">Describe your building</label>
+    <textarea id="chat-input" rows="1" placeholder="Describe your building…"></textarea>
+    <select id="chat-engine" aria-label="Agent">
+      <option value="instant" selected>instant</option>
+      <option value="devin">Devin·live</option>
+    </select>
+    <button id="chat-send" class="pill primary" type="submit">Send</button>
+  </form>
+</section>
 
 <div id="toast" class="toast hide" role="status"></div>
 
-<script type="module" src="studio.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
