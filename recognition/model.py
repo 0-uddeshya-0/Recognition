@@ -14,11 +14,9 @@ from pathlib import Path
 import ifcopenshell
 import ifcopenshell.geom
 import ifcopenshell.util.element as ue
-from shapely import minimum_rotated_rectangle
-from shapely.geometry import MultiPolygon, Point, Polygon
-from shapely.ops import unary_union
+from shapely.geometry import Point, Polygon
 
-Geom = Polygon | MultiPolygon
+from .geometry import Geom, parts, rect_dims, union
 
 # Room classification by name keyword (English + German, covers the sample models).
 ROOM_CATEGORIES: dict[str, list[str]] = {
@@ -115,16 +113,23 @@ class Model:
         return next(s for s in self.storeys if s.name == name)
 
     def walls_on(self, storey: str) -> list[Wall]:
-        return [w for w in self.walls if w.storey == storey]
+        return _on(self.walls, storey)
 
     def spaces_on(self, storey: str) -> list[Space]:
-        return [s for s in self.spaces if s.storey == storey]
+        return _on(self.spaces, storey)
 
     def doors_on(self, storey: str) -> list[Opening]:
-        return [d for d in self.doors if d.storey == storey]
+        return _on(self.doors, storey)
 
     def windows_on(self, storey: str) -> list[Opening]:
-        return [w for w in self.windows if w.storey == storey]
+        return _on(self.windows, storey)
+
+    def openings_on(self, storey: str) -> list[Opening]:
+        return self.doors_on(storey) + self.windows_on(storey)
+
+    def plan_footprints(self, storey: str) -> list[Geom]:
+        """Wall and space footprints of the storey — the built extent in plan."""
+        return [w.footprint for w in self.walls_on(storey)] + [s.footprint for s in self.spaces_on(storey)]
 
     def spaces_touching(self, el: Element, buffer: float = 0.35) -> list[Space]:
         """Spaces on the same storey whose footprint overlaps the element (buffered).
@@ -144,6 +149,10 @@ class Model:
 
     def drawable_storeys(self) -> list[Storey]:
         return [s for s in self.storeys if self.walls_on(s.name)]
+
+
+def _on(items: list, storey: str) -> list:
+    return [i for i in items if i.storey == storey]
 
 
 # --- loading ---------------------------------------------------------------
@@ -170,7 +179,7 @@ def _footprint(settings, el) -> tuple[Geom, float, float] | None:
             tris.append(p)
     if not tris:
         return None
-    g = unary_union(tris).buffer(0)
+    g = union(tris).buffer(0)
     if g.is_empty:
         return None
     zs = [p[2] for p in pts]
@@ -205,15 +214,6 @@ def _host_wall(el) -> str | None:
         return None
 
 
-def _rect_dims(g: Geom) -> tuple[float, float]:
-    """(short side, long side) of the minimum rotated bounding rectangle."""
-    rect = minimum_rotated_rectangle(g)
-    xs = list(rect.exterior.coords)
-    a = Point(xs[0]).distance(Point(xs[1]))
-    b = Point(xs[1]).distance(Point(xs[2]))
-    return (min(a, b), max(a, b))
-
-
 def _assign_tags(model: Model) -> None:
     order = {s.name: s.index for s in model.storeys}
 
@@ -242,7 +242,7 @@ def load(path: str | Path) -> Model:
         if not fp:
             continue
         g, z0, z1 = fp
-        t, L = _rect_dims(g)
+        t, L = rect_dims(g)
         model.walls.append(Wall(el.GlobalId, el.Name or "", _storey_name(el), g, z0, z1,
                                 is_external=_pset_bool(el, "Pset_WallCommon", "IsExternal"),
                                 thickness=t, length=L))
@@ -263,7 +263,7 @@ def load(path: str | Path) -> Model:
             if not fp:
                 continue
             g, z0, z1 = fp
-            t, L = _rect_dims(g)
+            t, L = rect_dims(g)
             typ = ue.get_type(el)
             op = Opening(el.GlobalId, el.Name or "", _storey_name(el), g, z0, z1,
                          kind=kind, type_name=(typ.Name if typ is not None else "") or "",
@@ -289,13 +289,12 @@ def _infer_external(model: Model, tol: float = 0.03) -> None:
         walls = model.walls_on(st.name)
         if not walls:
             continue
-        envelope = unary_union([w.footprint for w in walls] + [s.footprint for s in model.spaces_on(st.name)]).buffer(tol).buffer(-tol)
-        parts = envelope.geoms if isinstance(envelope, MultiPolygon) else [envelope]
-        outer = unary_union([p.exterior for p in parts]).buffer(tol)
+        envelope = union(model.plan_footprints(st.name)).buffer(tol).buffer(-tol)
+        outer = union([p.exterior for p in parts(envelope)]).buffer(tol)
         for w in walls:
             if w.is_external is None:
                 w.is_external = w.footprint.boundary.intersection(outer).length > 0.3
-        for op in model.doors_on(st.name) + model.windows_on(st.name):
+        for op in model.openings_on(st.name):
             if op.is_external is not None:
                 continue
             host = walls_by_guid.get(op.host_wall or "")

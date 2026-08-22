@@ -6,19 +6,31 @@ and Markdown (for PRs and reports). Rows are ordered by tag so diffs are stable.
 """
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
 from .model import Model, Opening
+from .writers import markdown_table, write_csv, write_text
 
 
 def _rooms_for(model: Model, op: Opening) -> list[str]:
     return [s.tag for s in model.spaces_touching(op)]
 
 
+def _by_tag(elements: list) -> list:
+    return sorted(elements, key=lambda e: e.tag)
+
+
+def _opening_row(op: Opening) -> dict:
+    """The columns every opening schedule starts with."""
+    return {
+        "tag": op.tag, "storey": op.storey, "name": op.name, "type": op.type_name,
+        "width_m": round(op.width, 3), "height_m": round(op.height, 3),
+    }
+
+
 def room_schedule(model: Model) -> list[dict]:
     rows = []
-    for s in sorted(model.spaces, key=lambda s: s.tag):
+    for s in _by_tag(model.spaces):
         doors = [d.tag for d in model.doors_on(s.storey) if s in model.spaces_touching(d)]
         windows = [w.tag for w in model.windows_on(s.storey) if s in model.spaces_touching(w)]
         rows.append({
@@ -31,11 +43,9 @@ def room_schedule(model: Model) -> list[dict]:
 
 def door_schedule(model: Model) -> list[dict]:
     rows = []
-    for d in sorted(model.doors, key=lambda d: d.tag):
+    for d in _by_tag(model.doors):
         rooms = _rooms_for(model, d)
-        rows.append({
-            "tag": d.tag, "storey": d.storey, "name": d.name, "type": d.type_name,
-            "width_m": round(d.width, 3), "height_m": round(d.height, 3),
+        rows.append(_opening_row(d) | {
             "external": "yes" if d.is_external else ("no" if d.is_external is False else "?"),
             "connects": " / ".join(rooms[:2]) if rooms else "",
         })
@@ -44,33 +54,20 @@ def door_schedule(model: Model) -> list[dict]:
 
 def window_schedule(model: Model) -> list[dict]:
     rows = []
-    for w in sorted(model.windows, key=lambda w: w.tag):
+    for w in _by_tag(model.windows):
         rooms = _rooms_for(model, w)
-        rows.append({
-            "tag": w.tag, "storey": w.storey, "name": w.name, "type": w.type_name,
-            "width_m": round(w.width, 3), "height_m": round(w.height, 3),
+        rows.append(_opening_row(w) | {
             "glazing_m2": round(w.width * w.height, 2),
             "room": rooms[0] if rooms else "",
         })
     return rows
 
 
-def write_csv(rows: list[dict], path: Path) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as fh:
-        if rows:
-            w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-            w.writeheader()
-            w.writerows(rows)
-    return path
-
-
 def to_markdown(rows: list[dict], title: str) -> str:
     if not rows:
         return f"## {title}\n\n_none_\n"
     cols = list(rows[0].keys())
-    out = [f"## {title}", "", "| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
-    out += ["| " + " | ".join(str(r[c]) for c in cols) + " |" for r in rows]
+    out = [f"## {title}", ""] + markdown_table(cols, ([r[c] for c in cols] for r in rows))
     return "\n".join(out) + "\n"
 
 
@@ -82,5 +79,5 @@ def write_all(model: Model, out_dir: Path) -> dict:
     write_csv(windows, out_dir / "windows.csv")
     md = "# Schedules\n\n" + to_markdown(rooms, "Room schedule") + "\n" \
         + to_markdown(doors, "Door schedule") + "\n" + to_markdown(windows, "Window schedule")
-    (out_dir / "schedules.md").write_text(md, encoding="utf-8")
+    write_text(out_dir / "schedules.md", md)
     return {"rooms": rooms, "doors": doors, "windows": windows, "dir": out_dir}

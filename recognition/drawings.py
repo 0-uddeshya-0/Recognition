@@ -18,9 +18,9 @@ from pathlib import Path
 import cairosvg
 import ezdxf
 import svgwrite
-from shapely import minimum_rotated_rectangle
-from shapely.geometry import LineString, MultiPolygon, Point, Polygon
+from shapely.geometry import Point
 
+from .geometry import XY, centreline, parts, snap, union_bounds
 from .model import Model, Opening, Storey
 
 # --- conventions -----------------------------------------------------------
@@ -61,45 +61,30 @@ class DimChain:
     offset: float  # world coordinate of the dimension line (y for x-axis chains, x for y-axis chains)
     stations: list[float]  # sorted world coordinates along the axis
 
+    def point(self, station: float, beyond: float = 0.0) -> XY:
+        """World point of a station on the chain, `beyond` metres past its line."""
+        off = self.offset + beyond
+        return (station, off) if self.axis == "x" else (off, station)
+
 
 # --- symbol geometry (shared by SVG and DXF) --------------------------------
 
-def _long_axis(g) -> tuple[tuple[float, float], tuple[float, float], float]:
-    """Return (p0, p1, short_side) where p0->p1 is the centreline along the long axis."""
-    rect = minimum_rotated_rectangle(g)
-    c = list(rect.exterior.coords)[:4]
-    d01 = Point(c[0]).distance(Point(c[1]))
-    d12 = Point(c[1]).distance(Point(c[2]))
-    if d01 >= d12:
-        p0 = ((c[0][0] + c[3][0]) / 2, (c[0][1] + c[3][1]) / 2)
-        p1 = ((c[1][0] + c[2][0]) / 2, (c[1][1] + c[2][1]) / 2)
-        short = d12
-    else:
-        p0 = ((c[0][0] + c[1][0]) / 2, (c[0][1] + c[1][1]) / 2)
-        p1 = ((c[2][0] + c[3][0]) / 2, (c[2][1] + c[3][1]) / 2)
-        short = d01
-    return p0, p1, short
-
-
 def door_symbol(model: Model, d: Opening) -> DoorSymbol:
-    p0, p1, short = _long_axis(d.footprint)
-    ux, uy = p1[0] - p0[0], p1[1] - p0[1]
-    L = math.hypot(ux, uy) or 1.0
-    ux, uy = ux / L, uy / L
-    nx, ny = -uy, ux  # left normal
+    cl = centreline(d.footprint)
+    p0, p1 = cl.p0, cl.p1
+    ux, uy = cl.u
+    nx, ny = cl.n
     # swing into the side that has a room (fallback: +normal)
-    mid = ((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2)
-    probe_d = max(short, 0.3) + 0.4
+    probe_d = max(cl.short, 0.3) + 0.4
     side = 1.0
     spaces = model.spaces_on(d.storey)
     for sgn in (1.0, -1.0):
-        pt = Point(mid[0] + nx * sgn * probe_d, mid[1] + ny * sgn * probe_d)
-        if any(s.footprint.contains(pt) for s in spaces):
+        if any(s.footprint.contains(Point(cl.offset(cl.mid, sgn * probe_d))) for s in spaces):
             side = sgn
             break
-    w = d.width if d.width else L
+    w = d.width if d.width else cl.length
     hinge = p0
-    tip = (hinge[0] + nx * side * w, hinge[1] + ny * side * w)
+    tip = cl.offset(hinge, side * w)
     a_jamb = math.degrees(math.atan2(uy, ux))
     a_tip = math.degrees(math.atan2(ny * side, nx * side))
     # ezdxf arcs run CCW from start to end
@@ -116,26 +101,16 @@ def door_symbol(model: Model, d: Opening) -> DoorSymbol:
 
 
 def window_symbol(w: Opening) -> WindowSymbol:
-    p0, p1, short = _long_axis(w.footprint)
-    ux, uy = p1[0] - p0[0], p1[1] - p0[1]
-    L = math.hypot(ux, uy) or 1.0
-    nx, ny = -uy / L, ux / L
-    off = min(short / 4, 0.06)
-    lines = []
-    for k in (-1, 1):
-        lines.append(((p0[0] + nx * k * off, p0[1] + ny * k * off), (p1[0] + nx * k * off, p1[1] + ny * k * off)))
-    return WindowSymbol(lines)
-
-
-def _snap(v: float, step: float = 0.01) -> float:
-    return round(round(v / step) * step, 3)
+    cl = centreline(w.footprint)
+    off = min(cl.short / 4, 0.06)
+    return WindowSymbol([(cl.offset(cl.p0, k * off), cl.offset(cl.p1, k * off)) for k in (-1, 1)])
 
 
 def dimension_chains(model: Model, storey: str) -> list[DimChain]:
     """Exterior dimension chains: wall-face + opening stations along x (below) and y (left)."""
     walls = model.walls_on(storey)
     ext = [w for w in walls if w.is_external] or walls
-    minx, miny, maxx, maxy = _union_bounds([w.footprint for w in walls])
+    minx, miny, maxx, maxy = union_bounds([w.footprint for w in walls])
     o1, o2 = SHEET["dim_offsets_m"]
 
     def stations(axis: str, outer_lo: float, outer_hi: float) -> list[float]:
@@ -146,15 +121,15 @@ def dimension_chains(model: Model, storey: str) -> list[DimChain]:
             lo, hi = (b[0], b[2]) if axis == "x" else (b[1], b[3])
             # keep only walls that run along the axis (long in that direction)
             if (hi - lo) > w.thickness * 1.5:
-                pts.update((_snap(lo), _snap(hi)))
-        for op in model.doors_on(storey) + model.windows_on(storey):
+                pts.update((snap(lo), snap(hi)))
+        for op in model.openings_on(storey):
             if op.is_external is False:
                 continue
             b = op.bounds
             lo, hi = (b[0], b[2]) if axis == "x" else (b[1], b[3])
             if (hi - lo) >= op.width * 0.8:  # opening runs along this axis
-                pts.update((_snap(lo), _snap(hi)))
-        pts.update((_snap(outer_lo), _snap(outer_hi)))
+                pts.update((snap(lo), snap(hi)))
+        pts.update((snap(outer_lo), snap(outer_hi)))
         st = sorted(pts)
         # drop stations closer than 5 cm to their predecessor (keeps chains legible)
         cleaned = [st[0]]
@@ -165,15 +140,10 @@ def dimension_chains(model: Model, storey: str) -> list[DimChain]:
 
     return [
         DimChain("x", miny - o1, stations("x", minx, maxx)),
-        DimChain("x", miny - o2, [_snap(minx), _snap(maxx)]),
+        DimChain("x", miny - o2, [snap(minx), snap(maxx)]),
         DimChain("y", minx - o1, stations("y", miny, maxy)),
-        DimChain("y", minx - o2, [_snap(miny), _snap(maxy)]),
+        DimChain("y", minx - o2, [snap(miny), snap(maxy)]),
     ]
-
-
-def _union_bounds(geoms) -> tuple[float, float, float, float]:
-    bs = [g.bounds for g in geoms if not g.is_empty]
-    return (min(b[0] for b in bs), min(b[1] for b in bs), max(b[2] for b in bs), max(b[3] for b in bs))
 
 
 # --- SVG sheet -------------------------------------------------------------
@@ -206,8 +176,7 @@ def _choose_scale(world_bounds) -> _Sheet:
 
 
 def _plan_bounds(model: Model, storey: str):
-    geoms = [w.footprint for w in model.walls_on(storey)] + [s.footprint for s in model.spaces_on(storey)]
-    minx, miny, maxx, maxy = _union_bounds(geoms)
+    minx, miny, maxx, maxy = union_bounds(model.plan_footprints(storey))
     pad = SHEET["dim_offsets_m"][1] + 1.0
     return (minx - pad, miny - pad, maxx + 0.5, maxy + 0.5)
 
@@ -227,7 +196,7 @@ def plan_svg(model: Model, storey: Storey, out_svg: Path, *, project: str = "", 
     P = sh.p
 
     def poly(g, **kw):
-        for part in (g.geoms if isinstance(g, MultiPolygon) else [g]):
+        for part in parts(g):
             path = dwg.path(d=_ring_path(part.exterior.coords, P), **kw)
             for hole in part.interiors:
                 path.push(_ring_path(hole.coords, P))
@@ -241,10 +210,10 @@ def plan_svg(model: Model, storey: Storey, out_svg: Path, *, project: str = "", 
     for w in model.walls_on(st):
         poly(w.footprint, fill=STYLE["wall_fill"], stroke="none")
     # openings cut out of walls
-    for op in model.doors_on(st) + model.windows_on(st):
+    for op in model.openings_on(st):
         poly(op.footprint, fill="white", stroke="none")
     # windows (tag placed outside the building, along the window's outward normal)
-    bminx, bminy, bmaxx, bmaxy = _union_bounds([w.footprint for w in model.walls_on(st)])
+    bminx, bminy, bmaxx, bmaxy = union_bounds([w.footprint for w in model.walls_on(st)])
     bc = ((bminx + bmaxx) / 2, (bminy + bmaxy) / 2)
     for w in model.windows_on(st):
         for a, b in window_symbol(w).lines:
@@ -255,8 +224,7 @@ def plan_svg(model: Model, storey: Storey, out_svg: Path, *, project: str = "", 
             anchor, pos = ("start" if dx > 0 else "end"), (c[0] + (2.0 if dx > 0 else -2.0), c[1] + 0.7)
         else:
             anchor, pos = "middle", (c[0], c[1] + (-1.6 if dy > 0 else 2.6))
-        dwg.add(dwg.text(w.tag, insert=pos, font_size=1.8, fill=STYLE["window"],
-                         text_anchor=anchor, font_family=STYLE["font"]))
+        _svg_text(dwg, w.tag, pos, 1.8, fill=STYLE["window"], text_anchor=anchor)
     # doors
     for d in model.doors_on(st):
         sym = door_symbol(model, d)
@@ -264,15 +232,13 @@ def plan_svg(model: Model, storey: Storey, out_svg: Path, *, project: str = "", 
         dwg.add(dwg.polyline([P(q) for q in sym.arc_points], fill="none", stroke=STYLE["door"],
                              stroke_width=0.2, stroke_dasharray="0.8,0.5"))
         c = P(sym.leaf[1])
-        dwg.add(dwg.text(d.tag, insert=(c[0], c[1] - 0.8), font_size=1.8, fill=STYLE["door"],
-                         text_anchor="middle", font_family=STYLE["font"]))
+        _svg_text(dwg, d.tag, (c[0], c[1] - 0.8), 1.8, fill=STYLE["door"], text_anchor="middle")
     # room labels
     for s in model.spaces_on(st):
         c = P((s.centroid.x, s.centroid.y))
-        dwg.add(dwg.text(f"{s.tag}  {s.label}", insert=(c[0], c[1] - 1.0), font_size=2.6, fill=STYLE["text"],
-                         text_anchor="middle", font_family=STYLE["font"], font_weight="bold"))
-        dwg.add(dwg.text(f"{s.area:.1f} m²", insert=(c[0], c[1] + 2.2), font_size=2.2, fill=STYLE["text"],
-                         text_anchor="middle", font_family=STYLE["font"]))
+        _svg_text(dwg, f"{s.tag}  {s.label}", (c[0], c[1] - 1.0), 2.6, fill=STYLE["text"],
+                  text_anchor="middle", font_weight="bold")
+        _svg_text(dwg, f"{s.area:.1f} m²", (c[0], c[1] + 2.2), 2.2, fill=STYLE["text"], text_anchor="middle")
     # dimension chains
     for chain in dimension_chains(model, st):
         _svg_dim_chain(dwg, sh, chain)
@@ -288,6 +254,13 @@ def plan_svg(model: Model, storey: Storey, out_svg: Path, *, project: str = "", 
     return out_svg
 
 
+def _svg_text(dwg, text: str, at, size: float, **kw):
+    """Add a text element in the sheet font; `kw` passes svgwrite attributes through."""
+    el = dwg.text(text, insert=at, font_size=size, font_family=STYLE["font"], **kw)
+    dwg.add(el)
+    return el
+
+
 def _ring_path(coords, P) -> str:
     pts = [P(c) for c in coords]
     return "M " + " L ".join(f"{x:.3f},{y:.3f}" for x, y in pts) + " Z"
@@ -298,34 +271,23 @@ def _svg_dim_chain(dwg, sh: _Sheet, chain: DimChain) -> None:
     st = chain.stations
     if len(st) < 2:
         return
-    if chain.axis == "x":
-        a, b = sh.p((st[0], chain.offset)), sh.p((st[-1], chain.offset))
-        dwg.add(dwg.line(a, b, stroke=col, stroke_width=0.18))
-        for v in st:
-            x, y = sh.p((v, chain.offset))
-            dwg.add(dwg.line((x - tick * 0.5, y + tick * 0.5), (x + tick * 0.5, y - tick * 0.5), stroke=col, stroke_width=0.25))
-        for u, v in zip(st, st[1:]):
-            x, y = sh.p(((u + v) / 2, chain.offset))
-            dwg.add(dwg.text(_fmt_mm(v - u), insert=(x, y - 0.8), font_size=1.9, fill=col,
-                             text_anchor="middle", font_family=STYLE["font"]))
-    else:
-        a, b = sh.p((chain.offset, st[0])), sh.p((chain.offset, st[-1]))
-        dwg.add(dwg.line(a, b, stroke=col, stroke_width=0.18))
-        for v in st:
-            x, y = sh.p((chain.offset, v))
-            dwg.add(dwg.line((x - tick * 0.5, y + tick * 0.5), (x + tick * 0.5, y - tick * 0.5), stroke=col, stroke_width=0.25))
-        for u, v in zip(st, st[1:]):
-            x, y = sh.p((chain.offset, (u + v) / 2))
-            t = dwg.text(_fmt_mm(v - u), insert=(x - 0.8, y), font_size=1.9, fill=col,
-                         text_anchor="middle", font_family=STYLE["font"])
-            t.rotate(-90, center=(x - 0.8, y))
-            dwg.add(t)
+    dwg.add(dwg.line(sh.p(chain.point(st[0])), sh.p(chain.point(st[-1])), stroke=col, stroke_width=0.18))
+    for v in st:
+        x, y = sh.p(chain.point(v))
+        dwg.add(dwg.line((x - tick * 0.5, y + tick * 0.5), (x + tick * 0.5, y - tick * 0.5), stroke=col, stroke_width=0.25))
+    for u, v in zip(st, st[1:]):
+        x, y = sh.p(chain.point((u + v) / 2))
+        # labels sit above an x-chain and read bottom-up alongside a y-chain
+        at = (x, y - 0.8) if chain.axis == "x" else (x - 0.8, y)
+        t = _svg_text(dwg, _fmt_mm(v - u), at, 1.9, fill=col, text_anchor="middle")
+        if chain.axis == "y":
+            t.rotate(-90, center=at)
 
 
 def _svg_north(dwg, at) -> None:
     x, y = at
     dwg.add(dwg.polygon([(x, y - 8), (x - 3, y + 2), (x, y), (x + 3, y + 2)], fill="#000"))
-    dwg.add(dwg.text("N", insert=(x, y - 9.5), font_size=3, text_anchor="middle", font_family=STYLE["font"], font_weight="bold"))
+    _svg_text(dwg, "N", (x, y - 9.5), 3, text_anchor="middle", font_weight="bold")
 
 
 def _svg_scale_bar(dwg, sh: _Sheet, at) -> None:
@@ -333,8 +295,8 @@ def _svg_scale_bar(dwg, sh: _Sheet, at) -> None:
     seg = sh.k  # 1 m in mm
     for i in range(5):
         dwg.add(dwg.rect((x + i * seg, y), (seg, 1.2), fill="#000" if i % 2 == 0 else "#fff", stroke="#000", stroke_width=0.2))
-        dwg.add(dwg.text(str(i), insert=(x + i * seg, y - 0.8), font_size=1.8, text_anchor="middle", font_family=STYLE["font"]))
-    dwg.add(dwg.text("5 m", insert=(x + 5 * seg, y - 0.8), font_size=1.8, text_anchor="middle", font_family=STYLE["font"]))
+        _svg_text(dwg, str(i), (x + i * seg, y - 0.8), 1.8, text_anchor="middle")
+    _svg_text(dwg, "5 m", (x + 5 * seg, y - 0.8), 1.8, text_anchor="middle")
 
 
 def _svg_title_block(dwg, *, project, title, sheet_no, scale, revision, model) -> None:
@@ -344,16 +306,15 @@ def _svg_title_block(dwg, *, project, title, sheet_no, scale, revision, model) -
     dwg.add(dwg.rect((x0, y0), (w, h), fill="white", stroke="#000", stroke_width=0.5))
     dwg.add(dwg.line((x0, y0 + 12), (x0 + w, y0 + 12), stroke="#000", stroke_width=0.3))
     dwg.add(dwg.line((x0 + 95, y0 + 12), (x0 + 95, y0 + h), stroke="#000", stroke_width=0.3))
-    f = STYLE["font"]
-    dwg.add(dwg.text(project, insert=(x0 + 3, y0 + 8), font_size=5, font_family=f, font_weight="bold"))
-    dwg.add(dwg.text(title, insert=(x0 + 3, y0 + 20), font_size=4, font_family=f))
-    dwg.add(dwg.text(f"Model: {model}", insert=(x0 + 3, y0 + 27), font_size=2.4, font_family=f, fill="#444"))
-    dwg.add(dwg.text("Generated by Recognition — do not edit by hand; change the generator.",
-                     insert=(x0 + 3, y0 + 33), font_size=2.2, font_family=f, fill="#666"))
-    dwg.add(dwg.text("SHEET", insert=(x0 + 98, y0 + 16), font_size=2.2, font_family=f, fill="#666"))
-    dwg.add(dwg.text(sheet_no, insert=(x0 + 98, y0 + 24), font_size=6, font_family=f, font_weight="bold"))
-    dwg.add(dwg.text(f"SCALE 1:{scale}  ·  A3", insert=(x0 + 98, y0 + 30), font_size=2.4, font_family=f))
-    dwg.add(dwg.text(f"{date.today().isoformat()}  ·  REV {revision or '-'}", insert=(x0 + 98, y0 + 35), font_size=2.4, font_family=f))
+    _svg_text(dwg, project, (x0 + 3, y0 + 8), 5, font_weight="bold")
+    _svg_text(dwg, title, (x0 + 3, y0 + 20), 4)
+    _svg_text(dwg, f"Model: {model}", (x0 + 3, y0 + 27), 2.4, fill="#444")
+    _svg_text(dwg, "Generated by Recognition — do not edit by hand; change the generator.",
+              (x0 + 3, y0 + 33), 2.2, fill="#666")
+    _svg_text(dwg, "SHEET", (x0 + 98, y0 + 16), 2.2, fill="#666")
+    _svg_text(dwg, sheet_no, (x0 + 98, y0 + 24), 6, font_weight="bold")
+    _svg_text(dwg, f"SCALE 1:{scale}  ·  A3", (x0 + 98, y0 + 30), 2.4)
+    _svg_text(dwg, f"{date.today().isoformat()}  ·  REV {revision or '-'}", (x0 + 98, y0 + 35), 2.4)
 
 
 def svg_to_pdf(svg: Path, pdf: Path) -> Path:
@@ -387,7 +348,7 @@ def plan_dxf(model: Model, storey: Storey, out_dxf: Path) -> Path:
         return (p[0] * K, p[1] * K)
 
     def add_poly(g, layer):
-        for part in (g.geoms if isinstance(g, MultiPolygon) else [g]):
+        for part in parts(g):
             msp.add_lwpolyline([mm(c) for c in part.exterior.coords], close=True, dxfattribs={"layer": layer})
             for hole in part.interiors:
                 msp.add_lwpolyline([mm(c) for c in hole.coords], close=True, dxfattribs={"layer": layer})
@@ -409,10 +370,7 @@ def plan_dxf(model: Model, storey: Storey, out_dxf: Path) -> Path:
         msp.add_text(d.tag, dxfattribs={"layer": "A-ANNO-TEXT", "height": 150}).set_placement(mm(sym.leaf[1]))
     for chain in dimension_chains(model, st):
         for u, v in zip(chain.stations, chain.stations[1:]):
-            if chain.axis == "x":
-                p1, p2, base = (u, chain.offset + 0.3), (v, chain.offset + 0.3), (u, chain.offset)
-            else:
-                p1, p2, base = (chain.offset + 0.3, u), (chain.offset + 0.3, v), (chain.offset, u)
+            p1, p2, base = chain.point(u, 0.3), chain.point(v, 0.3), chain.point(u)
             dim = msp.add_linear_dim(base=mm(base), p1=mm(p1), p2=mm(p2), angle=0 if chain.axis == "x" else 90,
                                      dimstyle="EZDXF", dxfattribs={"layer": "A-ANNO-DIMS"})
             dim.render()

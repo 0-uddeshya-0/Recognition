@@ -9,7 +9,6 @@ uses to know whether a change is acceptable.
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import subprocess
 import sys
@@ -22,6 +21,9 @@ from . import drawings as D
 from . import model as M
 from . import rules as R
 from . import schedules as S
+from .writers import write_json
+
+SHEET_FORMATS = ("svg", "pdf", "png", "dxf")
 
 
 def git_revision() -> str:
@@ -72,12 +74,12 @@ def run(model_path: Path, out_dir: Path, rules_path: Path | None, project: str, 
     for i, st in enumerate(model.drawable_storeys(), start=1):
         no = f"A-{100 + i}"
         base = sheet_dir / f"{no}_{_slug(st.name)}"
-        svg = D.plan_svg(model, st, base.with_suffix(".svg"), project=project, sheet_no=no, revision=revision)
-        D.svg_to_pdf(svg, base.with_suffix(".pdf"))
-        D.svg_to_png(svg, base.with_suffix(".png"))
-        D.plan_dxf(model, st, base.with_suffix(".dxf"))
-        sheets.append({"sheet": no, "storey": st.name, "svg": svg.name, "pdf": base.with_suffix(".pdf").name,
-                       "png": base.with_suffix(".png").name, "dxf": base.with_suffix(".dxf").name})
+        out = {fmt: base.with_suffix(f".{fmt}") for fmt in SHEET_FORMATS}
+        D.plan_svg(model, st, out["svg"], project=project, sheet_no=no, revision=revision)
+        D.svg_to_pdf(out["svg"], out["pdf"])
+        D.svg_to_png(out["svg"], out["png"])
+        D.plan_dxf(model, st, out["dxf"])
+        sheets.append({"sheet": no, "storey": st.name} | {fmt: p.name for fmt, p in out.items()})
 
     enriched = enrich_ifc(model, report, out_dir / "model.detailed.ifc")
 
@@ -87,13 +89,13 @@ def run(model_path: Path, out_dir: Path, rules_path: Path | None, project: str, 
         "project": project or model_path.stem,
         "counts": {"storeys": len(model.storeys), "walls": len(model.walls), "spaces": len(model.spaces),
                    "doors": len(model.doors), "windows": len(model.windows)},
-        "compliance": {"status": "FAIL" if s["errors"] else ("WARN" if s["warnings"] else "PASS"), **s},
+        "compliance": {"status": report.status, **s},
         "schedules": {k: len(v) for k, v in sched.items() if k != "dir"},
         "sheets": sheets,
         "files": {"schedules": "schedules/", "report_md": "report.md", "report_json": "report.json",
                   "enriched_ifc": enriched.name, "sheets": "sheets/"},
     }
-    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    write_json(out_dir / "summary.json", summary)
     return summary
 
 

@@ -19,6 +19,13 @@ comes out, all produced by code in `recognition/`:
 | Enriched IFC (tags + findings as psets) | `<out>/model.detailed.ifc` | `recognition/cli.py` |
 | Machine-readable summary | `<out>/summary.json` | `recognition/cli.py` |
 
+Two modules are shared by all of the above and have no output of their own:
+`recognition/geometry.py` (footprint maths: bounding rectangles, centrelines,
+unions, snapping) and `recognition/writers.py` (text/JSON/CSV/Markdown
+writing). Put anything used by more than one stage there rather than
+duplicating it — e.g. SVG and DXF must derive symbols from the same
+centreline, and every artefact must be written with the same encoding.
+
 `examples/<model>/` is the committed output for the two core sample models in
 `samples/`. It must always match what the current code generates. Larger
 models under `samples/extended/` (terraced houses, office building) are for
@@ -70,6 +77,8 @@ for m in AC20-FZK-Haus Duplex; do uv run recognition run samples/$m.ifc examples
   you a jurisdiction or a source, cite it in the YAML comment next to the value.
 - Room categories are inferred from names (`model.ROOM_CATEGORIES`, EN + DE).
   When a model uses other naming, extend the keyword list rather than special-casing.
+- Geometry is computed once, in `geometry.py`, and consumed everywhere else;
+  never re-derive a bounding rectangle or centreline in a stage module.
 
 ## Definition of done
 
