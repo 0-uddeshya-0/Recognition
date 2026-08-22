@@ -131,7 +131,7 @@ jobs:
 
           Winner \`${WINNER}\` cleared every \`tier: law\` rule. Merging automatically." \
             --base main --head "$BRANCH"
-          gh pr merge "$BRANCH" --squash --admin --delete-branch
+          gh pr merge "$BRANCH" --squash --delete-branch
 
       - name: Report a failed gate honestly
         if: failure()
