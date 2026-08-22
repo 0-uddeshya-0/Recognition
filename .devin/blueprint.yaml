@@ -1,0 +1,38 @@
+# Devin environment blueprint for this repository.
+# Sync + build from the Devin UI after merging changes to this file.
+initialize:
+  - name: "Install uv (Python package manager)"
+    run: |
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      echo 'export PATH="$HOME/.local/bin:$PATH"' >> $ENVRC
+
+  - name: "System libraries for cairosvg (PDF/PNG rendering)"
+    run: |
+      sudo apt-get update -qq && sudo apt-get install -y -qq libcairo2 || echo "apt unavailable; cairosvg wheels may still work"
+
+maintenance:
+  - name: "Sync Python dependencies"
+    run: |
+      export PATH="$HOME/.local/bin:$PATH"
+      uv sync
+
+knowledge:
+  - name: test
+    contents: |
+      uv run pytest -q
+
+  - name: run
+    contents: |
+      Full detailing package for a model:
+      uv run recognition run samples/AC20-FZK-Haus.ifc out/fzk --project FZK
+      Outputs: out/fzk/summary.json, report.md, schedules/, sheets/*.png|pdf|dxf, model.detailed.ifc
+
+  - name: check
+    contents: |
+      Compliance gate (exit 1 on error-level findings):
+      uv run recognition check samples/Duplex.ifc
+
+  - name: regenerate-examples
+    contents: |
+      After any change under recognition/ or rules/:
+      for m in AC20-FZK-Haus Duplex; do uv run recognition run samples/$m.ifc examples/$m --project $m; done

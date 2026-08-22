@@ -1,0 +1,15 @@
+tag,storey,name,type,width_m,height_m,external,connects
+D-01,Level 1,M_Single-Glass 1:0813 x 2420mm:0813 x 2420mm:171975,0813 x 2420mm,0.813,2.42,yes,R-01 / R-02
+D-02,Level 1,M_Single-Flush:1250mm x 2010mm:1250mm x 2010mm:146596,1250mm x 2010mm,1.25,2.01,yes,R-02
+D-03,Level 1,M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173,0762 x 2032mm,0.762,2.032,no,R-02 / R-05
+D-04,Level 1,M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150257,0762 x 2032mm,0.762,2.032,no,R-09 / R-06
+D-05,Level 1,M_Single-Flush:1250mm x 2010mm:1250mm x 2010mm:146678,1250mm x 2010mm,1.25,2.01,yes,R-09
+D-06,Level 1,M_Single-Glass 1:0813 x 2420mm:0813 x 2420mm:171853,0813 x 2420mm,0.813,2.42,yes,R-10 / R-09
+D-07,Level 2,M_Single-Flush:0864 x 2032mm:0864 x 2032mm:159734,0864 x 2032mm,0.864,2.032,no,R-11 / R-14
+D-08,Level 2,M_Single-Flush:0864 x 2032mm:0864 x 2032mm:150478,0864 x 2032mm,0.864,2.032,no,R-12 / R-17
+D-09,Level 2,M_Single-Flush:0762 x 2032mm:0762 x 2032mm:203720,0762 x 2032mm,0.762,2.032,no,R-16 / R-13
+D-10,Level 2,M_Single-Flush:0864 x 2032mm:0864 x 2032mm:160065,0864 x 2032mm,0.864,2.032,no,R-14 / R-16
+D-11,Level 2,M_Single-Flush:0864 x 2032mm:0864 x 2032mm:160208,0864 x 2032mm,0.864,2.032,no,R-17 / R-15
+D-12,Level 2,M_Single-Flush:0762 x 2032mm:0762 x 2032mm:204034,0762 x 2032mm,0.762,2.032,no,R-15 / R-18
+D-13,Level 2,M_Single-Flush:0864 x 2032mm:0864 x 2032mm:150378,0864 x 2032mm,0.864,2.032,no,R-19 / R-14
+D-14,Level 2,M_Single-Flush:0864 x 2032mm:0864 x 2032mm:159834,0864 x 2032mm,0.864,2.032,no,R-20 / R-17

@@ -1,0 +1,49 @@
+# Publish the Studio to GitHub Pages.
+#
+# The Studio is static: it reads artifacts a run already committed under
+# web/data/. So deploying is just uploading web/ — no build step, no server,
+# and no secret ever reaches the browser.
+#
+# Enable once in Settings → Pages → Source: GitHub Actions.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a half-finished deploy; let the running one land first.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail loudly if the Studio has no data to show
+        run: |
+          if [ ! -f web/data/index.json ]; then
+            echo "::error::web/data/index.json is missing — publish a run first:"
+            echo "::error::  uv run recognition autopilot briefs/<name>.json --publish"
+            exit 1
+          fi
+          echo "projects:"; jq -r '.projects[] | "  - \(.project) (\(.candidates) layouts, winner: \(.winner))"' web/data/index.json
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deploy
+        uses: actions/deploy-pages@v4

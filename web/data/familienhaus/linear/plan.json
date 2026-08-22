@@ -1,0 +1,112 @@
+{
+  "project": "Familienhaus",
+  "envelope": {
+    "width_m": 15.5,
+    "depth_m": 9.0,
+    "external_wall_m": 0.3,
+    "internal_wall_m": 0.15
+  },
+  "rooms": [
+    {
+      "id": "R-01",
+      "category": "living",
+      "label": "Wohnen",
+      "target_area_m2": 26.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-02",
+      "category": "kitchen",
+      "label": "Küche",
+      "target_area_m2": 12.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-03",
+      "category": "bedroom",
+      "label": "Schlafzimmer 1",
+      "target_area_m2": 14.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-04",
+      "category": "bedroom",
+      "label": "Schlafzimmer 2",
+      "target_area_m2": 14.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-05",
+      "category": "bedroom",
+      "label": "Schlafzimmer 3",
+      "target_area_m2": 14.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-06",
+      "category": "bathroom",
+      "label": "Bad",
+      "target_area_m2": 8.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-07",
+      "category": "office",
+      "label": "Büro",
+      "target_area_m2": 12.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-08",
+      "category": "hall",
+      "label": "Flur",
+      "target_area_m2": 10.0,
+      "exterior_wall": true
+    }
+  ],
+  "adjacency": [
+    {
+      "a": "R-08",
+      "b": "R-01",
+      "via": "door"
+    },
+    {
+      "a": "R-08",
+      "b": "R-02",
+      "via": "door"
+    },
+    {
+      "a": "R-08",
+      "b": "R-03",
+      "via": "door"
+    },
+    {
+      "a": "R-08",
+      "b": "R-04",
+      "via": "door"
+    },
+    {
+      "a": "R-08",
+      "b": "R-05",
+      "via": "door"
+    },
+    {
+      "a": "R-08",
+      "b": "R-06",
+      "via": "door"
+    },
+    {
+      "a": "R-08",
+      "b": "R-07",
+      "via": "door"
+    }
+  ],
+  "storey_name": "Erdgeschoss",
+  "storey_height_m": 2.5,
+  "circulation_id": "R-08",
+  "glazing_ratio": 0.125,
+  "accessibility_tier": "none",
+  "rationale": "Linear frontage: Wider, shallower envelope. Every habitable room reaches an exterior wall, which makes the daylight rule easy to satisfy.",
+  "todo_agent": [],
+  "schema": "architectplan/v1"
+}

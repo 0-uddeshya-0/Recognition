@@ -1,0 +1,12 @@
+tag,storey,name,type,width_m,height_m,glazing_m2,room
+W-01,Erdgeschoss,EG-Fenster-4,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-01
+W-02,Erdgeschoss,EG-Fenster-5,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-02
+W-03,Erdgeschoss,EG-Fenster-7,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-01
+W-04,Erdgeschoss,EG-Fenster-9,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-02
+W-05,Erdgeschoss,EG-Fenster-6,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-05
+W-06,Erdgeschoss,EG-Fenster-8,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-04
+W-07,Erdgeschoss,EG-Fenster-1,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-05
+W-08,Erdgeschoss,EG-Fenster-2,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-06
+W-09,Erdgeschoss,EG-Fenster-3,IFC Fenster - zwei Panele - Vertikal,2.0,1.2,2.4,R-04
+W-10,Dachgeschoss,OG-Fenster-2,Rundfenster 13,1.0,1.0,1.0,R-07
+W-11,Dachgeschoss,OG-Fenster-1,Rundfenster 13,1.0,1.0,1.0,R-07

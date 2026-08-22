@@ -1,0 +1,25 @@
+tag,storey,name,type,width_m,height_m,glazing_m2,room
+W-01,Level 1,M_Fixed:4835mm x 2420mm:4835mm x 2420mm:146016,4835mm x 2420mm,4.835,2.42,11.7,R-01
+W-02,Level 1,M_Fixed:750mm x 2200mm:750mm x 2200mm:147051,750mm x 2200mm,0.75,2.2,1.65,R-03
+W-03,Level 1,M_Fixed:750mm x 2200mm:750mm x 2200mm:146885,750mm x 2200mm,0.75,2.2,1.65,R-08
+W-04,Level 1,M_Fixed:4835mm x 2420mm:4835mm x 2420mm:145788,4835mm x 2420mm,4.835,2.42,11.7,R-10
+W-05,Level 2,M_Fixed:2800mm x 2410mm:2800mm x 2410mm:149278,2800mm x 2410mm,2.8,2.41,6.75,R-12
+W-06,Level 2,M_Fixed:819mm x 759mm:819mm x 759mm:149537,819mm x 759mm,0.819,0.759,0.62,R-12
+W-07,Level 2,M_Casement:819mm x 759mm:819mm x 759mm:149736,819mm x 759mm,0.819,0.759,0.62,R-12
+W-08,Level 2,M_Fixed:819mm x 759mm:819mm x 759mm:149924,819mm x 759mm,0.819,0.759,0.62,R-12
+W-09,Level 2,M_Fixed:2800mm x 2410mm:2800mm x 2410mm:180318,2800mm x 2410mm,2.8,2.41,6.75,R-11
+W-10,Level 2,M_Fixed:819mm x 759mm:819mm x 759mm:180663,819mm x 759mm,0.819,0.759,0.62,R-11
+W-11,Level 2,M_Fixed:819mm x 759mm:819mm x 759mm:180864,819mm x 759mm,0.819,0.759,0.62,R-11
+W-12,Level 2,M_Casement:819mm x 759mm:819mm x 759mm:180994,819mm x 759mm,0.819,0.759,0.62,R-11
+W-13,Level 2,M_Fixed:750mm x 2200mm:750mm x 2200mm:181930,750mm x 2200mm,0.75,2.2,1.65,R-12
+W-14,Level 2,M_Fixed:750mm x 2200mm:750mm x 2200mm:182101,750mm x 2200mm,0.75,2.2,1.65,R-19
+W-15,Level 2,M_Fixed:819mm x 759mm:819mm x 759mm:181285,819mm x 759mm,0.819,0.759,0.62,R-20
+W-16,Level 2,M_Casement:819mm x 759mm:819mm x 759mm:181548,819mm x 759mm,0.819,0.759,0.62,R-20
+W-17,Level 2,M_Fixed:819mm x 759mm:819mm x 759mm:181583,819mm x 759mm,0.819,0.759,0.62,R-20
+W-18,Level 2,M_Fixed:2800mm x 2410mm:2800mm x 2410mm:181096,2800mm x 2410mm,2.8,2.41,6.75,R-20
+W-19,Level 2,M_Fixed:819mm x 759mm:819mm x 759mm:147994,819mm x 759mm,0.819,0.759,0.62,R-19
+W-20,Level 2,M_Casement:819mm x 759mm:819mm x 759mm:148607,819mm x 759mm,0.819,0.759,0.62,R-19
+W-21,Level 2,M_Fixed:819mm x 759mm:819mm x 759mm:148722,819mm x 759mm,0.819,0.759,0.62,R-19
+W-22,Level 2,M_Fixed:2800mm x 2410mm:2800mm x 2410mm:147686,2800mm x 2410mm,2.8,2.41,6.75,R-19
+W-23,Roof,M_Skylight:1180 x 1170mm:1180 x 1170mm:185337,1180 x 1170mm,1.173,0.635,0.74,R-21
+W-24,Roof,M_Skylight:1180 x 1170mm:1180 x 1170mm:185718,1180 x 1170mm,1.173,0.635,0.74,R-21

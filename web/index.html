@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recognition — Studio</title>
+<meta name="description" content="Describe a house in plain words. Get a compliant building back — 3D model, dimensioned drawings, and a compliance report that cites the statute behind every finding.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='2.5' y='2.5' width='19' height='19' rx='2' fill='none' stroke='%2315191D' stroke-width='1.8'/><rect x='7' y='7' width='10' height='10' fill='%232A62D8'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="studio.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+
+<header class="top">
+  <a class="wordmark" href="./" aria-label="Recognition home">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <rect x="7" y="7" width="10" height="10" fill="var(--accent)"/>
+    </svg>
+    Recognition
+  </a>
+  <span class="studio-tag">Studio</span>
+  <div class="title"><h1 id="doc-title">A house, described</h1></div>
+  <span class="spacer"></span>
+  <div id="top-stamp" class="hide"></div>
+  <button id="restart" class="ghost hide" type="button">New design</button>
+</header>
+
+<!-- ══════════════════ 1 · BRIEF ══════════════════ -->
+<main id="view-brief" class="view brief-view">
+  <div class="brief-wrap">
+    <div class="brief-intro">
+      <p class="kicker">Give architecture an engineer</p>
+      <h2>Describe the house. We'll draw it, check it against the code, and show our working.</h2>
+      <p class="sub">Five questions — only the ones the building code actually needs. Everything else we assume, and show you exactly what we assumed.</p>
+    </div>
+
+    <form id="interview" novalidate>
+      <ol class="qlist" id="qlist"></ol>
+
+      <div class="assumed" id="assumed-box">
+        <h3>What we'll assume</h3>
+        <p class="hint">Each of these has a reason. Change any of them before or after the run.</p>
+        <div class="chips" id="assumed-chips"></div>
+      </div>
+
+      <div class="brief-actions">
+        <button class="primary" id="go" type="submit">Design it</button>
+        <span class="hint" id="go-hint">Nobody touches the run once it starts.</span>
+      </div>
+    </form>
+
+    <section class="existing" id="existing">
+      <h3>Already built</h3>
+      <div class="proj-grid" id="proj-grid"></div>
+    </section>
+  </div>
+</main>
+
+<!-- ══════════════════ 2 · WORKING ══════════════════ -->
+<main id="view-working" class="view hide">
+  <div class="working-wrap">
+    <h2 id="working-title">Designing</h2>
+    <p class="sub" id="working-sub">One brief, three layouts, each checked on its own.</p>
+    <ol class="steps" id="steps"></ol>
+    <p class="hint mono" id="working-note"></p>
+  </div>
+</main>
+
+<!-- ══════════════════ 3 · RESULT ══════════════════ -->
+<main id="view-result" class="view studio hide">
+  <section class="pane pane-3d">
+    <div class="pane-head">
+      <strong>3D</strong>
+      <span class="hint">drag to orbit · wheel to zoom · hover a room</span>
+      <span class="spacer"></span>
+      <label class="v3-opts"><input type="checkbox" id="show-spaces" checked> rooms</label>
+    </div>
+    <div class="v3-host" id="v3-host">
+      <div class="v3-wait" id="v3-wait">loading model…</div>
+      <div class="hoverchip hide" id="hoverchip"></div>
+    </div>
+  </section>
+
+  <section class="pane pane-2d">
+    <div class="pane-head">
+      <strong>2D</strong>
+      <span class="hint" id="sheet-name">floor plan</span>
+      <span class="spacer"></span>
+      <a id="pdf-link" class="ghost sm" href="#" target="_blank" rel="noopener">PDF ↗</a>
+    </div>
+    <div class="sheet-host" id="sheet-host"></div>
+  </section>
+
+  <aside class="pane pane-side">
+    <div class="tabs" role="tablist">
+      <button class="on" data-tab="findings" role="tab">Compliance</button>
+      <button data-tab="rooms" role="tab">Rooms</button>
+      <button data-tab="options" role="tab">Options</button>
+      <button data-tab="code" role="tab">Code</button>
+    </div>
+    <div class="tabbody" id="tab-findings"></div>
+    <div class="tabbody hide" id="tab-rooms"></div>
+    <div class="tabbody hide" id="tab-options"></div>
+    <div class="tabbody hide" id="tab-code"></div>
+  </aside>
+</main>
+
+<div id="toast" class="toast hide" role="status"></div>
+
+<script type="module" src="studio.js"></script>
+</body>
+</html>

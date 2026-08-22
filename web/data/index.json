@@ -1,0 +1,26 @@
+{
+  "projects": [
+    {
+      "key": "dreifamilienhaus",
+      "project": "Dreifamilienhaus",
+      "winner": "open",
+      "engine": "local",
+      "candidates": 3,
+      "ok": true,
+      "checked": 39,
+      "not_evaluated": 2,
+      "failed": 0
+    },
+    {
+      "key": "familienhaus",
+      "project": "Familienhaus",
+      "winner": "open",
+      "engine": "local",
+      "candidates": 3,
+      "ok": true,
+      "checked": 54,
+      "not_evaluated": 2,
+      "failed": 0
+    }
+  ]
+}

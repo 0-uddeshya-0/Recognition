@@ -1,0 +1,41 @@
+{
+  "project": "Dreifamilienhaus",
+  "bundesland": "BY",
+  "building_class": "detached_house",
+  "plot_width_m": 18.0,
+  "plot_depth_m": 24.0,
+  "dwelling_count": 3,
+  "storey_count": 1,
+  "storey_height_m": 2.5,
+  "occupants": 8,
+  "rooms": [
+    {
+      "category": "living",
+      "count": 1,
+      "min_area_m2": null,
+      "label": null
+    },
+    {
+      "category": "kitchen",
+      "count": 1,
+      "min_area_m2": null,
+      "label": null
+    },
+    {
+      "category": "bedroom",
+      "count": 2,
+      "min_area_m2": null,
+      "label": null
+    },
+    {
+      "category": "bathroom",
+      "count": 1,
+      "min_area_m2": null,
+      "label": null
+    }
+  ],
+  "accessibility_tier": "none",
+  "assumptions": [],
+  "notes": "",
+  "schema": "designbrief/v1"
+}

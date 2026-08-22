@@ -1,0 +1,22 @@
+tag,storey,name,category,area_m2,height_m,doors,windows
+R-01,Level 1,Living Room,living,27.66,2.58,D-01,W-01 W-02
+R-02,Level 1,Foyer,hall,15.59,2.58,D-02 D-03 D-01,
+R-03,Level 1,Kitchen,kitchen,12.95,2.59,D-03,W-02
+R-04,Level 1,Stair,stair,3.8,5.68,,
+R-05,Level 1,Bathroom 1,bathroom,3.16,2.59,D-03,
+R-06,Level 1,Bathroom 1,bathroom,3.16,2.59,D-04,
+R-07,Level 1,Room,other,3.8,5.68,,
+R-08,Level 1,Kitchen,kitchen,12.95,2.59,D-04,W-03
+R-09,Level 1,Foyer,hall,15.59,2.58,D-05 D-04 D-06,
+R-10,Level 1,Living Room,living,27.66,2.58,D-06,W-04 W-03
+R-11,Level 2,Bedroom 1,bedroom,22.04,2.58,D-07,W-09 W-10 W-11 W-12
+R-12,Level 2,Bedroom 2,bedroom,22.04,2.58,D-08,W-05 W-06 W-07 W-08 W-13
+R-13,Level 2,Utility,utility,1.4,2.59,D-10 D-09,
+R-14,Level 2,Hallway,hall,6.89,2.88,D-13 D-07 D-10 D-09,
+R-15,Level 2,Bathroom 2,bathroom,4.73,2.59,D-11 D-12,
+R-16,Level 2,Bathroom 2,bathroom,4.75,2.59,D-10 D-09,
+R-17,Level 2,Hallway,hall,6.89,2.88,D-08 D-14 D-11 D-12,
+R-18,Level 2,Utility,utility,1.42,2.59,D-11 D-12,
+R-19,Level 2,Bedroom 2,bedroom,22.04,2.58,D-13,W-22 W-19 W-20 W-21 W-14
+R-20,Level 2,Bedroom 1,bedroom,22.04,2.58,D-14,W-18 W-15 W-16 W-17
+R-21,Roof,Roof,roof,135.15,3.0,,W-23 W-24

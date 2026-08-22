@@ -1,0 +1,105 @@
+{
+  "recognition_version": "0.1.0",
+  "revision": "9750f5c",
+  "model": "Duplex.ifc",
+  "schema": "IFC2X3",
+  "project": "Duplex",
+  "counts": {
+    "storeys": 4,
+    "walls": 57,
+    "spaces": 21,
+    "doors": 14,
+    "windows": 24
+  },
+  "compliance": {
+    "status": "FAIL",
+    "checks": 71,
+    "passed": 64,
+    "errors": 7,
+    "warnings": 0,
+    "by_rule": {
+      "ROOM-MIN-AREA": {
+        "checked": 12,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum floor area for habitable rooms"
+      },
+      "ROOM-MIN-WIDTH": {
+        "checked": 8,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Minimum clear width of habitable rooms"
+      },
+      "DOOR-MIN-WIDTH": {
+        "checked": 14,
+        "failed": 6,
+        "severity": "error",
+        "title": "Minimum door leaf width"
+      },
+      "DOOR-MIN-HEIGHT": {
+        "checked": 14,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum door leaf height"
+      },
+      "ROOM-DAYLIGHT": {
+        "checked": 8,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Glazing area as a share of floor area in habitable rooms"
+      },
+      "ROOM-HAS-DOOR": {
+        "checked": 15,
+        "failed": 1,
+        "severity": "error",
+        "title": "Every room must be reachable through a door"
+      }
+    }
+  },
+  "schedules": {
+    "rooms": 21,
+    "doors": 14,
+    "windows": 24
+  },
+  "sheets": [
+    {
+      "sheet": "A-101",
+      "storey": "T/FDN",
+      "svg": "A-101_T-FDN.svg",
+      "pdf": "A-101_T-FDN.pdf",
+      "png": "A-101_T-FDN.png",
+      "dxf": "A-101_T-FDN.dxf"
+    },
+    {
+      "sheet": "A-102",
+      "storey": "Level 1",
+      "svg": "A-102_Level-1.svg",
+      "pdf": "A-102_Level-1.pdf",
+      "png": "A-102_Level-1.png",
+      "dxf": "A-102_Level-1.dxf"
+    },
+    {
+      "sheet": "A-103",
+      "storey": "Level 2",
+      "svg": "A-103_Level-2.svg",
+      "pdf": "A-103_Level-2.pdf",
+      "png": "A-103_Level-2.png",
+      "dxf": "A-103_Level-2.dxf"
+    },
+    {
+      "sheet": "A-104",
+      "storey": "Roof",
+      "svg": "A-104_Roof.svg",
+      "pdf": "A-104_Roof.pdf",
+      "png": "A-104_Roof.png",
+      "dxf": "A-104_Roof.dxf"
+    }
+  ],
+  "files": {
+    "schedules": "schedules/",
+    "report_md": "report.md",
+    "report_json": "report.json",
+    "enriched_ifc": "model.detailed.ifc",
+    "sheets": "sheets/"
+  }
+}

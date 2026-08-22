@@ -1,0 +1,140 @@
+# The trigger. Everything after this point runs with nobody in the middle.
+#
+# Three ways in, all the same pipeline:
+#   * repository_dispatch  -- what the web UI posts (the browser holds no secret)
+#   * workflow_dispatch    -- a human starting a run from the Actions tab
+#   * push to briefs/**    -- committing a brief is itself a trigger
+#
+# The job never asks for approval. `recognition autopilot` exits non-zero when no
+# candidate clears the compliance gate, and that exit code is the gate: a run that
+# fails produces no merge, and a run that passes merges itself.
+name: autopilot
+
+on:
+  repository_dispatch:
+    types: [design-request]
+  workflow_dispatch:
+    inputs:
+      brief:
+        description: Path to a DesignBrief JSON in the repo
+        required: true
+        default: briefs/familienhaus.json
+      engine:
+        description: local (deterministic) or devin (one session per strategy)
+        required: true
+        default: local
+        type: choice
+        options: [local, devin]
+      strategies:
+        description: Comma-separated subset, blank for all
+        required: false
+        default: ""
+  push:
+    branches-ignore: [main]
+    paths: ["briefs/**.json"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: autopilot-${{ github.event.client_payload.brief || inputs.brief || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the trigger
+        id: cfg
+        run: |
+          BRIEF="${{ github.event.client_payload.brief || inputs.brief }}"
+          ENGINE="${{ github.event.client_payload.engine || inputs.engine }}"
+          STRATS="${{ github.event.client_payload.strategies || inputs.strategies }}"
+          # A push to briefs/** carries no inputs: design whatever changed.
+          if [ -z "$BRIEF" ]; then
+            BRIEF=$(git diff --name-only HEAD~1 HEAD -- 'briefs/*.json' | head -1)
+          fi
+          [ -z "$BRIEF" ] && BRIEF=briefs/familienhaus.json
+          [ -z "$ENGINE" ] && ENGINE=local
+          echo "brief=$BRIEF"       >> "$GITHUB_OUTPUT"
+          echo "engine=$ENGINE"     >> "$GITHUB_OUTPUT"
+          echo "strategies=$STRATS" >> "$GITHUB_OUTPUT"
+          echo "slug=$(basename "$BRIEF" .json)" >> "$GITHUB_OUTPUT"
+
+      # cairosvg needs the native cairo library; without it sheet rendering dies
+      # with a dlopen error that looks nothing like a missing apt package.
+      - name: System libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libcairo2
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync
+
+      - name: Verifier must be green before it may design anything
+        run: uv run pytest -q
+
+      - name: Autopilot
+        id: run
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
+        run: |
+          set -o pipefail
+          uv run recognition autopilot "${{ steps.cfg.outputs.brief }}" \
+            --engine "${{ steps.cfg.outputs.engine }}" \
+            --out out/autopilot \
+            ${{ steps.cfg.outputs.strategies && format('--strategies {0}', steps.cfg.outputs.strategies) || '' }} \
+            2>&1 | tee autopilot.log
+          echo "winner=$(jq -r '.winner // ""' out/autopilot/*/run.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-${{ steps.cfg.outputs.slug }}
+          path: |
+            out/autopilot/**
+            autopilot.log
+          if-no-files-found: warn
+
+      # Auto-merge on green. There is no approval step and no Approve button:
+      # the deterministic verifier is the only gate, and it has already run.
+      - name: Open and merge the winning design
+        if: success() && steps.run.outputs.winner != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SLUG="${{ steps.cfg.outputs.slug }}"
+          WINNER="${{ steps.run.outputs.winner }}"
+          BRANCH="design/${SLUG}-${GITHUB_RUN_ID}"
+          git config user.name  "recognition-autopilot"
+          git config user.email "autopilot@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          mkdir -p "deliveries/${SLUG}"
+          cp -r out/autopilot/*/"${WINNER}"/. "deliveries/${SLUG}/"
+          git add "deliveries/${SLUG}"
+          git commit -m "design(${SLUG}): ${WINNER} — passed the compliance gate
+
+          Produced by the autopilot with no human in the loop. The winning
+          candidate was chosen by recognition.score, not by a person.
+
+          Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          git push -u origin "$BRANCH"
+          gh pr create --title "design(${SLUG}): ${WINNER}" \
+            --body "$(cat out/autopilot/*/"${WINNER}"/verdict.json | jq -r \
+              '"**" + .stamp_line + "**"' 2>/dev/null || echo "Autopilot result — see the run artifacts.")
+
+          Winner \`${WINNER}\` cleared every \`tier: law\` rule. Merging automatically." \
+            --base main --head "$BRANCH"
+          gh pr merge "$BRANCH" --squash --delete-branch
+
+      - name: Report a failed gate honestly
+        if: failure()
+        run: |
+          echo "::error::No candidate cleared the compliance gate. Nothing was merged."
+          tail -40 autopilot.log 2>/dev/null || true
