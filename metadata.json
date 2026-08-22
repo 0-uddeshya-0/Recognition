@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NBAVBGT1VE6JYZBBJ3CSA5",
+  "strategy": "manual-commit",
+  "branch": "poc/design-as-code",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "ui/static/app.js",
+    "ui/static/style.css"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 268,
+    "cache_creation_tokens": 4696,
+    "cache_read_tokens": 3854028,
+    "output_tokens": 3363,
+    "api_call_count": 8
+  }
+}

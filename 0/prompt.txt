@@ -1,0 +1,17 @@
+commit and push
+
+---
+
+so when i send prompt to devin, it'll just change this code right?
+
+---
+
+how are we sure that 3D and 2D are in sync?
+
+---
+
+http://localhost:8000/jobs/d2f7181e91 this one running too long
+
+---
+
+still stuck, on what please check
