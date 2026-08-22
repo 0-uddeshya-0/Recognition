@@ -5,15 +5,19 @@
 Routes
     GET  /                          page (state 1)
     GET  /jobs/{id}                 same page, deep-linked to a job (state 2/3)
-    POST /api/jobs                  multipart: ifc file | sample=<key>, instruction?, rules_yaml?, engine?
+    POST /api/jobs                  multipart: ifc file | sample=<key> | code=<house.py> (+ project?),
+                                    instruction?, rules_yaml?, engine?
     GET  /api/jobs                  recent jobs
-    GET  /api/jobs/{id}             job JSON (status, steps, summary, pr_url, delta)
+    GET  /api/jobs/{id}             job JSON (status, steps, summary, pr_url, delta, source, code)
     GET  /api/jobs/{id}/package     summary + findings + schedules of the latest run
-    POST /api/jobs/{id}/message     {text, rules_yaml?}  — request change / apply rules
+    POST /api/jobs/{id}/message     {text, rules_yaml?, code?}  — request change / apply rules / rebuild design
     POST /api/jobs/{id}/approve
     GET  /jobs/{id}/files/{path}    files from the latest package (traversal-safe)
     GET  /jobs/{id}/bundle/{kind}   zip: pdf | dxf | schedules | all
+    GET  /jobs/{id}/mesh.json       triangle meshes of the latest package's model for the 3D viewer
     GET  /api/rules                 default rules YAML
+    GET  /studio[/{id}]             code | 3D + 2D, one Build button (the focused view)
+    GET  /api/design/example        design/house.py — the starting point for a house written as code
 """
 from __future__ import annotations
 
@@ -32,7 +36,8 @@ from pydantic import BaseModel
 from recognition import __version__
 
 from . import engine as E
-from .jobs import REPO_ROOT, Job, JobStore, load_package
+from .jobs import REPO_ROOT, Job, JobStore, load_package, slug
+from .mesh import MESH_FILE, mesh_json
 
 E.load_dotenv()
 
@@ -87,9 +92,28 @@ def job_page(request: Request, job_id: str):
     return page(request, job_id)
 
 
+@app.get("/studio", response_class=HTMLResponse)
+def studio(request: Request):
+    """Source code on the left, 3D and 2D on the right, one Build button — nothing else."""
+    return templates.TemplateResponse(request, "studio.html", {"job_id": None, "version": __version__,
+                                                               "default_rules": E.default_rules_yaml()})
+
+
+@app.get("/studio/{job_id}", response_class=HTMLResponse)
+def studio_job(request: Request, job_id: str):
+    get_job(job_id)
+    return templates.TemplateResponse(request, "studio.html", {"job_id": job_id, "version": __version__,
+                                                               "default_rules": E.default_rules_yaml()})
+
+
 @app.get("/api/rules", response_class=PlainTextResponse)
 def rules():
     return E.default_rules_yaml()
+
+
+@app.get("/api/design/example", response_class=PlainTextResponse)
+def design_example():
+    return E.example_design()
 
 
 @app.get("/api/jobs")
@@ -101,11 +125,17 @@ def list_jobs():
 
 @app.post("/api/jobs")
 async def create_job(file: UploadFile | None = File(None), sample: str | None = Form(None),
+                     code: str | None = Form(None), project: str | None = Form(None),
                      instruction: str | None = Form(None), rules_yaml: str | None = Form(None),
                      engine: str = Form("local")):
     if engine not in engines:
         raise HTTPException(400, f"engine '{engine}' is not available on this server")
-    if sample:
+    if code is not None and code.strip():
+        # the house as Python: the engine builds model.ifc from it before the pipeline runs
+        name = (project or "").strip() or "House"
+        job = store.create(Path(), f"{slug(name).lower()}.py", engine, project=name)
+        job.source, job.code = "code", code
+    elif sample:
         spec = SAMPLES.get(sample)
         if not spec or not spec["path"].exists():
             raise HTTPException(400, f"unknown sample '{sample}'")
@@ -126,7 +156,7 @@ async def create_job(file: UploadFile | None = File(None), sample: str | None = 
                 out.write(chunk)
         job.model_path = str(dest)
     else:
-        raise HTTPException(400, "upload an .ifc file or pick a sample")
+        raise HTTPException(400, "upload an .ifc file, pick a sample or write the house as code")
     rules_text = rules_yaml if rules_yaml and rules_yaml.strip() else None
     try:
         engine_for(job).start(job, Path(job.model_path), (instruction or "").strip() or None, rules_text)
@@ -153,6 +183,7 @@ def job_package(job_id: str):
 class Message(BaseModel):
     text: str = ""
     rules_yaml: str | None = None
+    code: str | None = None  # edited house script (code jobs): rebuild + re-run when it differs from job.code
 
 
 @app.post("/api/jobs/{job_id}/message")
@@ -162,11 +193,11 @@ def job_message(job_id: str, msg: Message):
     eng = engine_for(job)
     try:
         if (job.engine == "local" and text and not E.rules_changed(job, msg.rules_yaml)
-                and "devin" in engines):
+                and not E.code_changed(job, msg.code) and "devin" in engines):
             # a free-text request escalates the job to Devin: same model, same rules, a real engineer
             engines["devin"].start(job, Path(job.model_path), text, msg.rules_yaml)
         else:
-            eng.message(job, text, msg.rules_yaml)
+            eng.message(job, text, msg.rules_yaml, msg.code)
     except E.EngineError as e:
         raise HTTPException(400, str(e))
     return {"ok": True, "engine": job.engine, "status": job.status}
@@ -216,12 +247,32 @@ def job_bundle(job_id: str, kind: str):
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for p in sorted((root / sub).glob(pattern)):
+            if p.name == MESH_FILE or p.suffix == ".tmp":  # viewer cache, not a deliverable
+                continue
             if p.is_file() and p.name != "rules.yaml" or p.name == "rules.yaml" and kind == "all":
                 z.write(p, f"{job.project}/{p.relative_to(root)}")
     buf.seek(0)
     name = f"{job.project}-{kind}.zip"
     return StreamingResponse(buf, media_type="application/zip",
                              headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@app.get("/jobs/{job_id}/mesh.json")
+def job_mesh(job_id: str):
+    """Meshes of the model behind the latest package (for code jobs that is the IFC built in that run)."""
+    job = get_job(job_id)
+    if not job.result_dir:
+        raise HTTPException(409, "no package yet")
+    out_dir = Path(job.result_dir).resolve()
+    built = out_dir / "model.ifc"
+    model_path = built if job.source == "code" and built.is_file() else Path(job.model_path)
+    if not model_path.is_file():
+        raise HTTPException(404, "model file is gone")
+    try:
+        target = mesh_json(model_path, out_dir)
+    except Exception as e:  # a model ifcopenshell cannot triangulate is a 500 with a reason, not a traceback page
+        raise HTTPException(500, f"could not mesh the model: {e}")
+    return FileResponse(target, media_type="application/json", headers={"Cache-Control": "no-cache"})
 
 
 @app.exception_handler(E.EngineError)
