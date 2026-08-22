@@ -22,15 +22,17 @@ Geom = Polygon | MultiPolygon
 
 # Room classification by name keyword (English + German, covers the sample models).
 ROOM_CATEGORIES: dict[str, list[str]] = {
-    "bedroom": ["bedroom", "schlaf", "bed "],
-    "living": ["living", "wohn", "lounge"],
-    "kitchen": ["kitchen", "küche", "kueche"],
-    "bathroom": ["bath", "bad", "wc", "toilet", "shower"],
-    "office": ["office", "büro", "buero", "study"],
-    "hall": ["hall", "flur", "corridor", "foyer", "entry", "lobby"],
-    "utility": ["utility", "storage", "store", "technik", "hwr", "closet"],
-    "stair": ["stair", "treppe"],
-    "roof": ["roof", "dach", "attic", "galerie", "loft"],
+    "bedroom": ["bedroom", "schlaf", "bed ", "zimmer", "kind", "slaapkamer"],
+    "living": ["living", "wohn", "lounge", "woonkamer", "essen", "dining"],
+    "kitchen": ["kitchen", "küche", "kueche", "kochen", "keuken"],
+    "bathroom": ["bath", "bad", "wc", "toilet", "shower", "badkamer", "dusche"],
+    "office": ["office", "büro", "buero", "study", "kantoor"],
+    "meeting": ["meeting", "conference", "besprechung", "seminar"],
+    "lab": ["labor", "lab "],
+    "hall": ["hall", "flur", "corridor", "foyer", "entry", "lobby", "gang", "diele", "entree"],
+    "utility": ["utility", "storage", "store", "technik", "hwr", "closet", "keller", "abstell", "berging"],
+    "stair": ["stair", "treppe", "trap"],
+    "roof": ["roof", "dach", "attic", "galerie", "loft", "zolder"],
 }
 
 
@@ -125,7 +127,15 @@ class Model:
         return [w for w in self.windows if w.storey == storey]
 
     def spaces_touching(self, el: Element, buffer: float = 0.35) -> list[Space]:
-        """Spaces on the same storey whose footprint overlaps the element (buffered)."""
+        """Spaces on the same storey whose footprint overlaps the element (buffered).
+
+        Openings probe at least their host wall's thickness so a window set in the
+        outer leaf of a thick wall still finds the room behind it."""
+        host = getattr(el, "host_wall", None)
+        if host:
+            wall = next((w for w in self.walls if w.guid == host), None)
+            if wall is not None:
+                buffer = max(buffer, wall.thickness + 0.1)
         probe = el.footprint.buffer(buffer)
         hits = [(s, probe.intersection(s.footprint).area) for s in self.spaces_on(el.storey)]
         hits = [(s, a) for s, a in hits if a > 1e-4]
