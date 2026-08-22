@@ -21,12 +21,22 @@ from shapely.ops import unary_union
 Geom = Polygon | MultiPolygon
 
 # Room classification by name keyword (English + German, covers the sample models).
+# Order matters: the first category with a matching keyword wins, so specific
+# terms must precede general ones.
+#
+# Bare "zimmer" is deliberately NOT a bedroom keyword. It is simply German for
+# "room" and matches Badezimmer (a bathroom), Arbeitszimmer (an office) and
+# Esszimmer (a dining room) -- misfiling every one of them as a bedroom. That
+# mistake is not cosmetic: it made a house report as having no bathroom at all,
+# and put habitable-room daylight rules on a windowless bath.
 ROOM_CATEGORIES: dict[str, list[str]] = {
-    "bedroom": ["bedroom", "schlaf", "bed ", "zimmer", "kind", "slaapkamer"],
-    "living": ["living", "wohn", "lounge", "woonkamer", "essen", "dining"],
+    "bathroom": ["bath", "badezimmer", "bad", "wc", "toilet", "shower", "badkamer", "dusche"],
+    "office": ["office", "arbeitszimmer", "arbeit", "büro", "buero", "study", "kantoor"],
+    "bedroom": ["bedroom", "schlafzimmer", "schlaf", "kinderzimmer", "gästezimmer",
+                "gaestezimmer", "bed ", "kind", "slaapkamer"],
+    "living": ["living", "wohnzimmer", "wohn", "lounge", "woonkamer", "esszimmer",
+               "essen", "dining"],
     "kitchen": ["kitchen", "küche", "kueche", "kochen", "keuken"],
-    "bathroom": ["bath", "bad", "wc", "toilet", "shower", "badkamer", "dusche"],
-    "office": ["office", "büro", "buero", "study", "kantoor"],
     "meeting": ["meeting", "conference", "besprechung", "seminar"],
     "lab": ["labor", "lab "],
     "hall": ["hall", "flur", "corridor", "foyer", "entry", "lobby", "gang", "diele", "entree"],

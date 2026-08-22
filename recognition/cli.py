@@ -97,6 +97,42 @@ def run(model_path: Path, out_dir: Path, rules_path: Path | None, project: str, 
     return summary
 
 
+def _autopilot(a) -> int:
+    """Trigger to artifact. Exit code is the verdict, so CI can gate on it."""
+    from .autopilot import DEFAULT_RULES, STRATEGIES, ranked, run_devin, run_local, strategy_by_name
+    from .contracts import DesignBrief
+
+    brief = DesignBrief.read(a.brief)
+    strats = ([strategy_by_name(s.strip()) for s in a.strategies.split(",") if s.strip()]
+              or STRATEGIES)
+    rules = a.rules or DEFAULT_RULES
+    out = a.out / _slug(brief.project)
+
+    print(f"autopilot · {brief.project} · engine={a.engine} · {len(strats)} candidates")
+    if a.engine == "devin":
+        res = run_devin(brief, out, strategies=strats, rules_path=rules,
+                        max_acu=a.max_acu, timeout_s=a.timeout, critic=not a.no_critic)
+    else:
+        res = run_local(brief, out, strategies=strats, rules_path=rules)
+
+    print("\nranking (deterministic — no human, no model):")
+    for i, v in enumerate(ranked(res), 1):
+        m = v.metrics
+        print(f"  {i}. {v.candidate:9} {v.stamp():4} blocking={v.blocking_failures} "
+              f"advisory={v.advisory_failures} usable={m.get('usable_ratio', 0):.3f} "
+              f"openings={m.get('openings', 0)}")
+    for c in res.candidates:
+        if c.error:
+            print(f"  ! {c.name}: {c.error[:150]}")
+
+    if not res.winner:
+        print("\nNO WINNER — nothing passed the compliance gate. Nothing will be merged.")
+        return 1
+    print(f"\nwinner: {res.winner}  →  {out / res.winner}")
+    print(f"run summary: {out / 'run.json'}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="recognition", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -109,7 +145,26 @@ def main(argv: list[str] | None = None) -> int:
     p_chk = sub.add_parser("check", help="run compliance rules; exit 1 if any error-level finding")
     p_chk.add_argument("model", type=Path)
     p_chk.add_argument("--rules", type=Path, default=None)
+
+    p_auto = sub.add_parser(
+        "autopilot",
+        help="the autonomous layer: one brief in, verified artifacts out, nobody in between")
+    p_auto.add_argument("brief", type=Path, help="path to a DesignBrief JSON")
+    p_auto.add_argument("--out", type=Path, default=Path("out/autopilot"))
+    p_auto.add_argument("--engine", choices=("local", "devin"), default="local",
+                        help="local = deterministic candidate generation; devin = one session per strategy")
+    p_auto.add_argument("--rules", type=Path, default=None)
+    p_auto.add_argument("--strategies", default="",
+                        help="comma-separated subset, e.g. compact,linear")
+    p_auto.add_argument("--max-acu", type=int, default=None)
+    p_auto.add_argument("--timeout", type=float, default=1800)
+    p_auto.add_argument("--no-critic", action="store_true",
+                        help="skip the adversarial review session (devin engine only)")
+
     a = ap.parse_args(argv)
+
+    if a.cmd == "autopilot":
+        return _autopilot(a)
 
     if a.cmd == "run":
         s = run(a.model, a.out_dir, a.rules, a.project, a.revision)

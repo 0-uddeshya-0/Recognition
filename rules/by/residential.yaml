@@ -1,0 +1,232 @@
+# Recognition ruleset -- Bayern, residential.
+#
+# THIS IS A DESIGN AID, NOT LEGAL ADVICE. It is not a substitute for a
+# Pruefstatiker or a submitting architect. Nothing here is certified.
+#
+# Every rule MUST declare `tier` and `source`. A rule missing either is a load
+# error, not a warning -- that is what stops guidance quietly becoming statute.
+#
+#   tier: law       a cited statute article           -> may block a merge
+#   tier: standard  a DIN norm, binding once triggered -> blocks only when triggered
+#   tier: guidance  published Richtwerte, convention   -> never blocks
+#   tier: house     this practice's own preference     -> never blocks
+#
+# `requires` lists the brief facts a rule needs. The interview is generated from
+# the union of these, so adding a rule adds its question automatically.
+#
+# `checkable` is the honesty field. `no` means the model carries no such data and
+# the rule is reported as NOT EVALUATED -- never as a pass.
+#
+# Devin may implement a rule's predicate in Python and write its tests. Devin may
+# NEVER author a threshold or a citation.
+
+name: Bayern residential
+version: 1.0
+jurisdiction: DE-BY
+retrieved: 2026-08-22
+
+rules:
+  # ---------------------------------------------------------------- BayBO ---
+  - id: ROOM-CLEAR-HEIGHT
+    title: Minimum clear height of habitable rooms
+    tier: law
+    severity: error
+    source:
+      law: BayBO Art. 45 (1)
+      url: https://www.gesetze-bayern.de/Content/Document/BayBO-45
+      retrieved: 2026-08-22
+    requires: [storey_height_m]
+    checkable: yes
+    params:
+      min_m: 2.40
+      attic_min_m: 2.20
+      attic_share: 0.5
+      applies_to: [bedroom, living, kitchen, office]
+
+  - id: ROOM-DAYLIGHT
+    title: Glazing area as a share of net floor area
+    tier: law
+    severity: error
+    source:
+      law: BayBO Art. 45 (2)
+      url: https://www.gesetze-bayern.de/Content/Document/BayBO-45
+      retrieved: 2026-08-22
+      note: >-
+        One eighth of the room's net floor area. The previous demo ruleset used
+        0.10, which understated the requirement.
+    requires: []
+    checkable: yes
+    params:
+      min_ratio: 0.125          # 1/8 -- corrected from the 0.10 demo value
+      applies_to: [bedroom, living, kitchen, office]
+
+  - id: DWELLING-FACILITIES
+    title: Every dwelling has a kitchen, a bathroom and a WC
+    tier: law
+    severity: error
+    source:
+      law: BayBO Art. 46 (1-2)
+      url: https://www.gesetze-bayern.de/Content/Document/BayBO-46
+      retrieved: 2026-08-22
+    requires: [dwelling_count]
+    checkable: yes
+    params:
+      needs: [kitchen, bathroom]
+
+  - id: SMOKE-DETECTOR
+    title: Smoke detectors in bedrooms, children's rooms and serving halls
+    tier: law
+    severity: error
+    source:
+      law: BayBO Art. 46 (4)
+      url: https://www.gesetze-bayern.de/Content/Document/BayBO-46
+      retrieved: 2026-08-22
+    requires: []
+    checkable: no
+    not_evaluated_reason: >-
+      The model carries no smoke-detector data. Reported as NOT EVALUATED rather
+      than passed. Resolve by enriching the model or by collecting a declaration
+      in the brief.
+
+  - id: BF-TRIGGER-ART48
+    title: Barrier-free dwellings required above two dwellings
+    tier: law
+    severity: error
+    source:
+      law: BayBO Art. 48 (1)
+      url: https://www.gesetze-bayern.de/Content/Document/BayBO-48
+      retrieved: 2026-08-22
+    requires: [dwelling_count, storey_count]
+    checkable: yes
+    when: dwelling_count > 2
+    then:
+      require_tier: din18040_2
+
+  # ----------------------------------------------------------- DIN 18040-2 ---
+  - id: DOOR-MIN-WIDTH
+    title: Minimum door leaf width
+    tier: standard
+    severity: error
+    source:
+      standard: DIN 18040-2
+      url: https://nullbarriere.de/din18040-2-tueren.htm
+      retrieved: 2026-08-22
+    requires: [accessibility_tier]
+    checkable: yes
+    triggered_by: accessibility_tier != none
+    params:
+      interior: 0.80
+      external: 0.90
+      wheelchair_R: 0.90
+
+  - id: DOOR-MIN-HEIGHT
+    title: Minimum door clear height
+    tier: standard
+    severity: error
+    source:
+      standard: DIN 18040-2
+      url: https://nullbarriere.de/din18040-2-tueren.htm
+      retrieved: 2026-08-22
+    requires: [accessibility_tier]
+    checkable: yes
+    triggered_by: accessibility_tier != none
+    params:
+      min: 2.05
+
+  - id: CORRIDOR-WIDTH
+    title: Clear corridor width with a turning area
+    tier: standard
+    severity: error
+    source:
+      standard: DIN 18040-2
+      url: https://www.weka.de/architekten-ingenieure/din-18040-2/
+      retrieved: 2026-08-22
+    requires: [accessibility_tier]
+    checkable: yes
+    triggered_by: accessibility_tier != none
+    params:
+      min_width: 1.20
+      turning_area: 1.50
+
+  - id: MOVEMENT-AREA
+    title: Movement area within each room
+    tier: standard
+    severity: warning
+    source:
+      standard: DIN 18040-2
+      url: https://www.weka.de/architekten-ingenieure/din-18040-2/
+      retrieved: 2026-08-22
+    requires: [accessibility_tier]
+    checkable: partial
+    partial_reason: >-
+      Approximated by the room's narrowest side. A true check needs furniture
+      layout, which the model does not carry. The approximation is declared
+      rather than presented as exact.
+    params:
+      min_side: 1.20
+      wheelchair_R: 1.50
+
+  - id: THRESHOLD
+    title: Threshold heights at doors
+    tier: standard
+    severity: error
+    source:
+      standard: DIN 18040-2
+      url: https://nullbarriere.de/din18040-2-tueren.htm
+      retrieved: 2026-08-22
+    requires: []
+    checkable: no
+    not_evaluated_reason: >-
+      Threshold heights are not represented in the model. Reported as NOT
+      EVALUATED.
+
+  # ------------------------------------------------------------- guidance ---
+  - id: ROOM-MIN-AREA
+    title: Typical floor areas for habitable rooms
+    tier: guidance                # DEMOTED: BayBO sets no minimum room area
+    severity: warning             # advisory only -- must never block a merge
+    source:
+      guidance: Richtwerte fuer Raumgroessen
+      url: https://www.fertighaus.de/ratgeber/hausbau/grundriss-planen-richtwerte-fuer-raumgroessen/
+      retrieved: 2026-08-22
+      note: >-
+        These are planning guide values, not statute. The earlier ruleset ran
+        them at severity:error, which asserted a legal minimum bedroom area that
+        BayBO does not contain.
+    requires: []
+    checkable: yes
+    params:
+      bedroom: 9.0
+      living: 18.0
+      kitchen: 6.0
+      bathroom: 4.0
+      office: 8.0
+
+  - id: ROOM-MIN-WIDTH
+    title: Typical clear width of habitable rooms
+    tier: guidance
+    severity: warning
+    source:
+      guidance: Richtwerte fuer Raumgroessen
+      url: https://www.fertighaus.de/ratgeber/hausbau/grundriss-planen-richtwerte-fuer-raumgroessen/
+      retrieved: 2026-08-22
+    requires: []
+    checkable: yes
+    params:
+      bedroom: 2.4
+      living: 3.0
+      kitchen: 1.8
+
+  # ---------------------------------------------------------------- house ---
+  - id: ROOM-HAS-DOOR
+    title: Every room must be reachable through a door
+    tier: house
+    severity: error
+    source:
+      house: Recognition practice convention
+      note: Not a statute; a buildability check the practice enforces on itself.
+      retrieved: 2026-08-22
+    requires: []
+    checkable: yes
+    params:
+      exempt: [roof, stair, hall]

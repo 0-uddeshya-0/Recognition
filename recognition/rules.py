@@ -162,16 +162,115 @@ def room_has_door(model: Model, params: dict, spec: dict) -> list[Result]:
     return out
 
 
+@rule("ROOM-CLEAR-HEIGHT")
+def room_clear_height(model: Model, params: dict, spec: dict) -> list[Result]:
+    """BayBO Art. 45 (1): habitable rooms need 2.40 m clear.
+
+    Attic rooms are allowed 2.20 m over half their area; we have no roof geometry,
+    so an attic room is measured against the attic limit and the approximation is
+    stated in the message rather than hidden.
+    """
+    lim, attic = params["min_m"], params.get("attic_min_m", params["min_m"])
+    applies = set(params.get("applies_to", HABITABLE))
+    out = []
+    for s in model.spaces:
+        if s.category not in applies:
+            continue
+        limit = attic if s.storey.lower().startswith(("dach", "attic", "ober")) else lim
+        h = s.height
+        if not h:
+            continue                      # no height in the model: nothing to assert
+        ok = h + 1e-6 >= limit
+        out.append(_res(spec, s, h, limit, ok,
+                        f"{s.label}: clear height {h:.2f} m {'≥' if ok else '<'} {limit} m"))
+    return out
+
+
+@rule("DWELLING-FACILITIES")
+def dwelling_facilities(model: Model, params: dict, spec: dict) -> list[Result]:
+    """BayBO Art. 46 (1-2): a dwelling needs a kitchen and a bathroom.
+
+    Checked per storey, which is the dwelling unit in the v1 single-storey model.
+    """
+    needs = list(params.get("needs", ("kitchen", "bathroom")))
+    present = {s.category for s in model.spaces}
+    out = []
+    for want in needs:
+        ok = want in present
+        anchor = next(iter(model.spaces), None)
+        if anchor is None:
+            continue
+        out.append(_res(spec, anchor, None, None, ok,
+                        f"dwelling {'has' if ok else 'is MISSING'} a {want}"))
+    return out
+
+
+@rule("CORRIDOR-WIDTH")
+def corridor_width(model: Model, params: dict, spec: dict) -> list[Result]:
+    """DIN 18040-2 clear corridor width. Only meaningful once triggered."""
+    lim = params["min_width"]
+    out = []
+    for s in model.spaces:
+        if s.category != "hall":
+            continue
+        width, _ = _rect_dims(s.footprint)
+        ok = width + 1e-6 >= lim
+        out.append(_res(spec, s, width, lim, ok,
+                        f"{s.label}: corridor width {width:.2f} m {'≥' if ok else '<'} {lim} m"))
+    return out
+
+
+@rule("MOVEMENT-AREA")
+def movement_area(model: Model, params: dict, spec: dict) -> list[Result]:
+    """DIN 18040-2 movement area, APPROXIMATED by the room's narrowest side.
+
+    A true check needs furniture layout, which the model does not carry. The
+    approximation is declared in the ruleset (`checkable: partial`) and repeated
+    in every message, rather than presented as an exact result.
+    """
+    lim = params["min_side"]
+    out = []
+    for s in model.spaces:
+        if s.category not in HABITABLE:
+            continue
+        width, _ = _rect_dims(s.footprint)
+        ok = width + 1e-6 >= lim
+        out.append(_res(spec, s, width, lim, ok,
+                        f"{s.label}: narrowest side {width:.2f} m {'≥' if ok else '<'} {lim} m "
+                        f"(approximation — no furniture layout in the model)"))
+    return out
+
+
 # --- running ---------------------------------------------------------------
 
 def load_ruleset(path: str | Path | None = None) -> dict:
     return yaml.safe_load(Path(path or DEFAULT_RULESET).read_text(encoding="utf-8"))
 
 
+def is_evaluable(spec: dict) -> bool:
+    """Can this rule be decided from the model at all?
+
+    Two kinds of rule legitimately have no geometric predicate:
+      * `checkable: no`  -- the model carries no such data (smoke detectors,
+        thresholds). Reported as NOT EVALUATED by recognition.score.
+      * policy triggers (`when:`) -- these select other rulesets from the brief
+        rather than judging geometry.
+    Skipping them here is not hiding them: score.verdict() reports every one.
+    """
+    checkable = spec.get("checkable", True)
+    if isinstance(checkable, bool):
+        checkable = "yes" if checkable else "no"
+    if str(checkable).lower() in ("no", "false"):
+        return False
+    return "when" not in spec
+
+
 def check(model: Model, ruleset: dict | None = None) -> Report:
     ruleset = ruleset or load_ruleset()
     results: list[Result] = []
     for spec in ruleset["rules"]:
+        if not is_evaluable(spec):
+            continue
         fn = REGISTRY.get(spec["id"])
         if fn is None:
             raise KeyError(f"rule {spec['id']} declared in ruleset but not implemented")
