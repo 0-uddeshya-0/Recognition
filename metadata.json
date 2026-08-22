@@ -2,7 +2,7 @@
   "cli_version": "0.10.2",
   "checkpoint_id": "01M0MRMAYH0ZKP3QDY8JEMFXH1",
   "strategy": "manual-commit",
-  "branch": "poc/ifc-detailing",
+  "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
     "README.md"
@@ -13,14 +13,14 @@
       "transcript": "/0/full.jsonl",
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
-      "prompt": "/0/prompt.txt"
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 453,
-    "cache_creation_tokens": 19762,
-    "cache_read_tokens": 240626,
-    "output_tokens": 3385,
-    "api_call_count": 6
+    "input_tokens": 103,
+    "cache_creation_tokens": 1274,
+    "cache_read_tokens": 94706,
+    "output_tokens": 1847,
+    "api_call_count": 2
   }
 }
