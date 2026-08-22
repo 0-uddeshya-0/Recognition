@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NPM9R4ZFQTDB942NP5P41Y",
+  "strategy": "manual-commit",
+  "branch": "feat/studio-chat",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/ui/studio-brief-1440.png",
+    "docs/ui/studio-brief-375.png",
+    "docs/ui/studio-result-1440.png",
+    "docs/ui/studio-result-fail-1440.png",
+    "web/data/dreifamilienhaus/compact/design.py",
+    "web/data/dreifamilienhaus/compact/mesh.json",
+    "web/data/dreifamilienhaus/compact/sheet.pdf",
+    "web/data/dreifamilienhaus/compact/sheet.svg",
+    "web/data/dreifamilienhaus/linear/design.py",
+    "web/data/dreifamilienhaus/linear/mesh.json",
+    "web/data/dreifamilienhaus/linear/sheet.pdf",
+    "web/data/dreifamilienhaus/linear/sheet.svg",
+    "web/data/dreifamilienhaus/open/design.py",
+    "web/data/dreifamilienhaus/open/mesh.json",
+    "web/data/dreifamilienhaus/open/sheet.pdf",
+    "web/data/dreifamilienhaus/open/sheet.svg",
+    "web/data/dreifamilienhaus/open/verdict.json",
+    "web/data/dreifamilienhaus/run.json",
+    "web/data/familienhaus/compact/design.py",
+    "web/data/familienhaus/compact/mesh.json",
+    "web/data/familienhaus/compact/sheet.pdf",
+    "web/data/familienhaus/compact/sheet.svg",
+    "web/data/familienhaus/linear/design.py",
+    "web/data/familienhaus/linear/mesh.json",
+    "web/data/familienhaus/linear/sheet.pdf",
+    "web/data/familienhaus/linear/sheet.svg",
+    "web/data/familienhaus/open/design.py",
+    "web/data/familienhaus/open/mesh.json",
+    "web/data/familienhaus/open/sheet.pdf",
+    "web/data/familienhaus/open/sheet.svg",
+    "web/data/familienhaus/run.json",
+    "web/data/index.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
