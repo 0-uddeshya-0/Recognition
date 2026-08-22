@@ -1,0 +1,5 @@
+‎ui/static/vendor/three.module.js why it's commited
+
+---
+
+we should make it simpler, for others to take this one, so keep only code part, 3D + 2D, remove anything else
