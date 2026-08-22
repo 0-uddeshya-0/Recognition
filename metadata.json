@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0MXRPK3R8YC7DFX7VM2WBPP",
+  "strategy": "manual-commit",
+  "branch": "ui/poc",
+  "checkpoints_count": 20,
+  "files_touched": [
+    "docs/ui/1-start.png",
+    "docs/ui/2-working-devin.png",
+    "docs/ui/2-working.png",
+    "docs/ui/3-duplex-fail.png",
+    "docs/ui/3-fzk-pass.png",
+    "docs/ui/3-fzk-rules-fail.png"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 258,
+    "cache_creation_tokens": 6142,
+    "cache_read_tokens": 714477,
+    "output_tokens": 3411,
+    "api_call_count": 3
+  }
+}

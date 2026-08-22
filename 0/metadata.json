@@ -1,0 +1,101 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0MXRPK3R8YC7DFX7VM2WBPP",
+  "session_id": "b6767698-ce15-4b6c-ae97-9a7bdce5e992",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-22T14:25:04.257107517Z",
+  "branch": "ui/poc",
+  "checkpoints_count": 20,
+  "files_touched": [
+    "docs/ui/1-start.png",
+    "docs/ui/2-working-devin.png",
+    "docs/ui/2-working.png",
+    "docs/ui/3-duplex-fail.png",
+    "docs/ui/3-fzk-pass.png",
+    "docs/ui/3-fzk-rules-fail.png"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-fable-5",
+  "turn_id": "9d3ffbb50528",
+  "checkpoint_transcript_start": 908,
+  "transcript_lines_at_start": 908,
+  "compact_transcript_start": 112,
+  "token_usage": {
+    "input_tokens": 258,
+    "cache_creation_tokens": 6142,
+    "cache_read_tokens": 714477,
+    "output_tokens": 3411,
+    "api_call_count": 3
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-grill-me-2026-08-22T13:24:35.541201938Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "grill-me"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "8a1dbdbffb50",
+      "timestamp": "2026-08-22T13:24:35.541201938Z",
+      "native": {
+        "command": "/grill-me"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/grill-me",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01NPe1jMEyE2PZnw71fya7Py",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "frontend-design"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "9d3ffbb50528",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 620,
+        "end": 621,
+        "entry_ids": [
+          "2eeca78b-e111-4689-bf66-d44cf527a70d"
+        ],
+        "tool_use_id": "toolu_01NPe1jMEyE2PZnw71fya7Py"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01NPe1jMEyE2PZnw71fya7Py"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: frontend-design",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 20
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-22T14:25:04.076334613Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 0,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
