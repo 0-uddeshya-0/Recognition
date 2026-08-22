@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0ND8V0S8RGKX0HP8RKD3YAW",
+  "strategy": "manual-commit",
+  "branch": "studio",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "design/house.py",
+    "docs/ui/8-studio.png",
+    "docs/ui/9-studio-fail.png",
+    "recognition/design.py",
+    "tests/test_design.py",
+    "tests/test_ui.py",
+    "ui/app.py",
+    "ui/engine.py",
+    "ui/jobs.py",
+    "ui/mesh.py",
+    "ui/static/studio.css",
+    "ui/static/studio.js",
+    "ui/static/style.css",
+    "ui/static/vendor/OrbitControls.js",
+    "ui/static/vendor/three.module.js",
+    "ui/static/viewer3d.js",
+    "ui/templates/studio.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2,
+    "cache_creation_tokens": 48,
+    "cache_read_tokens": 513880,
+    "output_tokens": 2166,
+    "api_call_count": 1
+  }
+}
