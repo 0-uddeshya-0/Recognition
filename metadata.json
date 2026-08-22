@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NF0ZR5EB88RT6M2JCDEB6N",
+  "strategy": "manual-commit",
+  "branch": "studio",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "docs/ui/10-studio-chat.png",
+    "docs/ui/8-studio.png",
+    "docs/ui/9-studio-fail.png",
+    "docs/ui/studio.png",
+    "tests/test_ui.py",
+    "ui/app.py",
+    "ui/chat.py",
+    "ui/mesh.py",
+    "ui/static/studio.css",
+    "ui/static/studio.js",
+    "ui/static/style.css",
+    "ui/static/viewer3d.js",
+    "ui/studio.py",
+    "ui/templates/studio.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 365,
+    "cache_creation_tokens": 12731,
+    "cache_read_tokens": 4022022,
+    "output_tokens": 12122,
+    "api_call_count": 7
+  }
+}
