@@ -1,0 +1,4 @@
+so now, can we make chat, which will change this source file? we can use nakle api, luka@luka-ROG-Strix:~/nakle/nakle$ pwd
+/home/luka/nakle/nakle
+luka@luka-ROG-Strix:~/nakle/nakle$ ls test_*
+test_deployment.py  test_stream.py

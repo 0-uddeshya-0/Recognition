@@ -1,0 +1,177 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NEGNDD63SKA89ARRQ9BV4K",
+  "session_id": "b6767698-ce15-4b6c-ae97-9a7bdce5e992",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-22T19:17:47.539603176Z",
+  "branch": "studio-chat",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/ui/10-studio-chat.png",
+    "tests/test_ui.py",
+    "ui/app.py",
+    "ui/chat.py",
+    "ui/jobs.py",
+    "ui/static/studio.css",
+    "ui/static/studio.js",
+    "ui/templates/studio.html"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-fable-5",
+  "turn_id": "64803e365542",
+  "checkpoint_transcript_start": 2342,
+  "transcript_lines_at_start": 2342,
+  "compact_transcript_start": 303,
+  "token_usage": {
+    "input_tokens": 563,
+    "cache_creation_tokens": 27182,
+    "cache_read_tokens": 3849860,
+    "output_tokens": 16141,
+    "api_call_count": 7
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-grill-me-2026-08-22T13:24:35.541201938Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "grill-me"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "8a1dbdbffb50",
+      "timestamp": "2026-08-22T13:24:35.541201938Z",
+      "native": {
+        "command": "/grill-me"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/grill-me",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01NPe1jMEyE2PZnw71fya7Py",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "frontend-design"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "64803e365542",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 620,
+        "end": 621,
+        "entry_ids": [
+          "2eeca78b-e111-4689-bf66-d44cf527a70d"
+        ],
+        "tool_use_id": "toolu_01NPe1jMEyE2PZnw71fya7Py"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01NPe1jMEyE2PZnw71fya7Py"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: frontend-design",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01KJv4oE8UoNEEYMYi74U6DL",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "design"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "64803e365542",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1344,
+        "end": 1345,
+        "entry_ids": [
+          "0f6a60b0-6474-431b-919d-2b5253474243"
+        ],
+        "tool_use_id": "toolu_01KJv4oE8UoNEEYMYi74U6DL"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01KJv4oE8UoNEEYMYi74U6DL"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: design",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01TGmP2CNm4w4puNKotJaEGA",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "artifact-capabilities"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "64803e365542",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1359,
+        "end": 1360,
+        "entry_ids": [
+          "6566d1de-9323-46d7-86c4-2f360ae07ea9"
+        ],
+        "tool_use_id": "toolu_01TGmP2CNm4w4puNKotJaEGA"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01TGmP2CNm4w4puNKotJaEGA"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: artifact-capabilities",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 66
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-22T19:17:47.084123133Z",
+    "agent_lines": 253,
+    "agent_removed": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 253,
+    "total_lines_changed": 255,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    }
+  ]
+}
