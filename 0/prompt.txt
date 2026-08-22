@@ -1,0 +1,83 @@
+Read tasks/ui-poc.md on branch poc/ifc-detailing and do it, make it on another branch, but before you do, let's dive deep, what we're building
+
+---
+
+shortly, simply, what are we building?
+
+---
+
+so, it's(drawings,3D and all stuff) should be code, and devin is ai software engineer that will work on that as a code but architecture?
+
+---
+
+/grill-me
+
+---
+
+live demo
+
+---
+
+i guess you don't get it, if we tread architecture as a code(if it's made by code, it's a codebase) and devin is software engineer, we can add some harness and make it architect, don't we?
+
+---
+
+i don't get what you're saying
+
+---
+
+so, what is should be able? that's the question?
+
+---
+
+yes, it's in .env
+
+---
+
+now check
+
+---
+
+yes
+
+---
+
+<task-notification>
+<task-id>bf43rt0sj</task-id>
+<tool-use-id>toolu_01PoFL2oWJdD2adMuo9PxtkF</tool-use-id>
+<output-file>/tmp/claude-1000/-home-luka-hackathon-Recognition/b6767698-ce15-4b6c-ae97-9a7bdce5e992/tasks/bf43rt0sj.output</output-file>
+<status>completed</status>
+<summary>Background command "Poll the Devin smoke session every 15 s and log to scratchpad" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+i don't get it, what it is and why we want this
+
+---
+
+so, what if we treat every architectural project as a independent repo?
+
+---
+
+maybe, and can we do it on some organization?
+
+---
+
+but before that, we need to finalize what we're building, we'll add github and stuff later, we can create new organization
+
+---
+
+shortly, simply, i don't get it
+
+---
+
+what i drop? in what model?
+
+---
+
+hmm... still don't get it, ifc import doesn't automatically make 3D and 2D drawings?
+
+---
+
+can it be automatically made from IFC? or it'll be empty drawings? and devin will detail it?

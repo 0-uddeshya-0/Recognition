@@ -1,0 +1,230 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0MXHN5KXBKSYYMCZS74X6NB",
+  "session_id": "b6767698-ce15-4b6c-ae97-9a7bdce5e992",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-22T14:21:12.290086648Z",
+  "branch": "ui/poc",
+  "checkpoints_count": 20,
+  "save_step_count": 12,
+  "files_touched": [
+    ".gitignore"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-fable-5",
+  "turn_id": "9d3ffbb50528",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 6552,
+    "cache_creation_tokens": 466437,
+    "cache_read_tokens": 8625158,
+    "output_tokens": 102911,
+    "api_call_count": 70
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-grill-me-2026-08-22T13:24:35.541201938Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "grill-me"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "8a1dbdbffb50",
+      "timestamp": "2026-08-22T13:24:35.541201938Z",
+      "native": {
+        "command": "/grill-me"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/grill-me",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01NPe1jMEyE2PZnw71fya7Py",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "frontend-design"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "9d3ffbb50528",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 620,
+        "end": 621,
+        "entry_ids": [
+          "2eeca78b-e111-4689-bf66-d44cf527a70d"
+        ],
+        "tool_use_id": "toolu_01NPe1jMEyE2PZnw71fya7Py"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01NPe1jMEyE2PZnw71fya7Py"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: frontend-design",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 20
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-22T14:21:12.181548028Z",
+    "agent_lines": 1,
+    "agent_removed": 0,
+    "human_added": 606,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 607,
+    "total_lines_changed": 608,
+    "agent_percentage": 0.1644736842105263,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 91,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88,
+        ".env": 3
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 88,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88
+      }
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 691,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/hooks.json": 88,
+        "pyproject.toml": 5,
+        "uv.lock": 598
+      }
+    }
+  ]
+}
