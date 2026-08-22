@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NNK2JA927H9Q0KJM4CXMDA",
+  "strategy": "manual-commit",
+  "branch": "feat/studio-chat",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "recognition/publish.py",
+    "web/index.html",
+    "web/studio.css",
+    "web/studio.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 230,
+    "cache_creation_tokens": 449943,
+    "cache_read_tokens": 41139577,
+    "output_tokens": 202580,
+    "api_call_count": 115
+  }
+}
