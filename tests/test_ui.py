@@ -333,7 +333,7 @@ def test_studio_pages(fzk_job):
 
 
 class FakeNakle:
-    """Stands in for ui.chat.NakleClient: canned structured answers, no network."""
+    """Stands in for ui.studio.NakleClient: canned structured answers, no network."""
     def __init__(self, answers):
         self.answers, self.calls = list(answers), []
     def complete(self, system, user, conversation_id=None):
@@ -343,14 +343,14 @@ class FakeNakle:
 
 
 def test_chat_edits_the_house(code_job, monkeypatch):
-    import ui.app as A
+    import ui.studio as ST
     jid = code_job["id"]
     current = client.get(f"/api/jobs/{jid}").json()["code"]   # earlier tests may have rebuilt this shared job
     taller = current.replace('height=2.5)', 'height=2.7)', 1)
     assert taller != current
     fake = FakeNakle([("Raised the storey to 2.70 m clear height.", taller),
                       ("The hall is 9.8 m²; hallways have no minimum area in this ruleset.", None)])
-    monkeypatch.setattr(A, "chat_client", fake)
+    monkeypatch.setattr(ST, "CLIENT", fake)
     r = client.post(f"/api/jobs/{jid}/chat", json={"text": "make the rooms 2.7 m high"})
     assert r.status_code == 200, r.text
     assert r.json()["changed"] is True and "2.70" in r.json()["reply"]
@@ -370,20 +370,20 @@ def test_chat_edits_the_house(code_job, monkeypatch):
 
 def test_chat_refuses_ifc_jobs_and_reports_model_errors(fzk_job, code_job, monkeypatch):
     import httpx
-    import ui.app as A
+    import ui.studio as ST
     assert client.post(f"/api/jobs/{fzk_job['id']}/chat", json={"text": "widen the doors"}).status_code == 400
 
     class Down:
         def complete(self, *a, **k):
             raise httpx.ConnectError("nakle is down")
-    monkeypatch.setattr(A, "chat_client", Down())
+    monkeypatch.setattr(ST, "CLIENT", Down())
     r = client.post(f"/api/jobs/{code_job['id']}/chat", json={"text": "add a window"})
     assert r.status_code == 502 and "down" in r.json()["detail"]
     assert client.get(f"/api/jobs/{code_job['id']}").json()["chat"][-1].get("error") is True
 
 
 def test_chat_parse_fallback_to_code_block():
-    from ui import chat as C
+    from ui import studio as C
     reply, code = C.parse({"content": "Done.\n```python\nprint(1)\n```", "structured_output": None})
     assert reply == "Done." and code == "print(1)\n"
     reply, code = C.parse({"content": "Just an answer.", "structured_output": None})

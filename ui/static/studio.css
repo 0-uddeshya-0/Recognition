@@ -37,3 +37,34 @@
 .chat-in input { flex: 1; font: inherit; padding: 8px 11px; border: 1px solid var(--line); border-radius: 4px; }
 .chat-in input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
 .chat-in input:disabled { background: var(--paper-2); color: var(--ink-3); }
+
+/* --- shared with the 3D viewer ---------------------------------------------------- */
+/* --- 3D view, code mode, design tab ------------------------------------------ */
+.seg.mode { margin-bottom: 16px; }
+.seg.mode button .chip-new, .tabs .chip-new { margin-left: 4px; }
+.chip-new { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--accent); background: var(--accent-soft); padding: 2px 6px; border-radius: 3px; vertical-align: 1px; }
+.seg button.on .chip-new { color: var(--paper); background: rgba(255, 255, 255, .18); }
+.seg.view button { padding: 5px 11px; font-weight: 600; }
+textarea.code { min-height: 380px; font-size: 12.5px; line-height: 1.5; white-space: pre; overflow: auto; tab-size: 4; }
+.design { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.design .hint { color: var(--ink-2); font-size: 12.5px; }
+.design textarea.code { min-height: 420px; }
+.design .row { display: flex; gap: 10px; align-items: center; }
+.v3-opts { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
+.v3-opts input { margin: 0; }
+.sheet.v3 { cursor: grab; background: var(--paper); }
+.sheet.v3:active { cursor: grabbing; }
+.sheet.v3 .stamp { pointer-events: none; z-index: 2; }
+.v3-host { position: relative; overflow: hidden; }
+.v3-canvas { display: block; width: 100% !important; height: 100% !important; }
+.v3-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-family: var(--font-mono); font-size: 12.5px; }
+.v3-label { position: absolute; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 6px 9px; font-size: 12.5px;
+            box-shadow: var(--shadow-card); pointer-events: none; z-index: 3; white-space: nowrap; }
+.v3-label .h { display: flex; gap: 8px; align-items: baseline; }
+.v3-label b { font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+.v3-label b.bad, .v3-label .s.bad { color: var(--fail); }
+.v3-label .s { color: var(--ink-3); font-size: 11.5px; margin-top: 2px; }
+
+.atts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.att { display: inline-flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--accent); max-width: 220px; }
+.att img { display: block; max-width: 220px; max-height: 150px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); object-fit: contain; }
