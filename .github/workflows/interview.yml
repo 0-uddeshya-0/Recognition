@@ -50,7 +50,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv sync
+      - run: uv sync --no-dev     # the interview never runs the test suite
 
       - name: Conduct the round
         env:

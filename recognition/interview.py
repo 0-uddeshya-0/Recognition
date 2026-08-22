@@ -278,7 +278,7 @@ def _fingerprint(snap) -> str:
 
 def conduct(messages: list[dict], *, session_id: str = "", round_no: int = 1,
             known: dict | None = None, rules_path: Path = DEFAULT_RULES,
-            client=None, timeout_s: float = 600, poll_s: float = 10,
+            client=None, timeout_s: float = 600, poll_s: float = 6,
             log=print) -> InterviewReply:
     """Run one interview round. Creates the session on round 1, reuses it after.
 
