@@ -1,15 +1,57 @@
 # Design as code — the building itself in Python
 
-## Why
+## The big idea
 
-Today the IFC is read-only. Recognition turns it into paperwork (plans, schedules, a code
-check) and Devin can change *how that paperwork is made* — rules, drawings, vocabulary.
-What Devin cannot do is change the **building**: if a bedroom is 22 m² and the code wants
-25, we say FAIL and stop there.
+Software is the only profession whose work is text. Because it is text, it got git,
+branches, tests, review, continuous integration — and now AI engineers that can do the
+work inside that system. Every other profession makes files you cannot diff, branch, test
+or hand to an agent: CAD models, spreadsheets, contracts, circuit boards.
 
-If the building itself is code, Devin can move the wall. Every design option becomes a
-branch; the architect compares drawings and picks one. That is the full version of
-"architecture as code".
+Our claim: **any kind of work becomes software work once three things exist.**
+
+| | In software | In architecture (Recognition) |
+|---|---|---|
+| **Source of truth** — text the work is generated from | source code | the generator code + rules YAML (stage 1); the building as `house.py` (stage 2) |
+| **Verifier** — says pass / fail without a human | test suite | building-code rules → PASS / WARN / FAIL per element |
+| **Renderer** — lets a human judge the result | the running app | plan sheets, schedules, the compliance report |
+
+Once these exist, an AI software engineer can own the work: it edits text, runs the
+verifier, shows the human a rendering, and asks for approval through a pull request.
+The human stops producing and starts directing and judging.
+
+Recognition is the experiment that tests the claim on architecture, in two stages.
+
+**Stage 1 — the paperwork as code (done, `ui/poc`).** The architect keeps designing in
+ArchiCAD or Revit; the model comes to us as an IFC file. Code derives the paperwork —
+plans, schedules, the code check — and Devin maintains that code. When the architect
+says "bedrooms must be 25 m² under the new code", Devin edits the rule, regenerates,
+opens a PR with the new drawings. The design itself is untouched; we only read it.
+
+**Stage 2 — the design as code (this brief).** The building itself becomes text. Now the
+*whole* job is inside the system: Devin can move a wall, widen a door, propose three
+layouts on three branches; the verifier says which comply; the renderer shows the plans;
+the architect picks one. That is the difference between an assistant that fills in
+paperwork and an engineer that can change the thing.
+
+**Why IFC, then?** Not because IFC is the point. IFC is the one open format every CAD tool
+can export, so "IFC → readable Python" is the on-ramp from the world as it is (CAD files
+on architects' machines) into the world as code. Without it, design-as-code only works
+for buildings that were born as code. With it, any existing building can cross over —
+lossy, as a layout proposal, but enough to work on.
+
+**Why this matters beyond buildings.** The recipe is domain-agnostic: parse the domain's
+file format into readable code, write its rules as a verifier, render it for a human, put
+it in git, and let an AI engineer work there. Electronics (KiCad files), mechanical parts
+(STEP), financial models (spreadsheets), infrastructure (cloud state), contracts —
+everything with a file format or an API has the same shape. Architecture is the first
+instance because its verifier is real (building codes are rules), its renderer is
+obvious (drawings), and the pain is large (detailing is most of an architect's hours).
+Recognition is meant to be the template, not a one-off.
+
+**What changes for the architect.** Before: draw, redraw, fill in schedules, check the
+code by hand, repeat on every change. After: describe, review drawings, approve. Every
+revision is a commit, every option is a branch, every approval is a merge, and the
+history of the building is the history of the repo.
 
 ## What it is
 
