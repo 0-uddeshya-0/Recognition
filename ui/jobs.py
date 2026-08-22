@@ -75,6 +75,7 @@ class Job:
     devin_session_url: str | None = None
     devin_message: str | None = None
     devin_acus: float | None = None
+    devin_waiting: bool = False  # Devin asked something / is blocked; replies are allowed while 'running'
     error: str | None = None
     note: str | None = None
     approved: bool = False
@@ -168,7 +169,7 @@ class Job:
             "engine": self.engine, "status": self.status, "steps": [asdict(s) for s in self.steps],
             "elapsed": self.elapsed(), "summary": self.summary, "pr_url": self.pr_url, "branch": self.branch,
             "devin_session_id": self.devin_session_id, "devin_session_url": self.devin_session_url,
-            "devin_message": self.devin_message, "devin_acus": self.devin_acus,
+            "devin_message": self.devin_message, "devin_acus": self.devin_acus, "devin_waiting": self.devin_waiting,
             "error": self.error, "note": self.note, "approved": self.approved,
             "rules_yaml": self.rules_yaml, "instruction": self.instruction,
             "runs": [{"index": r.index, "trigger": r.trigger, "status": r.status, "instruction": r.instruction,

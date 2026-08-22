@@ -310,7 +310,7 @@ class DevinEngine:
     def message(self, job: Job, text: str, rules_yaml: str | None = None) -> None:
         if not job.devin_session_id:
             raise EngineError("No Devin session for this job.")
-        if job.status == "running":
+        if job.status == "running" and not job.devin_waiting:
             raise EngineError("Devin is still working on the previous request.")
         parts = [text.strip()] if text and text.strip() else []
         if rules_yaml is not None and rules_changed(job, rules_yaml):
@@ -323,6 +323,11 @@ class DevinEngine:
         parts.append(f"Regenerate the package under {PACKAGE_DIR}/{slug(job.project)}/ on branch {job.branch}, "
                      "commit, push, update the pull request, and call the structured output tool again.")
         self.client.send_message(job.devin_session_id, "\n\n".join(parts))
+        job.devin_waiting = False
+        if job.status == "running":  # a reply to a blocked session continues the current run
+            job.set_step("Working", "running", "reply sent")
+            job.devin_message = None
+            return
         run = job.new_run("devin", text or None, job.rules_yaml)
         job.reset_steps(DEVIN_STEPS)
         job.set_step("Upload model", "done", "attached to session")
@@ -424,9 +429,9 @@ class DevinEngine:
                     job.set_step("Pull request", "done", "not opened")
                 job.finish_run(run, summary)
                 return
-        if enum == "blocked" and not so:
+        job.devin_waiting = enum == "blocked"
+        if job.devin_waiting:
             job.set_step("Working", "running", "Devin is waiting for your answer — reply below")
-            job.note = job.devin_message
         elif enum == "working":
             job.set_step("Working", "running", (job.devin_message or "working")[:160])
 

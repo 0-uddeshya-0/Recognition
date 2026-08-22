@@ -173,6 +173,14 @@ def test_devin_engine_offline(tmp_path, monkeypatch):
     eng.poll(job)
     assert job.devin_message == "Editing the ruleset" and job.status == "running"
 
+    # Devin gets stuck (e.g. no push access) and asks: the job stays running but accepts a reply
+    fake.state.update(status_enum="blocked", messages=[{"type": "devin_message", "message": "I cannot push, please grant access"}])
+    eng.poll(job)
+    assert job.status == "running" and job.devin_waiting and job.devin_message == "I cannot push, please grant access"
+    eng.message(job, "Access granted, push now", None)
+    assert fake.messages[-1].startswith("Access granted") and not job.devin_waiting and len(job.runs) == 1
+    fake.state.update(status_enum="working")
+
     # Devin finishes: a PR and structured output appear; the package is fetched from git (stubbed)
     fake.state.update(status_enum="blocked", pull_request={"url": "https://github.com/org/repo/pull/7"},
                       structured_output={"branch": "detail/house-abc123", "package_dir": "deliveries/House", "status": "FAIL", "changed": "bedroom 9 -> 25"})

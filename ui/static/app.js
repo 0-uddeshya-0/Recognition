@@ -128,6 +128,7 @@
         </ul>
         ${j.engine === "devin" ? `<div class="devin-line"><div class="msg">${esc(j.devin_message || "starting session…")}</div><div class="acu">${j.devin_acus != null ? `${j.devin_acus} ACU` : ""}</div></div>` : ""}
         ${failed ? `<div class="err">${esc(j.error || "unknown error")}</div>` : ""}
+        ${j.devin_waiting ? `<div class="request" style="padding:14px 0 0"><label for="reply">Devin is waiting for your answer</label><div class="row"><textarea id="reply" placeholder="Reply to Devin…"></textarea><button class="btn accent" id="reply-send">Reply</button></div><div id="reply-err"></div></div>` : ""}
         <div class="foot">
           ${j.instruction ? `<span>Request: “${esc(j.instruction)}”</span>` : ""}
           ${j.devin_session_url ? `<a href="${esc(j.devin_session_url)}" target="_blank" rel="noopener">Open session ↗</a>` : ""}
@@ -137,6 +138,7 @@
         </div>
       </section>`;
     const sl = $("#show-last"); if (sl) sl.addEventListener("click", (e) => { e.preventDefault(); S.forceResult = true; render(); });
+    const rs = $("#reply-send"); if (rs) rs.addEventListener("click", () => sendMessage($("#reply").value.trim(), null, "#reply-err"));
   }
 
   // --- state 3: result --------------------------------------------------------
