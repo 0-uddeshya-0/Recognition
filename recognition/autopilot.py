@@ -337,6 +337,21 @@ def ranked(res: RunResult) -> list[Verdict]:
 # The Devin engine
 # --------------------------------------------------------------------------
 
+SKILLS_DIR = REPO_ROOT / ".agents" / "skills"
+
+
+def _skill_text(name: str) -> str:
+    """Inline a repo skill's body so a session needs no repository access.
+
+    Skills live as `.agents/skills/<name>/SKILL.md` (the open Agent Skills
+    layout Devin discovers from indexed repos). Builder sessions work from a
+    prompt alone, so the skill is also inlined -- `@skills:` reference for
+    sessions that have the repo, full text for the ones that do not.
+    """
+    p = SKILLS_DIR / name / "SKILL.md"
+    return p.read_text(encoding="utf-8") if p.exists() else ""
+
+
 BUILDER_PROMPT = """\
 You are the architect on a Bayern residential project. Produce ONE floor-plan
 layout as an ArchitectPlan JSON object and return it via the structured output
@@ -349,6 +364,16 @@ structurally distinct from theirs, not a variation in numbers.
 
 THE BRIEF
 {brief}
+
+HOW TO WORK
+The plan is the deliverable, and the plan is judgement — own it end to end.
+If your workspace runs the Fusion harness, keep every design decision (room
+programme, adjacencies, envelope proportions) in the main agent and delegate
+only mechanical checking to the sidekick: summing target areas against the
+envelope, walking the adjacency graph for connectivity, re-reading the brief
+for a slot you might have missed. Follow @skills:architect-plan; its content
+is inlined at the end of this prompt in case the repository is not available
+to you.
 
 THE SHAPE YOU MUST RETURN — ArchitectPlan
   envelope: {{width_m, depth_m, external_wall_m: 0.30, internal_wall_m: 0.15}}
@@ -372,7 +397,7 @@ HARD CONSTRAINTS — a plan breaking any of these is rejected automatically
    deterministic engine against a cited ruleset; your job is the layout.
 
 Return only the JSON object.
-"""
+{skill}"""
 
 CRITIC_PROMPT = """\
 You are reviewing a floor plan that has already passed an automated compliance
@@ -413,11 +438,13 @@ def run_devin(brief: DesignBrief, out_root: Path, *,
     client = DevinClient()
 
     brief_json = json.dumps(brief.to_dict(), indent=2, ensure_ascii=False)
+    skill = _skill_text("architect-plan")
+    skill_block = f"\n--- SKILL: architect-plan ---\n{skill}" if skill else ""
     specs = [
         SessionSpec(
             name=s.name, strategy=s.name,
             prompt=BUILDER_PROMPT.format(label=s.label, description=s.description,
-                                         brief=brief_json),
+                                         brief=brief_json, skill=skill_block),
             tags=["recognition", "autopilot", f"strategy:{s.name}"],
             max_acu=max_acu,
         )
