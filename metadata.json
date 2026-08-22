@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NPM6JXMJY756V7EMBQ9J6F",
+  "strategy": "manual-commit",
+  "branch": "feat/studio-chat",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".agents/skills/architect-plan/SKILL.md",
+    ".agents/skills/interview-brief/SKILL.md",
+    "playbooks/interview.devin.md",
+    "recognition/autopilot.py",
+    "recognition/interview.py",
+    "recognition/model.py",
+    "recognition/translate.py",
+    "tests/test_autonomy.py",
+    "web/studio.css",
+    "web/studio.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 102,
+    "cache_creation_tokens": 92597,
+    "cache_read_tokens": 27342373,
+    "output_tokens": 69152,
+    "api_call_count": 51
+  }
+}
