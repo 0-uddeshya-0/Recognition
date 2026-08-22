@@ -1,0 +1,11 @@
+# Audio files
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.flac
+*.mp4
+PROBLEM/brainstormingALLtalks/audifos/
+
+# Transcripts
+PROBLEM/brainstormingALLtalks/transcripts/
