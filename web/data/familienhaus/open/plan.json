@@ -1,8 +1,8 @@
 {
   "project": "Familienhaus",
   "envelope": {
-    "width_m": 13.5,
-    "depth_m": 10.0,
+    "width_m": 13.0,
+    "depth_m": 11.5,
     "external_wall_m": 0.3,
     "internal_wall_m": 0.15
   },
@@ -10,63 +10,70 @@
     {
       "id": "R-01",
       "category": "living",
-      "label": "Wohnen",
-      "target_area_m2": 29.1,
+      "label": "Wohnen (offener Wohnbereich)",
+      "target_area_m2": 34.0,
       "exterior_wall": true
     },
     {
       "id": "R-02",
       "category": "kitchen",
-      "label": "Küche",
-      "target_area_m2": 13.4,
+      "label": "Wohnkueche",
+      "target_area_m2": 16.0,
       "exterior_wall": true
     },
     {
       "id": "R-03",
-      "category": "bedroom",
-      "label": "Schlafzimmer 1",
-      "target_area_m2": 15.7,
+      "category": "office",
+      "label": "Arbeitsnische",
+      "target_area_m2": 11.0,
       "exterior_wall": true
     },
     {
       "id": "R-04",
       "category": "bedroom",
-      "label": "Schlafzimmer 2",
-      "target_area_m2": 15.7,
+      "label": "Elternschlafzimmer",
+      "target_area_m2": 16.0,
       "exterior_wall": true
     },
     {
       "id": "R-05",
       "category": "bedroom",
-      "label": "Schlafzimmer 3",
-      "target_area_m2": 15.7,
+      "label": "Kinderzimmer 1",
+      "target_area_m2": 12.0,
       "exterior_wall": true
     },
     {
       "id": "R-06",
+      "category": "bedroom",
+      "label": "Kinderzimmer 2",
+      "target_area_m2": 12.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-07",
       "category": "bathroom",
       "label": "Bad",
       "target_area_m2": 9.0,
       "exterior_wall": true
     },
     {
-      "id": "R-07",
-      "category": "office",
-      "label": "Büro",
-      "target_area_m2": 13.4,
-      "exterior_wall": true
+      "id": "R-08",
+      "category": "utility",
+      "label": "Hauswirtschaftsraum",
+      "target_area_m2": 6.0,
+      "exterior_wall": false
     }
   ],
   "adjacency": [
     {
       "a": "R-01",
       "b": "R-02",
-      "via": "door"
+      "via": "open"
     },
     {
       "a": "R-01",
       "b": "R-03",
-      "via": "door"
+      "via": "open"
     },
     {
       "a": "R-01",
@@ -87,6 +94,11 @@
       "a": "R-01",
       "b": "R-07",
       "via": "door"
+    },
+    {
+      "a": "R-02",
+      "b": "R-08",
+      "via": "door"
     }
   ],
   "storey_name": "Erdgeschoss",
@@ -94,7 +106,7 @@
   "circulation_id": null,
   "glazing_ratio": 0.125,
   "accessibility_tier": "none",
-  "rationale": "Open plan: No dedicated corridor; living spaces connect directly. Converts circulation area into usable floor.",
+  "rationale": "Open plan: the 34 m2 Wohnen is the single circulation anchor, so no metre of floor is spent on a Flur and every door opens directly off it. The eat-in kitchen and the 11 m2 study nook flow into the living volume without doors (open), which lets one long south glazing band serve all three and keeps the entrance-side kitchen next to the Hauswirtschaftsraum for groceries and services. The three bedrooms and the bath sit on the quiet flank and get real doors off the living space for acoustic and visual separation - the bath is entered from the shared space, never through a bedroom. Trade-off: without a hall the living room absorbs the traffic between quiet and loud halves, so it was sized generously (34 m2 rather than 26-28 m2) and the envelope kept compact at 13.0 x 11.5 m (1.13:1) so all six habitable rooms reach an exterior wall for glazing; the interior utility room is the only windowless space.",
   "todo_agent": [],
   "schema": "architectplan/v1"
 }

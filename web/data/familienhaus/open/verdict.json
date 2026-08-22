@@ -1,13 +1,57 @@
 {
   "candidate": "open",
-  "ok": true,
-  "checked": 54,
-  "passed": 54,
-  "failed": 0,
+  "ok": false,
+  "checked": 53,
+  "passed": 49,
+  "failed": 4,
   "not_evaluated": 2,
-  "blocking_failures": 0,
-  "advisory_failures": 0,
+  "blocking_failures": 2,
+  "advisory_failures": 2,
   "findings": [
+    {
+      "rule_id": "ROOM-DAYLIGHT",
+      "tier": "law",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-04 Kinderzimmer 1",
+      "message": "Kinderzimmer 1: glazing 0% of floor area < 12%",
+      "citation": "BayBO Art. 45 (2)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-45",
+      "blocking": true
+    },
+    {
+      "rule_id": "DWELLING-FACILITIES",
+      "tier": "law",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-03 Wohnen (offener Wohnbereich)",
+      "message": "dwelling is MISSING a kitchen",
+      "citation": "BayBO Art. 46 (1-2)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-46",
+      "blocking": true
+    },
+    {
+      "rule_id": "ROOM-MIN-AREA",
+      "tier": "guidance",
+      "severity": "warning",
+      "status": "failed",
+      "element": "R-06 Wohnkueche",
+      "message": "Wohnkueche: 17.68 m² < 18.0 m² required for living",
+      "citation": "Richtwerte fuer Raumgroessen",
+      "url": "https://www.fertighaus.de/ratgeber/hausbau/grundriss-planen-richtwerte-fuer-raumgroessen/",
+      "blocking": false
+    },
+    {
+      "rule_id": "ROOM-HAS-DOOR",
+      "tier": "house",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-06 Wohnkueche",
+      "message": "Wohnkueche: no door found",
+      "citation": "Recognition practice convention",
+      "url": "",
+      "blocking": false
+    },
     {
       "rule_id": "SMOKE-DETECTOR",
       "tier": "law",
@@ -32,12 +76,12 @@
     }
   ],
   "metrics": {
-    "envelope_m2": 135.0,
-    "room_area_m2": 116.31,
-    "usable_ratio": 0.8616,
+    "envelope_m2": 149.5,
+    "room_area_m2": 129.79,
+    "usable_ratio": 0.8681,
     "circulation_m2": 0,
-    "openings": 13,
-    "rooms": 7
+    "openings": 11,
+    "rooms": 8
   },
   "error": ""
 }

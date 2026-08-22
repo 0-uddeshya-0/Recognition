@@ -1,8 +1,8 @@
 {
   "project": "Familienhaus",
-  "engine": "local",
-  "winner": "open",
-  "critic": "",
+  "engine": "devin",
+  "winner": "linear",
+  "critic": "Hall geometry is fatal: an 11 m² 'spine along the length' of the 15.4 m internal bar is ~0.71 m clear width, narrower than the seven door leaves opening off it, with facing bedroom/bathroom doors colliding. A usable 1.2 m spine needs ~18.5 m², which the 105 m² programme plus internal walls cannot absorb inside 121.7 m² internal.\n\nSelf-contradictory section: rooms cannot be 'full-depth bays' (7.9 m) and flank a longitudinal hall. Taken literally, the 10 m² office at the gable is 1.27 m wide and the 8 m² bathroom 1.0 m — unfurnishable. Under the double-loaded reading rooms are ~3.5 m deep (workable), but then the 'full-width exterior bay' justification for the windowless bathroom is false and the living room is a 7.5 x 3.6 m corridor-room.\n\nOrientation wastes the site: all zoning is east-west (loud west / quiet east), so nothing assigns living/kitchen and children's rooms to the deep south garden face; roughly half the habitable rooms may end up single-aspect north, negating the shallow-bar parti.\n\nProgramme gaps for a 5-6 person single-storey Familienhaus: one 8 m² bathroom, no separate WC, no entrance vestibule (front door opens straight into the spine, no coat/pram space), no util",
   "candidates": [
     {
       "name": "compact",
@@ -14,22 +14,22 @@
         "sheet.svg",
         "sheet.pdf"
       ],
-      "ok": true,
-      "checked": 57,
-      "failed": 0,
+      "ok": false,
+      "checked": 66,
+      "failed": 2,
       "not_evaluated": 2,
-      "blocking_failures": 0,
+      "blocking_failures": 1,
       "metrics": {
-        "envelope_m2": 137.5,
-        "room_area_m2": 117.06,
-        "usable_ratio": 0.7475,
-        "circulation_m2": 14.28,
-        "openings": 14,
-        "rooms": 8
+        "envelope_m2": 155.25,
+        "room_area_m2": 132.54,
+        "usable_ratio": 0.754,
+        "circulation_m2": 15.48,
+        "openings": 16,
+        "rooms": 9
       },
       "label": "Compact core",
       "error": "",
-      "devin_session": "",
+      "devin_session": "devin-b2dd4721663c4587bbbe1f45b9305ad6",
       "pull_request": ""
     },
     {
@@ -48,16 +48,16 @@
       "not_evaluated": 2,
       "blocking_failures": 0,
       "metrics": {
-        "envelope_m2": 139.5,
-        "room_area_m2": 117.92,
-        "usable_ratio": 0.7171,
-        "circulation_m2": 17.88,
+        "envelope_m2": 136.0,
+        "room_area_m2": 114.81,
+        "usable_ratio": 0.7027,
+        "circulation_m2": 19.25,
         "openings": 14,
         "rooms": 8
       },
       "label": "Linear frontage",
       "error": "",
-      "devin_session": "",
+      "devin_session": "devin-ad6b315304ce4bdf8ef598f8b8503700",
       "pull_request": ""
     },
     {
@@ -70,22 +70,22 @@
         "sheet.svg",
         "sheet.pdf"
       ],
-      "ok": true,
-      "checked": 54,
-      "failed": 0,
+      "ok": false,
+      "checked": 53,
+      "failed": 4,
       "not_evaluated": 2,
-      "blocking_failures": 0,
+      "blocking_failures": 2,
       "metrics": {
-        "envelope_m2": 135.0,
-        "room_area_m2": 116.31,
-        "usable_ratio": 0.8616,
+        "envelope_m2": 149.5,
+        "room_area_m2": 129.79,
+        "usable_ratio": 0.8681,
         "circulation_m2": 0,
-        "openings": 13,
-        "rooms": 7
+        "openings": 11,
+        "rooms": 8
       },
       "label": "Open plan",
       "error": "",
-      "devin_session": "",
+      "devin_session": "devin-f0aa02e6a76444d48a6fe5eb5df1ec42",
       "pull_request": ""
     }
   ]
