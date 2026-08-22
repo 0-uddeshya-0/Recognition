@@ -88,6 +88,8 @@ class Job:
     finished_at: float | None = None
     source: str = "ifc"  # ifc | code — where the model comes from
     code: str | None = None  # the house as Python (source == "code"); built into model_path on each run
+    chat: list[dict] = field(default_factory=list)  # [{role, text, changed, at}] — the conversation that edits the code
+    chat_conversation: str | None = None  # nakle conversation id, so the model remembers earlier turns
 
     # --- lifecycle helpers ------------------------------------------------
 
@@ -176,7 +178,7 @@ class Job:
             "devin_message": self.devin_message, "devin_acus": self.devin_acus, "devin_waiting": self.devin_waiting,
             "error": self.error, "note": self.note, "approved": self.approved,
             "rules_yaml": self.rules_yaml, "instruction": self.instruction,
-            "source": self.source, "code": self.code,
+            "source": self.source, "code": self.code, "chat": self.chat,
             "runs": [{"index": r.index, "trigger": r.trigger, "status": r.status, "instruction": r.instruction,
                       "started_at": r.started_at, "finished_at": r.finished_at, "commit": r.commit,
                       "compliance": (r.summary or {}).get("compliance", {}).get("status"),

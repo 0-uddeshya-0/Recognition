@@ -24,3 +24,16 @@
 .nav button:disabled { color: var(--line); cursor: default; }
 #verdict .stamp.sm { font-size: 11.5px; padding: 7px 10px 6px; }
 @media (max-width: 1100px) { .studio { grid-template-columns: 1fr; grid-template-rows: auto auto auto; } .code-pane { grid-row: auto; min-height: 420px; } .view-pane { min-height: 360px; } }
+
+/* chat: the conversation that edits the code */
+.chat { max-height: 190px; overflow: auto; border-top: 1px solid var(--line-2); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.chat .m { max-width: 92%; padding: 6px 10px; border-radius: 8px; line-height: 1.4; white-space: pre-wrap; }
+.chat .m.user { align-self: flex-end; background: var(--ink); color: var(--paper); border-bottom-right-radius: 2px; }
+.chat .m.assistant { align-self: flex-start; background: var(--paper-2); border: 1px solid var(--line-2); border-bottom-left-radius: 2px; }
+.chat .m.assistant.changed::after { content: "house.py updated · rebuilt"; display: block; margin-top: 4px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.chat .m.assistant.error { color: var(--fail); }
+.chat .m.pending { color: var(--ink-3); font-style: italic; }
+.chat-in { display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line-2); }
+.chat-in input { flex: 1; font: inherit; padding: 8px 11px; border: 1px solid var(--line); border-radius: 4px; }
+.chat-in input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.chat-in input:disabled { background: var(--paper-2); color: var(--ink-3); }

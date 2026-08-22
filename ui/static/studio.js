@@ -5,7 +5,8 @@
   const num = (v, d = 2) => (v === null || v === undefined) ? "—" : (+v).toFixed(d).replace(/\.?0+$/, "");
   const S = { jobId: window.STUDIO.jobId, job: null, pkg: null, mesh: null, meshRun: null, sheet: 0, timer: null, baseCode: "", building: false };
   const el = { code: $("#code"), build: $("#build"), status: $("#status"), verdict: $("#verdict"), problems: $("#problems"), v3: $("#v3"), v2: $("#v2"),
-               sheetno: $("#sheetno"), storey: $("#storey"), nav: $("#nav"), prev: $("#prev"), next: $("#next"), pdf: $("#pdf"), project: $("#project"), meta: $("#code-meta") };
+               sheetno: $("#sheetno"), storey: $("#storey"), nav: $("#nav"), prev: $("#prev"), next: $("#next"), pdf: $("#pdf"), project: $("#project"), meta: $("#code-meta"),
+               chat: $("#chat"), chatForm: $("#chat-form"), chatText: $("#chat-text"), chatSend: $("#chat-send") };
   const files = (rel) => `/jobs/${S.jobId}/files/${rel}`;
   const projectName = (code) => (code.match(/House\(\s*["']([^"']+)["']/) || [])[1] || "House";
 
@@ -23,6 +24,31 @@
   el.code.addEventListener("input", () => { el.project.textContent = projectName(el.code.value); });
   el.prev.addEventListener("click", () => { S.sheet--; renderSheet(); });
   el.next.addEventListener("click", () => { S.sheet++; renderSheet(); });
+  el.chatForm.addEventListener("submit", (e) => { e.preventDefault(); chat(); });
+
+  // --- chat: words in, new house.py out -------------------------------------------------------
+  function renderChat(items, pending) {
+    const all = [...items]; if (pending) all.push({ role: "assistant", text: pending, pending: true });
+    el.chat.hidden = all.length === 0;
+    el.chat.innerHTML = all.map((m) => `<div class="m ${m.role}${m.changed ? " changed" : ""}${m.error ? " error" : ""}${m.pending ? " pending" : ""}">${esc(m.text)}</div>`).join("");
+    el.chat.scrollTop = el.chat.scrollHeight;
+  }
+  function chatEnabled(on) { el.chatText.disabled = !on; el.chatSend.disabled = !on; }
+  async function chat() {
+    const text = el.chatText.value.trim();
+    if (!text || !S.jobId || S.building) return;
+    const items = S.job.chat || [];
+    renderChat([...items, { role: "user", text }], "thinking…");
+    el.chatText.value = ""; chatEnabled(false);
+    try {
+      const r = await api(`/api/jobs/${S.jobId}/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      S.job.chat = r.chat; renderChat(r.chat);
+      if (r.changed) { S.building = true; el.build.disabled = true; status("rebuilding…", true); poll(); }
+    } catch (e) {
+      renderChat([...items, { role: "user", text }, { role: "assistant", text: e.message, error: true }]);
+    }
+    chatEnabled(true); el.chatText.focus();
+  }
 
   // --- build: first time creates the job, afterwards rebuilds it with the edited code ----------
   async function build() {
@@ -67,6 +93,7 @@
     el.project.textContent = j.project;
     el.meta.textContent = `run ${j.runs.length}`;
     status(`built in ${j.elapsed.toFixed(1)} s`);
+    renderChat(j.chat || []); chatEnabled(true);
     S.pkg = await api(`/api/jobs/${S.jobId}/package`);
     const run = j.runs.length;
     if (S.meshRun !== run) { S.mesh = await api(`/jobs/${S.jobId}/mesh.json?r=${run}`); S.meshRun = run; }

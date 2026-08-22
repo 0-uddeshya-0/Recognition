@@ -17,16 +17,19 @@ Routes
     GET  /jobs/{id}/mesh.json       triangle meshes of the latest package's model for the 3D viewer
     GET  /api/rules                 default rules YAML
     GET  /studio[/{id}]             code | 3D + 2D, one Build button (the focused view)
+    POST /api/jobs/{id}/chat        {text} — ask for a change in words; the model rewrites house.py, the job rebuilds
     GET  /api/design/example        design/house.py — the starting point for a house written as code
 """
 from __future__ import annotations
 
 import io
 import os
+import time
 import shutil
 import zipfile
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -35,6 +38,7 @@ from pydantic import BaseModel
 
 from recognition import __version__
 
+from . import chat as C
 from . import engine as E
 from .jobs import REPO_ROOT, Job, JobStore, load_package, slug
 from .mesh import MESH_FILE, mesh_json
@@ -57,6 +61,7 @@ app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
 
 store = JobStore()
+chat_client = C.NakleClient()
 engines: dict[str, E.Engine] = {"local": E.LocalEngine()}
 if E.devin_configured():
     engines["devin"] = E.DevinEngine()
@@ -201,6 +206,40 @@ def job_message(job_id: str, msg: Message):
     except E.EngineError as e:
         raise HTTPException(400, str(e))
     return {"ok": True, "engine": job.engine, "status": job.status}
+
+
+class ChatIn(BaseModel):
+    text: str
+
+
+@app.post("/api/jobs/{job_id}/chat")
+def job_chat(job_id: str, msg: ChatIn):
+    """A request in words → the model rewrites house.py → rebuild (when something changed)."""
+    job = get_job(job_id)
+    text = msg.text.strip()
+    if not text:
+        raise HTTPException(400, "say what you want changed")
+    if job.source != "code" or not job.code:
+        raise HTTPException(400, "only a house written as code can be changed by chat")
+    if job.status == "running":
+        raise HTTPException(409, "a build is running — wait for it to finish")
+    pkg = load_package(Path(job.result_dir)) if job.result_dir else {}
+    job.chat.append({"role": "user", "text": text, "at": time.time()})
+    try:
+        reply, code, conv = C.propose(chat_client, text, job.code, pkg.get("summary"), pkg.get("results"), job.chat_conversation)
+    except httpx.HTTPError as e:
+        job.chat.append({"role": "assistant", "text": f"The model did not answer: {e}", "error": True, "at": time.time()})
+        raise HTTPException(502, f"model unavailable: {e}")
+    job.chat_conversation = conv or job.chat_conversation
+    changed = False
+    if code is not None:
+        try:
+            engine_for(job).message(job, "", None, code)
+            changed = True
+        except E.EngineError as e:
+            reply = f"{reply} (not rebuilt: {e})"
+    job.chat.append({"role": "assistant", "text": reply, "changed": changed, "at": time.time()})
+    return {"reply": reply, "changed": changed, "status": job.status, "chat": job.chat}
 
 
 @app.post("/api/jobs/{job_id}/approve")

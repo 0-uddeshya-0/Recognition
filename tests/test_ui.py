@@ -330,3 +330,63 @@ def test_studio_pages(fzk_job):
     assert "house.py" in client.get("/studio").text
     assert client.get(f"/studio/{fzk_job['id']}").status_code == 200
     assert client.get("/studio/nope").status_code == 404
+
+
+class FakeNakle:
+    """Stands in for ui.chat.NakleClient: canned structured answers, no network."""
+    def __init__(self, answers):
+        self.answers, self.calls = list(answers), []
+    def complete(self, system, user, conversation_id=None):
+        self.calls.append({"system": system, "user": user, "conversation_id": conversation_id})
+        reply, code = self.answers.pop(0)
+        return {"content": reply, "structured_output": {"reply": reply, "code": code}, "conversation_id": "conv-1", "usage": {}}
+
+
+def test_chat_edits_the_house(code_job, monkeypatch):
+    import ui.app as A
+    jid = code_job["id"]
+    current = client.get(f"/api/jobs/{jid}").json()["code"]   # earlier tests may have rebuilt this shared job
+    taller = current.replace('height=2.5)', 'height=2.7)', 1)
+    assert taller != current
+    fake = FakeNakle([("Raised the storey to 2.70 m clear height.", taller),
+                      ("The hall is 9.8 m²; hallways have no minimum area in this ruleset.", None)])
+    monkeypatch.setattr(A, "chat_client", fake)
+    r = client.post(f"/api/jobs/{jid}/chat", json={"text": "make the rooms 2.7 m high"})
+    assert r.status_code == 200, r.text
+    assert r.json()["changed"] is True and "2.70" in r.json()["reply"]
+    assert "Current house.py" in fake.calls[0]["user"] and "Latest check:" in fake.calls[0]["user"]
+    j = wait_done(jid)
+    assert j["status"] == "done" and j["code"] == taller and j["runs"][-1]["trigger"] == "code"
+    rooms = client.get(f"/api/jobs/{jid}/package").json()["schedules"]["rooms"]
+    assert all(float(x["height_m"]) == 2.7 for x in rooms)
+    assert [m["role"] for m in j["chat"]] == ["user", "assistant"] and j["chat"][1]["changed"] is True
+    # a question: no code, no rebuild, memory via the conversation id
+    r = client.post(f"/api/jobs/{jid}/chat", json={"text": "how big is the hall?"})
+    assert r.status_code == 200 and r.json()["changed"] is False
+    assert fake.calls[1]["conversation_id"] == "conv-1"
+    assert len(client.get(f"/api/jobs/{jid}").json()["runs"]) == len(j["runs"])
+    assert client.post(f"/api/jobs/{jid}/chat", json={"text": ""}).status_code == 400
+
+
+def test_chat_refuses_ifc_jobs_and_reports_model_errors(fzk_job, code_job, monkeypatch):
+    import httpx
+    import ui.app as A
+    assert client.post(f"/api/jobs/{fzk_job['id']}/chat", json={"text": "widen the doors"}).status_code == 400
+
+    class Down:
+        def complete(self, *a, **k):
+            raise httpx.ConnectError("nakle is down")
+    monkeypatch.setattr(A, "chat_client", Down())
+    r = client.post(f"/api/jobs/{code_job['id']}/chat", json={"text": "add a window"})
+    assert r.status_code == 502 and "down" in r.json()["detail"]
+    assert client.get(f"/api/jobs/{code_job['id']}").json()["chat"][-1].get("error") is True
+
+
+def test_chat_parse_fallback_to_code_block():
+    from ui import chat as C
+    reply, code = C.parse({"content": "Done.\n```python\nprint(1)\n```", "structured_output": None})
+    assert reply == "Done." and code == "print(1)\n"
+    reply, code = C.parse({"content": "Just an answer.", "structured_output": None})
+    assert reply == "Just an answer." and code is None
+    reply, code = C.parse({"content": "", "structured_output": {"reply": "ok", "code": "   "}})
+    assert reply == "ok" and code is None

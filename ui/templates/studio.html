@@ -24,6 +24,11 @@
   <section class="pane code-pane">
     <div class="pane-head"><span class="mono small">house.py</span><span class="muted mono small" id="code-meta"></span></div>
     <textarea id="code" class="mono code" spellcheck="false" placeholder="Loading house.py…"></textarea>
+    <div class="chat" id="chat" hidden></div>
+    <form class="chat-in" id="chat-form">
+      <input type="text" id="chat-text" placeholder="Ask for a change… e.g. make the Schlafzimmer at least 25 m²" autocomplete="off" disabled>
+      <button class="btn secondary" id="chat-send" type="submit" disabled>Send</button>
+    </form>
     <div class="pane-foot">
       <button class="btn accent" id="build">Build</button>
       <span class="muted small">Ctrl+Enter builds</span>
