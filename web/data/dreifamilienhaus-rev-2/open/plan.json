@@ -1,0 +1,88 @@
+{
+  "project": "Dreifamilienhaus rev 2",
+  "envelope": {
+    "width_m": 13.0,
+    "depth_m": 10.0,
+    "external_wall_m": 0.3,
+    "internal_wall_m": 0.15
+  },
+  "rooms": [
+    {
+      "id": "R-01",
+      "category": "living",
+      "label": "Wohnen",
+      "target_area_m2": 29.1,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-02",
+      "category": "kitchen",
+      "label": "Küche",
+      "target_area_m2": 13.4,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-03",
+      "category": "bedroom",
+      "label": "Schlafzimmer 1",
+      "target_area_m2": 15.7,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-04",
+      "category": "bedroom",
+      "label": "Schlafzimmer 2",
+      "target_area_m2": 15.7,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-05",
+      "category": "bathroom",
+      "label": "Bad",
+      "target_area_m2": 9.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-06",
+      "category": "hall",
+      "label": "Flur",
+      "target_area_m2": 22.4,
+      "exterior_wall": true
+    }
+  ],
+  "adjacency": [
+    {
+      "a": "R-01",
+      "b": "R-02",
+      "via": "door"
+    },
+    {
+      "a": "R-01",
+      "b": "R-03",
+      "via": "door"
+    },
+    {
+      "a": "R-01",
+      "b": "R-04",
+      "via": "door"
+    },
+    {
+      "a": "R-01",
+      "b": "R-05",
+      "via": "door"
+    },
+    {
+      "a": "R-01",
+      "b": "R-06",
+      "via": "door"
+    }
+  ],
+  "storey_name": "Erdgeschoss",
+  "storey_height_m": 2.5,
+  "circulation_id": null,
+  "glazing_ratio": 0.125,
+  "accessibility_tier": "din18040_2",
+  "rationale": "Open plan: No dedicated corridor; living spaces connect directly. Converts circulation area into usable floor.",
+  "todo_agent": [],
+  "schema": "architectplan/v1"
+}

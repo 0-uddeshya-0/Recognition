@@ -1,0 +1,43 @@
+{
+  "candidate": "compact",
+  "ok": true,
+  "checked": 42,
+  "passed": 42,
+  "failed": 0,
+  "not_evaluated": 2,
+  "blocking_failures": 0,
+  "advisory_failures": 0,
+  "findings": [
+    {
+      "rule_id": "SMOKE-DETECTOR",
+      "tier": "law",
+      "severity": "error",
+      "status": "not_evaluated",
+      "element": "-",
+      "message": "The model carries no smoke-detector data. Reported as NOT EVALUATED rather than passed. Resolve by enriching the model or by collecting a declaration in the brief.",
+      "citation": "BayBO Art. 46 (4)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-46",
+      "blocking": false
+    },
+    {
+      "rule_id": "THRESHOLD",
+      "tier": "standard",
+      "severity": "error",
+      "status": "not_evaluated",
+      "element": "-",
+      "message": "Threshold heights are not represented in the model. Reported as NOT EVALUATED.",
+      "citation": "DIN 18040-2",
+      "url": "https://nullbarriere.de/din18040-2-tueren.htm",
+      "blocking": false
+    }
+  ],
+  "metrics": {
+    "envelope_m2": 115.0,
+    "room_area_m2": 97.15,
+    "usable_ratio": 0.6837,
+    "circulation_m2": 18.53,
+    "openings": 10,
+    "rooms": 6
+  },
+  "error": ""
+}
