@@ -1,0 +1,197 @@
+{
+  "message": "A small weekend house with two bedrooms, one bathroom, and an open kitchen-living space — that's clear, and I have everything I need. I've assumed it's a single home for about four people, with a 2.50 m ceiling, and noted those so you can correct anything.",
+  "brief": {
+    "notes": "A small weekend house — two bedrooms, an open kitchen with the living room, one bathroom.",
+    "rooms": [
+      {
+        "count": 2,
+        "label": "bedroom",
+        "category": "bedroom",
+        "min_area_m2": 12
+      },
+      {
+        "count": 1,
+        "label": "open living with kitchen",
+        "category": "living",
+        "min_area_m2": 22
+      },
+      {
+        "count": 1,
+        "label": "open kitchen",
+        "category": "kitchen",
+        "min_area_m2": 8
+      },
+      {
+        "count": 1,
+        "label": "bathroom",
+        "category": "bathroom",
+        "min_area_m2": 6
+      }
+    ],
+    "project": "Neubau",
+    "occupants": 4,
+    "bundesland": "BY",
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 1,
+    "building_class": "detached_house",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "none"
+  },
+  "questions": [],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "A weekend house is a single home in plain words — no mention of units or a second family.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "occupants",
+      "basis": "Two bedrooms in a weekend house typically sleep about four people.",
+      "value": 4,
+      "confidence": "low"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Carried from earlier round; comfortable ceiling with room for floor and ceiling build-up.",
+      "value": 2.5,
+      "confidence": "high"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "Single-home weekend house with no barrier-free request mentioned.",
+      "value": "none",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[bedroom].min_area_m2",
+      "basis": "Usual comfortable double bedroom size for a holiday house.",
+      "value": 12,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[living].min_area_m2",
+      "basis": "Open living shared with the kitchen for about four people.",
+      "value": 22,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[kitchen].min_area_m2",
+      "basis": "Open kitchen counter and appliances within the living space.",
+      "value": 8,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[bathroom].min_area_m2",
+      "basis": "One full bathroom with shower, basin and WC.",
+      "value": 6,
+      "confidence": "medium"
+    }
+  ],
+  "done": true,
+  "sealed_brief": {
+    "project": "Neubau",
+    "bundesland": "BY",
+    "building_class": "detached_house",
+    "plot_width_m": 18,
+    "plot_depth_m": 24,
+    "dwelling_count": 1,
+    "storey_count": 1,
+    "storey_height_m": 2.5,
+    "occupants": 4,
+    "rooms": [
+      {
+        "category": "bedroom",
+        "count": 2,
+        "min_area_m2": 12,
+        "label": "bedroom"
+      },
+      {
+        "category": "living",
+        "count": 1,
+        "min_area_m2": 22,
+        "label": "open living with kitchen"
+      },
+      {
+        "category": "kitchen",
+        "count": 1,
+        "min_area_m2": 8,
+        "label": "open kitchen"
+      },
+      {
+        "category": "bathroom",
+        "count": 1,
+        "min_area_m2": 6,
+        "label": "bathroom"
+      }
+    ],
+    "accessibility_tier": "none",
+    "assumptions": [
+      {
+        "slot": "dwelling_count",
+        "value": 1,
+        "basis": "A weekend house is a single home in plain words — no mention of units or a second family.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "occupants",
+        "value": 4,
+        "basis": "Two bedrooms in a weekend house typically sleep about four people.",
+        "confidence": "low",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_height_m",
+        "value": 2.5,
+        "basis": "Carried from earlier round; comfortable ceiling with room for floor and ceiling build-up.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "accessibility_tier",
+        "value": "none",
+        "basis": "Single-home weekend house with no barrier-free request mentioned.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[bedroom].min_area_m2",
+        "value": 12,
+        "basis": "Usual comfortable double bedroom size for a holiday house.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[living].min_area_m2",
+        "value": 22,
+        "basis": "Open living shared with the kitchen for about four people.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[kitchen].min_area_m2",
+        "value": 8,
+        "basis": "Open kitchen counter and appliances within the living space.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[bathroom].min_area_m2",
+        "value": 6,
+        "basis": "One full bathroom with shower, basin and WC.",
+        "confidence": "medium",
+        "confirmed": false
+      }
+    ],
+    "notes": "A small weekend house — two bedrooms, an open kitchen with the living room, one bathroom.",
+    "schema": "designbrief/v1"
+  },
+  "contract_error": "",
+  "session_id": "devin-66dcf39b0397437c9666096c78693161",
+  "session_url": "https://app.devin.ai/sessions/66dcf39b0397437c9666096c78693161",
+  "round": 1,
+  "engine": "devin"
+}
