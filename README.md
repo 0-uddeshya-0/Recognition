@@ -77,6 +77,7 @@ The tests assert invariants; they do not diff against `examples/`. Whether the c
 | `samples/` | Public sample IFC models (input — never edited) |
 | `examples/` | Generated output for the samples (always regenerated, never hand-edited) |
 | `tests/` | The verifier |
+| `ui/` | The architect's window: upload → package → request change → approve (`uv run recognition-ui`) |
 | `AGENTS.md`, `REVIEW.md`, `playbooks/`, `.devin/blueprint.yaml` | **The domain-expert layer for Devin** — see below |
 
 ## How Devin governs this repo
@@ -91,10 +92,30 @@ Devin is the detailing engineer; the architect never opens the Python.
 
 A typical request: *"Add a section through the stair on sheet A-201"* or *"Bedrooms must be ≥ 10 m² under the new code"* → Devin edits the generator or the YAML, regenerates, opens a PR with the new sheets attached and the compliance delta explained.
 
+## The UI
+
+```bash
+uv sync
+uv run recognition-ui            # http://localhost:8000
+```
+
+One page, three states, no login: drop an IFC (or pick a sample) → watch the steps tick → see the sheets,
+the schedules and a PASS / WARN / FAIL stamp. The **Rules** panel holds the active YAML: change
+`bedroom: 9.0` to `25.0`, *Apply & re-run*, and FZK's Schlafzimmer turns the stamp red — the header
+shows the delta between runs.
+
+With a Devin key in `.env` (see `.env.example`) the **Request a change** box sends the model and the
+request to a Devin session that works in this repo: it edits rules or generator code, regenerates,
+commits the package under `deliveries/<model>/` and opens a PR; the UI pulls the package from the
+branch and *Approve* merges it. `playbooks/detailing-ui.devin.md` is the procedure Devin follows.
+
+`ui/` is ~1 000 lines: `app.py` (routes), `engine.py` (LocalEngine / DevinEngine), `jobs.py`
+(in-memory jobs with run history), one template and one script. Tests: `tests/test_ui.py`.
+
 ## Status and roadmap
 
 Proof of concept built at a hackathon (August 2026). Working: loading, schedules, 6 rules, dimensioned plan sheets, DXF, enriched IFC, CLI, tests, Devin harness.
 
-Next: sections (mesh slicing), wall-type assignment from an assembly library, a junction-detail library with callouts, a one-page UI that uploads an IFC and drives Devin through the API, and real jurisdiction rulesets.
+Next: sections (mesh slicing), wall-type assignment from an assembly library, a junction-detail library with callouts, one repo per building project, and real jurisdiction rulesets.
 
 **Disclaimer:** values in `rules/residential.yaml` are illustrative demo thresholds, not any jurisdiction's code.
