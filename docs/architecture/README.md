@@ -152,10 +152,14 @@ the others stay in history.
 
 ### L7 — Presentation · *no server*
 
-GitHub Pages serves static files only, so the browser does the viewing work.
-[`web-ifc`](https://github.com/ThatOpen/engine_web-ifc) (MPL-2.0) parses IFC in WebAssembly
-and renders through three.js — a real 3D model with no backend. 2D sheets are already
-vector SVG. **The page never holds a secret.**
+GitHub Pages serves static files only. Meshing happens at *artifact* time
+(`recognition/mesh.py` triangulates via ifcopenshell into `mesh.json`, tags and
+areas included), so the browser just draws with three.js — no IFC parsing at
+view time; web-ifc was considered and dropped for exactly this reason (see
+[studio.md](studio.md)). 2D sheets are already vector SVG. **The page never
+holds a secret**: live actions (the Devin interview, dispatching a run) go
+through GitHub Actions with the viewer's own token, and the key stays a
+repository secret.
 
 ### L8 — Orchestration & provenance · *infra*
 
@@ -300,10 +304,10 @@ in the drawing.
 
 ## 8. Risks
 
-> **Blocker, live now: Devin cannot write to this repository.** The last real Devin run
-> reached the final step and got `403` on both `git push` and fork — the Devin GitHub App
-> has no write access to `0-uddeshya-0/Recognition`. Phase 5 cannot complete until the repo
-> owner grants it. Settings change, not a code change, and on the critical path.
+> **Resolved by design — Devin no longer needs write access.** The 403 that blocked the
+> early runs was routed around architecturally: sessions return an `ArchitectPlan` and never
+> touch the repository; deterministic code builds the artifacts and the Actions workflow
+> commits them. See [autonomy.md](autonomy.md) § "Why a model cannot fake a pass".
 
 | Risk | Severity | Mitigation |
 |---|---|---|

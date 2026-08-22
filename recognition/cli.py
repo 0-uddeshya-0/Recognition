@@ -15,13 +15,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-import ifcopenshell.api
-
 from . import __version__
-from . import drawings as D
-from . import model as M
-from . import rules as R
-from . import schedules as S
+
+# The heavy stacks (ifcopenshell, cairo-backed drawing) are imported inside
+# the commands that use them: `recognition interview` runs in a CI job with
+# no cairo installed, and importing the renderer there would crash a command
+# that never draws anything.
 
 
 def git_revision() -> str:
@@ -35,9 +34,11 @@ def _slug(s: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "-", s).strip("-")
 
 
-def enrich_ifc(model: M.Model, report: R.Report, out_path: Path) -> Path:
+def enrich_ifc(model, report, out_path: Path) -> Path:
     """Write tags and compliance results back into the IFC as a property set,
     so the 3D model round-trips into the architect's tool with the findings attached."""
+    import ifcopenshell.api
+
     f = model.ifc
     findings: dict[str, list[str]] = {}
     for r in report.failures:
@@ -57,6 +58,11 @@ def enrich_ifc(model: M.Model, report: R.Report, out_path: Path) -> Path:
 
 
 def run(model_path: Path, out_dir: Path, rules_path: Path | None, project: str, revision: str) -> dict:
+    from . import drawings as D
+    from . import model as M
+    from . import rules as R
+    from . import schedules as S
+
     out_dir.mkdir(parents=True, exist_ok=True)
     model = M.load(model_path)
     ruleset = R.load_ruleset(rules_path)
@@ -138,6 +144,31 @@ def _autopilot(a) -> int:
     return 0
 
 
+def _interview(a) -> int:
+    """One conversational round of the intake interview, via a Devin session.
+
+    The transcript file is what the Studio dispatched: {"messages": [...],
+    "session_id": "...", "round": n, "known": {...}}. The reply JSON is what
+    the Studio polls for. Exit 0 whenever a reply was produced -- "Devin has
+    not answered yet" is a reply, not a failure.
+    """
+    from .interview import conduct
+
+    doc = json.loads(Path(a.transcript).read_text(encoding="utf-8"))
+    reply = conduct(
+        doc.get("messages", []),
+        session_id=str(doc.get("session_id", "") or a.session or ""),
+        round_no=int(doc.get("round", 1)),
+        known=doc.get("known") or None,
+        timeout_s=a.timeout,
+    )
+    out = Path(a.out)
+    reply.write(out)
+    print(f"round {reply.round} · done={reply.done} · session={reply.session_id}")
+    print(f"reply written to {out}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="recognition", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -168,7 +199,19 @@ def main(argv: list[str] | None = None) -> int:
     p_auto.add_argument("--publish", action="store_true",
                         help="copy the artifacts into web/data/ for the static Studio")
 
+    p_int = sub.add_parser(
+        "interview",
+        help="one round of the intake interview: transcript in, structured reply out (Devin)")
+    p_int.add_argument("transcript", type=Path,
+                       help="JSON file: {messages: [{role, text}], session_id?, round?, known?}")
+    p_int.add_argument("--out", type=Path, default=Path("out/interview-reply.json"))
+    p_int.add_argument("--session", default="", help="continue this Devin session")
+    p_int.add_argument("--timeout", type=float, default=600)
+
     a = ap.parse_args(argv)
+
+    if a.cmd == "interview":
+        return _interview(a)
 
     if a.cmd == "autopilot":
         return _autopilot(a)
@@ -181,6 +224,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"sheets: {', '.join(sh['sheet'] + ' ' + sh['storey'] for sh in s['sheets'])}")
         print(f"written to {a.out_dir}/ (summary.json, report.md, schedules/, sheets/, model.detailed.ifc)")
         return 0
+
+    from . import model as M
+    from . import rules as R
 
     report = R.check(M.load(a.model), R.load_ruleset(a.rules))
     print(R.to_markdown(report))

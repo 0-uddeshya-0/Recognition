@@ -1,13 +1,24 @@
 {
   "candidate": "open",
-  "ok": true,
+  "ok": false,
   "checked": 39,
-  "passed": 39,
-  "failed": 0,
+  "passed": 38,
+  "failed": 1,
   "not_evaluated": 2,
-  "blocking_failures": 0,
+  "blocking_failures": 1,
   "advisory_failures": 0,
   "findings": [
+    {
+      "rule_id": "ROOM-DAYLIGHT",
+      "tier": "law",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-01 Küche",
+      "message": "Küche: glazing 10% of floor area < 12%",
+      "citation": "BayBO Art. 45 (2)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-45",
+      "blocking": true
+    },
     {
       "rule_id": "SMOKE-DETECTOR",
       "tier": "law",

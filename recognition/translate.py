@@ -384,11 +384,14 @@ def emit(plan: ArchitectPlan, rects: dict[str, Rect], walls: list[WallSeg]) -> s
         lines.append(f"eg.room({r.label!r}, [{pts}])   # {r.id} {rect.area:.1f} m2 target {r.target_area_m2:.1f}")
 
     tier = plan.accessibility_tier
+    # One ledger of occupied wall runs, shared by every opening: doors claim
+    # first (the entrance above all), windows route around what is taken.
+    occupied: dict[str, list[tuple[float, float]]] = {}
     lines.append("\n# --- doors: one per adjacency declared in the plan ---")
-    lines.extend(_emit_doors(plan, rects, walls, tier))
+    lines.extend(_emit_doors(plan, rects, walls, tier, occupied))
 
     lines.append("\n# --- windows: sized to the daylight rule, on exterior walls ---")
-    lines.extend(_emit_windows(plan, rects, walls))
+    lines.extend(_emit_windows(plan, rects, walls, occupied))
 
     if plan.todo_agent:
         lines.append("\n# --- constructs the translator cannot express ---")
@@ -421,9 +424,7 @@ def _nearest_neighbour(room_id: str, rects: dict[str, Rect], exclude: set[str]
     """
     best_id, best_edge, best_len = "", None, 0.0
     for other in rects:
-        if other == room_id or other in exclude - {room_id}:
-            continue
-        if other == room_id:
+        if other == room_id or other in exclude:
             continue
         edge = shared_edge(rects[other], rects[room_id])
         if edge is None:
@@ -434,8 +435,74 @@ def _nearest_neighbour(room_id: str, rects: dict[str, Rect], exclude: set[str]
     return best_id, best_edge
 
 
-def _emit_doors(plan, rects, walls, tier) -> list[str]:
+def _place(occupied: dict[str, list[tuple[float, float]]], wall_name: str,
+           seg_lo: float, seg_hi: float, center: float, width: float, *,
+           clearance: float = 0.10, margin: float = 0.15,
+           min_width: float = 0.60, allow_shrink: bool = True
+           ) -> tuple[float, float] | None:
+    """Find a clear run for an opening on a wall, or None if there is none.
+
+    Openings must never overlap -- a door punched through a window is the kind
+    of geometry a model can emit and a person would never draw, and exactly
+    what this deterministic layer exists to prevent. Every placed opening
+    reserves its interval (plus clearance); later openings on the same wall
+    shift along their room's segment to the nearest clear position, shrink if
+    they may (windows), or report failure (doors keep their normative width).
+    """
+    lo, hi = min(seg_lo, seg_hi) + margin, max(seg_lo, seg_hi) - margin
+    if hi - lo < min_width:
+        return None
+    width = min(width, hi - lo)
+    taken = sorted(occupied.get(wall_name, []))
+
+    gaps: list[tuple[float, float]] = []
+    cursor = lo
+    for t_lo, t_hi in taken:
+        t_lo, t_hi = t_lo - clearance, t_hi + clearance
+        if t_hi <= lo or t_lo >= hi:
+            continue
+        if t_lo > cursor:
+            gaps.append((cursor, min(t_lo, hi)))
+        cursor = max(cursor, t_hi)
+    if cursor < hi:
+        gaps.append((cursor, hi))
+
+    best: tuple[float, float, float] | None = None       # (score, at, width)
+    for g_lo, g_hi in gaps:
+        if g_hi - g_lo >= width:
+            at = min(max(center, g_lo + width / 2), g_hi - width / 2)
+            score = abs(at - center)
+            if best is None or score < best[0]:
+                best = (score, at, width)
+    if best is None and allow_shrink and gaps:
+        g_lo, g_hi = max(gaps, key=lambda g: g[1] - g[0])
+        if g_hi - g_lo >= min_width:
+            w = g_hi - g_lo
+            best = (0.0, (g_lo + g_hi) / 2, w)
+    if best is None:
+        return None
+    _score, at, width = best
+    occupied.setdefault(wall_name, []).append((at - width / 2, at + width / 2))
+    return at, width
+
+
+def _emit_doors(plan, rects, walls, tier,
+                occupied: dict[str, list[tuple[float, float]]]) -> list[str]:
     out: list[str] = []
+    # The entrance goes first so every later opening on the south wall routes
+    # around it -- it is the one opening whose position a person expects.
+    ext = next((w for w in walls if w.name == "EXT-S"), None)
+    if ext is not None:
+        w_ext = door_width(tier, external=True)
+        spot = _place(occupied, "EXT-S", 0.0, ext.length, ext.length / 2, w_ext,
+                      allow_shrink=False)
+        if spot is not None:
+            at, _w = spot
+            out.append(
+                f"eg.door('D-00', on='EXT-S', at={snap(at)}, "
+                f"width={w_ext}, height=2.10, "
+                f"external=True, type_name='Eingangstuer')"
+            )
     n = 0
     served: set[str] = set()
     for adj in plan.adjacency:
@@ -461,32 +528,37 @@ def _emit_doors(plan, rects, walls, tier) -> list[str]:
         if wall is None:
             out.append(f"# TODO_AGENT: no wall found between {adj.a} and {adj.b}")
             continue
-        mid = (coord, (lo + hi) / 2.0) if axis == "x" else ((lo + hi) / 2.0, coord)
-        n += 1
+        p_lo = (coord, lo) if axis == "x" else (lo, coord)
+        p_hi = (coord, hi) if axis == "x" else (hi, coord)
+        seg_lo, seg_hi = _offset_along(wall, p_lo), _offset_along(wall, p_hi)
         w = door_width(tier, external=False)
+        spot = _place(occupied, wall.name, seg_lo, seg_hi,
+                      (seg_lo + seg_hi) / 2, w, allow_shrink=False)
+        if spot is None:
+            out.append(f"# TODO_AGENT: no clear run for a door between {partner} and "
+                       f"{adj.b} on {wall.name}; the wall is already fully occupied")
+            continue
+        at, _w = spot
+        n += 1
         tag = f"D-{n:02d}"
         note = f"{partner} <-> {adj.b}"
         if partner != adj.a:
             note += f"  (plan asked for {adj.a}; rerouted to the neighbour it touches)"
         out.append(
-            f"eg.door({tag!r}, on={wall.name!r}, at={snap(_offset_along(wall, mid))}, "
+            f"eg.door({tag!r}, on={wall.name!r}, at={snap(at)}, "
             f"width={w}, height=2.05)   # {note}"
-        )
-    # An entrance door on the south wall, always -- a house needs a way in.
-    ext = next((w for w in walls if w.name == "EXT-S"), None)
-    if ext is not None:
-        out.append(
-            f"eg.door('D-00', on='EXT-S', at={snap(ext.length / 2)}, "
-            f"width={door_width(tier, external=True)}, height=2.10, "
-            f"external=True, type_name='Eingangstuer')"
         )
     return out
 
 
-def _emit_windows(plan, rects, walls) -> list[str]:
+def _emit_windows(plan, rects, walls,
+                  occupied: dict[str, list[tuple[float, float]]]) -> list[str]:
     """Size each habitable room's glazing to satisfy the daylight ratio.
 
-    The ratio comes from the plan (BayBO Art. 45 (2) = 1/8), never from a model.
+    The ratio comes from the plan (BayBO Art. 45 (2) = 1/8), never from a
+    model. Placement routes around every opening already on the wall -- the
+    entrance door above all -- and falls back to the room's next exterior
+    side before giving up.
     """
     from .contracts import HABITABLE
     out: list[str] = []
@@ -498,36 +570,63 @@ def _emit_windows(plan, rects, walls) -> list[str]:
         if r.category not in HABITABLE:
             continue
         rect = rects[r.id]
-        sides = []
+        sides = []   # (name, run, edge endpoints in plane coords)
         if abs(rect.y - half) < tol:
-            sides.append(("EXT-S", rect.w, (rect.x + rect.x2) / 2, rect.y))
+            sides.append(("EXT-S", rect.w, (rect.x, rect.y), (rect.x2, rect.y)))
         if abs(rect.y2 - (e.depth_m - half)) < tol:
-            sides.append(("EXT-N", rect.w, (rect.x + rect.x2) / 2, rect.y2))
+            sides.append(("EXT-N", rect.w, (rect.x, rect.y2), (rect.x2, rect.y2)))
         if abs(rect.x - half) < tol:
-            sides.append(("EXT-W", rect.h, rect.x, (rect.y + rect.y2) / 2))
+            sides.append(("EXT-W", rect.h, (rect.x, rect.y), (rect.x, rect.y2)))
         if abs(rect.x2 - (e.width_m - half)) < tol:
-            sides.append(("EXT-E", rect.h, rect.x2, (rect.y + rect.y2) / 2))
+            sides.append(("EXT-E", rect.h, (rect.x2, rect.y), (rect.x2, rect.y2)))
         if not sides:
             out.append(f"# TODO_AGENT: room {r.id} ({r.label}) has no exterior wall, "
                        f"so it cannot meet the daylight rule; move it to the perimeter")
             continue
-        name, run, cx, cy = max(sides, key=lambda s: s[1])
-        wall = next((w for w in walls if w.name == name), None)
-        if wall is None:
-            continue
         need = rect.area * plan.glazing_ratio          # m2 of opening required
-        height = 1.40
-        width = min(max(need / height, 0.60), run - 0.60)
-        if width <= 0.60:
-            height = 1.80
-            width = min(max(need / height, 0.60), max(run - 0.60, 0.60))
-        n += 1
-        tag = f"F-{n:02d}"
-        out.append(
-            f"eg.window({tag!r}, on={name!r}, at={snap(_offset_along(wall, (cx, cy)))}, "
-            f"width={snap(width)}, height={height}, sill=0.90)   "
-            f"# {r.id} needs {need:.2f} m2"
-        )
+        # A window must fit inside its wall: sill 0.90 plus glass plus a lintel
+        # margin can never exceed the storey. (An 1.80 m pane over a 0.90 m
+        # sill in a 2.50 m storey pokes out of the building -- geometry a
+        # person would never draw.)
+        sill = 0.90
+        h_max = max(0.80, plan.storey_height_m - sill - 0.05)
+        placed = False
+        for name, run, p_a, p_b in sorted(sides, key=lambda s: -s[1]):
+            wall = next((w for w in walls if w.name == name), None)
+            if wall is None:
+                continue
+            height = min(1.40, h_max)
+            width = min(max(need / height, 0.60), run - 0.60)
+            if width <= 0.60:
+                height = h_max
+                width = min(max(need / height, 0.60), max(run - 0.60, 0.60))
+            seg_lo, seg_hi = _offset_along(wall, p_a), _offset_along(wall, p_b)
+            spot = _place(occupied, name, seg_lo, seg_hi,
+                          (seg_lo + seg_hi) / 2, width, margin=0.30)
+            if spot is None:
+                continue
+            at, got_w = spot
+            if got_w < width - 1e-6:
+                # Narrowed to clear a neighbouring opening: buy the area back
+                # with height while the storey allows. If it still falls
+                # short, the verifier will say so -- never hide the deficit.
+                height = round(min(h_max, max(height, need / got_w)), 2)
+            n += 1
+            tag = f"F-{n:02d}"
+            note = f"{r.id} needs {need:.2f} m2"
+            if got_w * height < need - 1e-6:
+                note += f"  (short: {got_w * height:.2f} m2 is all this wall can carry)"
+            elif got_w < width - 1e-6:
+                note += f"  (narrowed to {got_w:.2f} m, height raised to {height} m to keep the area)"
+            out.append(
+                f"eg.window({tag!r}, on={name!r}, at={snap(at)}, "
+                f"width={snap(got_w)}, height={height}, sill={sill})   # {note}"
+            )
+            placed = True
+            break
+        if not placed:
+            out.append(f"# TODO_AGENT: no clear exterior run for a window in {r.id} "
+                       f"({r.label}); every reachable wall is fully occupied")
     return out
 
 

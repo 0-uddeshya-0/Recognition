@@ -37,21 +37,21 @@ eg.room('Bad', [(8.6, 4.6), (13.2, 4.6), (13.2, 6.6), (8.6, 6.6)])   # R-06 10.1
 eg.room('Büro', [(8.6, 6.7), (13.2, 6.7), (13.2, 9.7), (8.6, 9.7)])   # R-07 15.4 m2 target 13.4
 
 # --- doors: one per adjacency declared in the plan ---
+eg.door('D-00', on='EXT-S', at=6.6, width=1.01, height=2.10, external=True, type_name='Eingangstuer')
 eg.door('D-01', on='INT-1', at=2.5, width=0.885, height=2.05)   # R-01 <-> R-02
 eg.door('D-02', on='INT-2', at=2.2, width=0.885, height=2.05)   # R-01 <-> R-03
 eg.door('D-03', on='INT-5', at=2.2, width=0.885, height=2.05)   # R-03 <-> R-04  (plan asked for R-01; rerouted to the neighbour it touches)
 eg.door('D-04', on='INT-3', at=1.1, width=0.885, height=2.05)   # R-01 <-> R-05
 eg.door('D-05', on='INT-10', at=2.4, width=0.885, height=2.05)   # R-07 <-> R-06  (plan asked for R-01; rerouted to the neighbour it touches)
-eg.door('D-06', on='INT-10', at=2.4, width=0.885, height=2.05)   # R-06 <-> R-07  (plan asked for R-01; rerouted to the neighbour it touches)
-eg.door('D-00', on='EXT-S', at=6.6, width=1.01, height=2.10, external=True, type_name='Eingangstuer')
+eg.door('D-06', on='INT-10', at=1.4, width=0.885, height=2.05)   # R-06 <-> R-07  (plan asked for R-01; rerouted to the neighbour it touches)
 
 # --- windows: sized to the daylight rule, on exterior walls ---
-eg.window('F-01', on='EXT-W', at=6.4, width=2.95, height=1.4, sill=0.90)   # R-01 needs 4.16 m2
-eg.window('F-02', on='EXT-N', at=10.7, width=1.35, height=1.4, sill=0.90)   # R-02 needs 1.91 m2
-eg.window('F-03', on='EXT-S', at=7.05, width=1.6, height=1.4, sill=0.90)   # R-03 needs 2.25 m2
-eg.window('F-04', on='EXT-E', at=2.2, width=1.6, height=1.4, sill=0.90)   # R-04 needs 2.25 m2
-eg.window('F-05', on='EXT-N', at=6.5, width=1.6, height=1.4, sill=0.90)   # R-05 needs 2.25 m2
-eg.window('F-06', on='EXT-N', at=2.4, width=1.35, height=1.4, sill=0.90)   # R-07 needs 1.92 m2
+eg.window('F-01', on='EXT-W', at=6.4, width=2.95, height=1.4, sill=0.9)   # R-01 needs 4.16 m2
+eg.window('F-02', on='EXT-N', at=10.7, width=1.35, height=1.4, sill=0.9)   # R-02 needs 1.91 m2
+eg.window('F-03', on='EXT-S', at=8.0, width=1.6, height=1.41, sill=0.9)   # R-03 needs 2.25 m2  (short: 2.25 m2 is all this wall can carry)
+eg.window('F-04', on='EXT-E', at=2.2, width=1.6, height=1.4, sill=0.9)   # R-04 needs 2.25 m2
+eg.window('F-05', on='EXT-N', at=6.5, width=1.6, height=1.4, sill=0.9)   # R-05 needs 2.25 m2
+eg.window('F-06', on='EXT-N', at=2.4, width=1.35, height=1.4, sill=0.9)   # R-07 needs 1.92 m2
 
 if __name__ == "__main__":
     h.write("out/familienhaus/model.ifc")

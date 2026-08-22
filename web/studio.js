@@ -1,11 +1,19 @@
 /* Recognition Studio.
  *
  * A static page. It reads artifacts a run already committed under data/ and
- * renders them; it never runs the pipeline and never holds a secret. The 3D
- * view draws mesh.json (triangulated when the artifact was produced, not here),
- * which is what lets a real model load with no backend at all.
+ * renders them; it never runs the pipeline itself and it never holds a secret.
  *
- * Three parts: the interview, the viewer, and the result panes.
+ * Two things happen live, and both go through GitHub with the *viewer's own*
+ * token, never a stored one:
+ *   - the interview can escalate from the instant rules engine to a real
+ *     Devin session, relayed through the `interview` workflow (the browser
+ *     cannot call the Devin API: CORS, and the key must stay server-side);
+ *   - "Design it" can dispatch a real autopilot run and watch it to the
+ *     merged, published result.
+ *
+ * Honesty rules carried from the product: every agent reply is labelled with
+ * the engine that produced it, every inferred value is a visible assumption,
+ * and no step ever ticks without a real event behind it.
  */
 import * as THREE from "three";
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js";
@@ -17,163 +25,233 @@ const el = (tag, cls, text) => {
   if (text != null) n.textContent = text;
   return n;
 };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const State = { brief: null, run: null, project: null, candidate: null };
+const State = { run: null, project: null, candidate: null };
 
 /* ══════════════════════════════════════════════════════════════════════
-   1 · The interview
-   Five questions. Only the ones a tier:law rule genuinely needs are
-   blocking; everything else gets a default that is shown as an assumption
-   rather than hidden. The `why` on each question names the rule that asks
-   for it, so nobody is answering a form they don't understand.
+   GitHub — the viewer's own credentials, api.github.com only
    ══════════════════════════════════════════════════════════════════════ */
 
-const ROOMS = [
-  { key: "living",   label: "Living room", def: 1 },
-  { key: "kitchen",  label: "Kitchen",     def: 1 },
-  { key: "bedroom",  label: "Bedrooms",    def: 2 },
-  { key: "bathroom", label: "Bathroom",    def: 1 },
-  { key: "office",   label: "Study",       def: 0 },
-  { key: "utility",  label: "Utility",     def: 0 },
-];
-
-const QUESTIONS = [
-  {
-    id: "building_class", type: "single", q: "What are you building?",
-    why: "Selects which rules apply.",
-    options: [
-      ["detached_house", "A detached house"],
-      ["semi_detached", "A semi-detached house"],
-      ["apartment_block", "An apartment building"],
-    ],
-    def: "detached_house",
-  },
-  {
-    id: "dwelling_count", type: "number", q: "How many homes are in it?",
-    why: "Required by <b>BayBO Art. 48 (1)</b> — above two, one storey must be barrier-free.",
-    def: 1, min: 1, max: 24, unit: "homes", blocking: true,
-  },
-  {
-    id: "rooms", type: "rooms", q: "Which rooms, and how many?",
-    why: "The programme. A dwelling needs a kitchen and a bathroom — <b>BayBO Art. 46</b>.",
-  },
-  {
-    id: "plot", type: "plot", q: "How big is the plot?",
-    why: "Bounds the envelope. Leave it if you're not sure.",
-    def: [18, 24],
-  },
-  {
-    id: "notes", type: "text", q: "Anything else we should know?",
-    why: "Free text — orientation, a view to keep, how you live in it.",
-    placeholder: "e.g. living room facing the garden, south",
-  },
-];
-
-function renderInterview() {
-  const list = $("qlist");
-  list.innerHTML = "";
-  for (const q of QUESTIONS) {
-    const li = el("li", "q");
-    const head = el("div", "qh");
-    head.append(el("span", "num"), Object.assign(el("label", "qt", q.q), { htmlFor: `f-${q.id}` }));
-    li.append(head);
-    const why = el("p", "why");
-    why.innerHTML = q.why;
-    li.append(why);
-    li.append(fieldFor(q));
-    list.append(li);
+function detectRepo() {
+  // studio served at <owner>.github.io/<repo>/ — derive; fall back for localhost.
+  const host = location.hostname;
+  if (host.endsWith(".github.io")) {
+    const owner = host.split(".")[0];
+    const seg = location.pathname.split("/").filter(Boolean)[0];
+    if (owner && seg) return `${owner}/${seg}`;
   }
-  refreshAssumptions();
+  return "0-uddeshya-0/Recognition";
 }
 
-function fieldFor(q) {
-  if (q.type === "single") {
-    const wrap = el("div", "opts");
-    q.options.forEach(([val, label]) => {
-      const b = el("button", "opt", label);
-      b.type = "button";
-      b.setAttribute("aria-pressed", String(val === q.def));
-      b.dataset.value = val;
-      b.onclick = () => {
-        [...wrap.children].forEach((c) => c.setAttribute("aria-pressed", "false"));
-        b.setAttribute("aria-pressed", "true");
-        q.value = val;
-        refreshAssumptions();
-      };
-      wrap.append(b);
+const GH = {
+  repo: detectRepo(),
+  get token() { return localStorage.getItem("recognition.gh_token") || ""; },
+  set token(v) { v ? localStorage.setItem("recognition.gh_token", v) : localStorage.removeItem("recognition.gh_token"); },
+  get on() { return !!this.token; },
+
+  async api(path, opts = {}) {
+    const r = await fetch(`https://api.github.com${path}`, {
+      ...opts,
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${this.token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(opts.headers || {}),
+      },
     });
-    q.value = q.def;
-    return wrap;
-  }
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 140)}`);
+    return r.status === 204 ? true : r.json();
+  },
 
-  if (q.type === "number") {
-    const wrap = el("div", "pair");
-    const i = el("input");
-    Object.assign(i, { type: "number", id: `f-${q.id}`, value: q.def, min: q.min, max: q.max });
-    i.oninput = () => { q.value = Number(i.value) || q.def; refreshAssumptions(); };
-    q.value = q.def;
-    wrap.append(i, el("span", null, q.unit || ""));
-    return wrap;
-  }
-
-  if (q.type === "rooms") {
-    const grid = el("div", "rooms-grid");
-    q.value = {};
-    ROOMS.forEach((r) => {
-      q.value[r.key] = r.def;
-      const row = el("div", "room-row" + (r.def ? " on" : ""));
-      const n = el("span", "n", String(r.def));
-      const dec = el("button", null, "−"); dec.type = "button";
-      const inc = el("button", null, "+"); inc.type = "button";
-      const set = (v) => {
-        q.value[r.key] = Math.max(0, Math.min(6, v));
-        n.textContent = String(q.value[r.key]);
-        row.classList.toggle("on", q.value[r.key] > 0);
-        refreshAssumptions();
-      };
-      dec.onclick = () => set(q.value[r.key] - 1);
-      inc.onclick = () => set(q.value[r.key] + 1);
-      const step = el("div", "stepper");
-      step.append(dec, n, inc);
-      row.append(el("span", "nm", r.label), step);
-      grid.append(row);
+  dispatch(event_type, client_payload) {
+    return this.api(`/repos/${this.repo}/dispatches`, {
+      method: "POST",
+      body: JSON.stringify({ event_type, client_payload }),
     });
-    return grid;
-  }
+  },
 
-  if (q.type === "plot") {
-    const wrap = el("div", "pair");
-    const w = el("input"), d = el("input");
-    Object.assign(w, { type: "number", id: `f-${q.id}`, value: q.def[0], min: 5, max: 100 });
-    Object.assign(d, { type: "number", value: q.def[1], min: 5, max: 100 });
-    q.value = [...q.def];
-    const upd = () => { q.value = [Number(w.value) || q.def[0], Number(d.value) || q.def[1]]; };
-    w.oninput = upd; d.oninput = upd;
-    wrap.append(w, el("span", null, "×"), d, el("span", null, "m"));
-    return wrap;
-  }
+  async raw(path, ref) {
+    const r = await fetch(
+      `https://api.github.com/repos/${this.repo}/contents/${path}?ref=${ref}&t=${Date.now()}`,
+      { headers: { Accept: "application/vnd.github.raw+json", Authorization: `Bearer ${this.token}` } },
+    );
+    return r.ok ? r.json() : null;
+  },
 
-  const i = el("input");
-  Object.assign(i, { type: "text", id: `f-${q.id}`, placeholder: q.placeholder || "" });
-  i.oninput = () => { q.value = i.value; };
-  q.value = "";
-  return i;
+  async findRun(workflow, sinceMs) {
+    const d = await this.api(`/repos/${this.repo}/actions/runs?event=repository_dispatch&per_page=10`);
+    return (d?.workflow_runs || []).find(
+      (r) => r.path?.endsWith(`/${workflow}.yml`) && Date.parse(r.created_at) >= sinceMs - 15000,
+    ) || null;
+  },
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   The brief — one state object behind both the chat and the form.
+   Every slot knows who set it: "you", "devin", or "assumed".
+   ══════════════════════════════════════════════════════════════════════ */
+
+const ROOM_LABELS = {
+  bedroom: "Bedroom", living: "Living room", kitchen: "Kitchen",
+  bathroom: "Bathroom", office: "Workspace", meeting: "Meeting room",
+  lab: "Workshop", utility: "Utility", hall: "Hall", other: "Room",
+};
+const CLASS_LABELS = {
+  detached_house: "A detached house", semi_detached: "A semi-detached house",
+  apartment_block: "An apartment building", workplace: "A workplace",
+  coworking_space: "A co-working space", office_building: "An office building",
+  practice: "A practice", studio_building: "A studio",
+};
+const RESIDENTIAL = ["detached_house", "semi_detached", "apartment_block"];
+const isWorkspace = () => !RESIDENTIAL.includes(Brief.f.building_class);
+const classLabel = (c) => CLASS_LABELS[c] || ("A " + String(c).replaceAll("_", " "));
+
+const Brief = {
+  f: {},          // fields
+  src: {},        // slot -> you | devin | assumed
+  reset() {
+    this.f = {
+      project: "Neubau", bundesland: "BY", building_class: "detached_house",
+      plot_width_m: 18, plot_depth_m: 24, dwelling_count: null, storey_count: 1,
+      storey_height_m: 2.5, occupants: null, rooms: {}, accessibility_tier: "none",
+      notes: "",
+    };
+    this.src = {};
+    renderSheet();
+  },
+  set(slot, value, by) {
+    this.f[slot] = value;
+    this.src[slot] = by;
+    renderSheet();
+  },
+  addRooms(patch, by) {   // {bedroom: 3, ...} — counts replace, they don't stack
+    for (const [cat, n] of Object.entries(patch)) {
+      if (n > 0) this.f.rooms[cat] = n; else delete this.f.rooms[cat];
+      this.src[`room:${cat}`] = by;
+    }
+    if (Object.keys(patch).length) this.src.rooms = by;
+    renderSheet();
+  },
+  get blockingOpen() {
+    // dwelling_count is required by a tier:law rule; a programme must exist.
+    return this.f.dwelling_count == null || !Object.keys(this.f.rooms).length;
+  },
+  /* The sealed DesignBrief. Facilities the law requires (kitchen, bathroom)
+     are added here as *visible* assumptions, never silently. */
+  seal() {
+    const assumptions = [];
+    const rooms = { ...this.f.rooms };
+    for (const [cat, basis] of [
+      ["kitchen", "BayBO Art. 46: every dwelling needs a kitchen"],
+      ["bathroom", "BayBO Art. 46: every dwelling needs a bathroom"],
+    ]) {
+      if (!rooms[cat]) {
+        rooms[cat] = 1;
+        assumptions.push({ slot: `rooms.${cat}`, value: 1, basis, confidence: "high", confirmed: false });
+      }
+    }
+    if (this.f.dwelling_count == null) return null;
+    for (const [slot, value, basis] of [
+      ["storey_height_m", 2.5, "BayBO Art. 45 (1) minimum 2.40 m + 100 mm build-up"],
+      ["storey_count", 1, "v1 designs a single storey"],
+    ]) {
+      if (!this.src[slot]) assumptions.push({ slot, value, basis, confidence: "high", confirmed: false });
+    }
+    if (this.src.dwelling_count === "assumed") {
+      assumptions.push({ slot: "dwelling_count", value: 1, basis: "non-residential building treated as one unit — v1's cited ruleset is Bayern residential", confidence: "high", confirmed: false });
+    }
+    const work = isWorkspace();
+    const occupants = this.f.occupants || (work ? 8 : 4);
+    if (this.f.occupants == null) {
+      assumptions.push({ slot: "occupants", value: occupants, basis: work ? "typical small team; correct it to size the workspace" : "typical family household", confidence: "low", confirmed: false });
+    }
+    if (!this.src.plot_width_m) {
+      assumptions.push({ slot: "plot", value: `${this.f.plot_width_m} × ${this.f.plot_depth_m} m`, basis: "default plot; correct it if yours differs", confidence: "low", confirmed: false });
+    }
+    return {
+      project: this.f.project, bundesland: "BY", building_class: this.f.building_class,
+      plot_width_m: this.f.plot_width_m, plot_depth_m: this.f.plot_depth_m,
+      dwelling_count: this.f.dwelling_count, storey_count: 1,
+      storey_height_m: this.f.storey_height_m, occupants,
+      rooms: Object.entries(rooms).map(([category, count]) => ({ category, count, min_area_m2: null, label: null })),
+      accessibility_tier: this.f.accessibility_tier, assumptions,
+      notes: this.f.notes.trim(), schema: "designbrief/v1",
+    };
+  },
+};
+
+function srcTag(by) {
+  if (!by) return null;
+  const s = el("span", "src" + (by === "devin" ? " devin" : ""),
+    by === "you" ? "· you" : by === "devin" ? "· Devin" : "· assumed");
+  return s;
 }
 
-/* Every value we infer is shown, with the reason. The silent default is the
-   failure mode this whole product is designed against. */
-function refreshAssumptions() {
-  const dwellings = QUESTIONS.find((q) => q.id === "dwelling_count").value || 1;
-  const chips = [
-    ["ceiling height", "2.50 m", "BayBO Art. 45 (1) minimum 2.40 m + 100 mm build-up"],
-    ["storeys", "1", "v1 designs a single storey"],
-    ["glazing", "1/8 of floor area", "BayBO Art. 45 (2)"],
+function renderSheet() {
+  const dl = $("sheet-fields");
+  dl.innerHTML = "";
+  const f = Brief.f;
+  const work = isWorkspace();
+  const rows = [
+    ["project", f.project, Brief.src.project],
+    ["building", classLabel(f.building_class), Brief.src.building_class],
+    [work ? "units" : "homes", f.dwelling_count == null ? "" : String(f.dwelling_count), Brief.src.dwelling_count],
+    ["people", f.occupants == null ? "" : String(f.occupants), Brief.src.occupants],
+    ["rooms", Object.keys(f.rooms).length ? "rooms" : "", Brief.src.rooms],
+    ["plot", `${f.plot_width_m} × ${f.plot_depth_m} m`, Brief.src.plot_width_m],
+    ["ceiling", `${f.storey_height_m.toFixed(2)} m`, Brief.src.storey_height_m],
+    ["barrier-free", f.accessibility_tier === "none" ? "not requested" : "DIN 18040-2" + (f.accessibility_tier.endsWith("_R") ? " (R)" : ""), Brief.src.accessibility_tier],
+    ["notes", f.notes.trim(), Brief.src.notes],
   ];
-  if (dwellings > 2) {
-    chips.push(["barrier-free", "DIN 18040-2", "BayBO Art. 48 (1): more than 2 homes"]);
+  for (const [k, v, by] of rows) {
+    const row = el("div");
+    row.append(el("dt", null, k));
+    const dd = el("dd", v ? "" : "empty");
+    if (k === "rooms" && v) {
+      // rooms read better as counted chips than as a run of text
+      const wrap = el("span", "dd-rooms");
+      Object.entries(f.rooms).forEach(([c, n]) => {
+        const chip = el("span", "rchip");
+        chip.append(el("b", null, `${n}×`), el("span", null, " " + (ROOM_LABELS[c] || c)));
+        wrap.append(chip);
+      });
+      dd.append(wrap);
+    } else {
+      dd.append(v || "—");
+    }
+    const tag = srcTag(v ? by : null);
+    if (tag) dd.append(tag);
+    row.append(dd);
+    dl.append(row);
   }
+  renderAssumptions();
+  const go = $("go");
+  go.disabled = Brief.blockingOpen;
+  $("go-hint").textContent = Brief.blockingOpen
+    ? "Still needed: " + [Brief.f.dwelling_count == null && (work ? "confirm the building" : "how many homes"), !Object.keys(Brief.f.rooms).length && "which rooms"].filter(Boolean).join(" · ")
+    : "Nobody touches the run once it starts.";
+}
+
+function renderAssumptions() {
   const box = $("assumed-chips");
   box.innerHTML = "";
+  const f = Brief.f;
+  const work = isWorkspace();
+  const chips = [];
+  if (work) chips.push(["ruleset", "Bayern residential v1", "the report says exactly what it could and couldn't check"]);
+  if (Brief.src.dwelling_count === "assumed") chips.push(["treated as", "1 unit", "non-residential building"]);
+  if (work && f.occupants == null) chips.push(["people", "8", "typical small team — sizes the workspace"]);
+  if (!Brief.src.storey_height_m) chips.push(["ceiling", "2.50 m", "BayBO Art. 45 (1) min 2.40 m + build-up"]);
+  chips.push(["storeys", "1", "v1 designs a single storey"]);
+  chips.push(["glazing", "1/8 of floor area", "BayBO Art. 45 (2)"]);
+  if ((f.dwelling_count || 0) > 2 && f.accessibility_tier === "none") {
+    chips.push(["barrier-free", "DIN 18040-2", "BayBO Art. 48 (1): more than 2 homes"]);
+  }
+  if (!f.rooms.kitchen) chips.push(["kitchen", "+1", "BayBO Art. 46: a dwelling needs one"]);
+  if (!f.rooms.bathroom) chips.push(["bathroom", "+1", "BayBO Art. 46: a dwelling needs one"]);
   chips.forEach(([k, v, basis]) => {
     const c = el("span", "chip");
     c.append(el("span", null, k + " "), el("b", null, v), el("span", "basis", "· " + basis));
@@ -181,30 +259,621 @@ function refreshAssumptions() {
   });
 }
 
-function briefFromInterview() {
-  const get = (id) => QUESTIONS.find((q) => q.id === id).value;
-  const rooms = Object.entries(get("rooms"))
-    .filter(([, n]) => n > 0)
-    .map(([category, count]) => ({ category, count }));
-  const [w, d] = get("plot");
-  return {
-    project: "Neubau",
-    building_class: get("building_class"),
-    dwelling_count: get("dwelling_count"),
-    plot_width_m: w, plot_depth_m: d,
-    rooms, notes: get("notes"),
-    storey_count: 1, storey_height_m: 2.5, bundesland: "BY",
-  };
+/* ══════════════════════════════════════════════════════════════════════
+   The parser — deterministic intent extraction. It only ever *shows* what
+   it understood; anything it is unsure of stays a question.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const NUM_WORDS = {
+  a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+  ein: 1, eine: 1, einem: 1, zwei: 2, drei: 3, vier: 4, "fünf": 5, fuenf: 5, sechs: 6,
+};
+const CAT_WORDS = [
+  [/bed\s?rooms?|schlafzimmer|kinderzimmer|kids?['’]?\s?rooms?|children'?s rooms?|guest\s?rooms?|g[äa]stezimmer/, "bedroom"],
+  [/bath\s?rooms?|wash\s?rooms?|rest\s?rooms?|bäder|b[äa]dezimmer|\bbad\b|\bwc\b|toilets?|shower rooms?|duschbad/, "bathroom"],
+  [/kitchens?|kitchenettes?|küchen?|kueche|teek[üu]che|break rooms?|canteen|cafeteria/, "kitchen"],
+  [/living\s?rooms?|lounge|wohnzimmer|wohnbereich/, "living"],
+  [/conference rooms?|meeting rooms?|boardrooms?|besprechungsr[äa]ume?|konferenzr[äa]ume?/, "meeting"],
+  [/workshops?|werkst[äa]tt(?:en)?|maker\s?space|labs?\b|labor/, "lab"],
+  [/stud(?:y|ies)|studios?|offices?|open.?space|workspaces?|home\s?office|büros?|buero|arbeitszimmer/, "office"],
+  [/receptions?|lobb(?:y|ies)|foyer|empfang/, "hall"],
+  [/utilit(?:y|ies)|laundry|hwr|hauswirtschaftsraum|storage rooms?|abstellraum|server rooms?/, "utility"],
+];
+/* Building-type signals. Recognition designs buildings, not only homes — a
+   co-working brief must never be asked how many homes it holds. */
+const WORK_CLASSES = [
+  [/co.?working/, "coworking_space"],
+  [/office building|offices for|our office\b|büro(?:geb[äa]ude|fl[äa]che)/, "office_building"],
+  [/practice|praxis|kanzlei|clinic|klinik/, "practice"],
+  [/agency|agentur|studio for|design studio|startup|firma|company space/, "studio_building"],
+  [/workshop building|werkstattgeb[äa]ude|atelier/, "studio_building"],
+];
+const HOME_PAT = /house|home\b|haus\b|familie|family|apartment|wohnung|flat\b|dwelling/;
+
+function wordNum(s) {
+  const n = parseInt(s, 10);
+  if (!Number.isNaN(n)) return n;
+  return NUM_WORDS[s.toLowerCase()] ?? null;
+}
+
+function parseUtterance(text) {
+  const t = " " + text.toLowerCase() + " ";
+  const got = [];            // [label, value] chips shown back to the client
+  const rooms = {};
+
+  // rooms with counts: "three bedrooms", "2 Bäder", "a study"
+  const numPat = "(\\d+|one|two|three|four|five|six|a|an|ein|eine|zwei|drei|vier|fünf|fuenf|sechs)";
+  for (const [pat, cat] of CAT_WORDS) {
+    const re = new RegExp(`${numPat}\\s+(?:${pat.source})|(?:${pat.source})`, "gi");
+    let m, count = 0, seen = false;
+    while ((m = re.exec(t)) !== null) {
+      seen = true;
+      count += m[1] ? (wordNum(m[1]) ?? 1) : 1;
+      if (!m[1]) count = Math.max(count, 1);
+    }
+    if (seen) rooms[cat] = Math.min(Math.max(rooms[cat] || 0, count), 6);
+  }
+  for (const [cat, n] of Object.entries(rooms)) got.push([ROOM_LABELS[cat].toLowerCase(), `× ${n}`]);
+
+  const patch = {};
+
+  // dwellings: "three families", "2 apartments", "dreifamilienhaus", "duplex"
+  const dw = t.match(new RegExp(`${numPat}\\s+(?:famil(?:y|ies|ien)|homes?|households?|apartments?|flats?|units?|wohnungen|wohneinheiten|parteien)`));
+  if (dw) patch.dwelling_count = wordNum(dw[1]);
+  else if (/dreifamilien|three.?family/.test(t)) patch.dwelling_count = 3;
+  else if (/zweifamilien|two.?family|duplex|doppelhaus/.test(t)) patch.dwelling_count = 2;
+  else if (/einfamilien|single.?family|just (us|our family)|nur wir/.test(t)) patch.dwelling_count = 1;
+  if (patch.dwelling_count) got.push(["homes", String(patch.dwelling_count)]);
+
+  // building class — a workplace signal wins over the residential default
+  let workClass = null;
+  for (const [pat, cls] of WORK_CLASSES) { if (pat.test(t)) { workClass = cls; break; } }
+  if (workClass) patch.building_class = workClass;
+  else if (/apartment (building|block)|mehrfamilienhaus|wohnblock/.test(t)) patch.building_class = "apartment_block";
+  else if (/semi.?detached|doppelhaush[äa]lfte/.test(t)) patch.building_class = "semi_detached";
+  else if (/detached|einfamilienhaus|freistehend/.test(t)) patch.building_class = "detached_house";
+  if (patch.building_class) got.push(["building", classLabel(patch.building_class).toLowerCase()]);
+
+  // plot: "18 x 24", "18 by 24 m", "18×24m"
+  const plot = t.match(/(\d{1,3})\s*(?:x|×|by|mal)\s*(\d{1,3})\s*(?:m\b|met)/);
+  if (plot) {
+    patch.plot_width_m = +plot[1]; patch.plot_depth_m = +plot[2];
+    got.push(["plot", `${plot[1]} × ${plot[2]} m`]);
+  }
+
+  // occupants: "family of four", "zu fünft", "5 people", "team of 12", "desks for 9"
+  const occ = t.match(new RegExp(`(?:family|team) of ${numPat}|${numPat}\\s+(?:people|persons?|personen|employees?|mitarbeiter|desks?|seats?|arbeitspl[äa]tze)|zu\\s+(dritt|viert|fünft|sechst)`));
+  if (occ) {
+    const zu = { dritt: 3, viert: 4, "fünft": 5, sechst: 6 };
+    patch.occupants = occ[3] ? zu[occ[3]] : wordNum(occ[1] || occ[2]);
+    if (patch.occupants) got.push(["people", `${patch.occupants}`]);
+  }
+
+  // accessibility
+  if (/wheelchair|rollstuhl/.test(t)) patch.accessibility_tier = "din18040_2_R";
+  else if (/barrier.?free|barrierefrei|accessible|step.?free|altersgerecht/.test(t)) patch.accessibility_tier = "din18040_2";
+  if (patch.accessibility_tier) got.push(["barrier-free", "DIN 18040-2" + (patch.accessibility_tier.endsWith("_R") ? " (R)" : "")]);
+
+  // storeys — v1 is single-storey; be honest rather than quietly flattening
+  const st = t.match(new RegExp(`${numPat}\\s+(?:store(?:y|ys|ies)|floors?|geschoss(?:e|ig)?|stockwerke?|etagen)`));
+  const storeysAsked = st ? wordNum(st[1]) : (/zweigeschossig|two.?stor(?:e?y|ies)/.test(t) ? 2 : null);
+
+  // project name: "for the Weber family", "für Familie Huber"
+  const name = text.match(/(?:for the|für(?: die)?(?: Familie)?|for)\s+([A-ZÄÖÜ][a-zA-Zäöüß]+)(?:\s+family|\s+familie)?/);
+  if (name && /family|familie|Familie/.test(text)) {
+    patch.project = `Haus ${name[1]}`;
+    got.push(["project", patch.project]);
+  }
+
+  return { patch, rooms, got, storeysAsked };
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   2 · The 3D viewer
+   The chat — two agents, each labelled. The instant agent is this file
+   (deterministic slot-filling; the questions come from the rules). The
+   live agent is a Devin session relayed through the interview workflow.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const Chat = {
+  transcript: [],                 // {role: client|interviewer, text}
+  id: null, round: 0, session: "", waiting: false,
+  askedDwelling: false, askedPeople: false, askedRooms: false,
+  askedPlot: false, askedFinal: false,
+};
+
+function addMsg(who, text, { meta, got, wait } = {}) {
+  const li = el("li", `msg ${who}${wait ? " wait" : ""}`);
+  li.append(el("div", "bubble", text));
+  if (got?.length) {
+    const row = el("div", "got");
+    got.forEach(([k, v]) => {
+      const c = el("span", "chip");
+      c.append(el("span", null, k + " "), el("b", null, v));
+      row.append(c);
+    });
+    li.append(row);
+  }
+  if (meta) { const m = el("div", "meta"); m.append(meta); li.append(m); }
+  $("chat-log").append(li);
+  $("chat-log").scrollTop = $("chat-log").scrollHeight;
+  return li;
+}
+
+function agentSay(text, { chips = [], devin = false, sessionUrl = "" } = {}) {
+  const meta = el("span");
+  if (devin) {
+    meta.append("Devin · live session");
+    if (sessionUrl) {
+      meta.append(" · ");
+      const a = el("a", null, "watch ↗");
+      a.href = sessionUrl; a.target = "_blank"; a.rel = "noopener";
+      meta.append(a);
+    }
+  } else {
+    meta.append("rules engine · instant");
+  }
+  addMsg(devin ? "devin" : "agent", text, { meta });
+  Chat.transcript.push({ role: "interviewer", text });
+  setChips(chips);
+}
+
+function setChips(chips) {
+  const row = $("chat-chips");
+  row.innerHTML = "";
+  chips.forEach(({ label, send, action }) => {
+    const b = el("button", "qchip", label);
+    b.type = "button";
+    b.onclick = () => {
+      if (Chat.waiting) return;
+      if (action) action(); else submitUtterance(send ?? label);
+    };
+    row.append(b);
+  });
+}
+
+/* What the instant agent says next — ordered by what the rules still need.
+   A workplace is never asked how many homes it holds; it is asked how many
+   people work there, because headcount is what sizes a studio. */
+function instantNext(parsed) {
+  const f = Brief.f;
+  const work = isWorkspace();
+  if (parsed?.storeysAsked > 1) {
+    agentSay(
+      `Noted — you'd like ${parsed.storeysAsked} storeys. v1 of this pipeline designs a single storey, so I'll plan the ground floor and keep the wish in the notes.`,
+    );
+    Brief.set("notes", (f.notes + ` Client asked for ${parsed.storeysAsked} storeys (v1 designs one).`).trim(), "you");
+  }
+  if (work && f.dwelling_count == null) {
+    // Registered, never silent: the residential ruleset needs a dwelling
+    // count, and a workplace is one unit by definition.
+    Brief.set("dwelling_count", 1, "assumed");
+  }
+  if (work && f.occupants == null && !Chat.askedPeople) {
+    Chat.askedPeople = true;
+    agentSay(
+      "How many people will work there? That's what sizes the workspace — figure 5–7 m² per desk. And fair warning: v1's cited ruleset is Bayern residential, so the compliance report will say exactly what it could and couldn't check for a workplace.",
+      { chips: [{ label: "6 of us", send: "6 people" }, { label: "10", send: "10 people" }, { label: "About 15", send: "15 people" }] },
+    );
+    return;
+  }
+  if (!work && f.dwelling_count == null) {
+    if (!Chat.askedDwelling) {
+      Chat.askedDwelling = true;
+      agentSay(
+        "How many homes will the building hold? Above two, barrier-free rules kick in automatically — that's why I ask.",
+        { chips: [{ label: "Just one" , send: "One home"}, { label: "Two", send: "Two homes" }, { label: "Three", send: "Three homes" }] },
+      );
+      return;
+    }
+  }
+  if (!Object.keys(f.rooms).length) {
+    if (!Chat.askedRooms) {
+      Chat.askedRooms = true;
+      agentSay(
+        work
+          ? "Which rooms does the space need? Say it in your own words — \"a studio with desks for everyone, a conference room, a washroom, a small kitchen\" works."
+          : "Which rooms, and how many? Say it in your own words — \"three bedrooms, a study, an open kitchen\" works.",
+        { chips: work ? [] : [{ label: "3 bed family home", send: "Three bedrooms, a living room, an open kitchen, one bathroom and a study" }] },
+      );
+      return;
+    }
+  }
+  if (Brief.blockingOpen) return;   // asked already; wait for the answer
+  if (!Chat.askedPlot && !Brief.src.plot_width_m) {
+    Chat.askedPlot = true;
+    agentSay(
+      `How big is the plot? I'll assume ${f.plot_width_m} × ${f.plot_depth_m} m if you're not sure.`,
+      { chips: [{ label: `Use ${f.plot_width_m} × ${f.plot_depth_m} m`, send: "Use the default plot" }] },
+    );
+    return;
+  }
+  if (!Chat.askedFinal) {
+    Chat.askedFinal = true;
+    agentSay(
+      work
+        ? "Anything else I should know — light, quiet corners, how the team works? Otherwise the brief on the right is ready: press Design it."
+        : "Anything else I should know — orientation, a view to keep, how you live? Otherwise the brief on the right is ready: press Design it.",
+      { chips: [{ label: "That's everything — design it", send: "That's everything" }] },
+    );
+    return;
+  }
+  agentSay("The brief is ready — press Design it, or keep refining. Every assumption on the right stays editable.");
+}
+
+function applyParsed(parsed, by) {
+  const { patch, rooms } = parsed;
+  Brief.addRooms(rooms, by);
+  for (const [k, v] of Object.entries(patch)) Brief.set(k, v, by);
+}
+
+async function submitUtterance(text) {
+  text = text.trim();
+  if (!text || Chat.waiting) return;
+  addMsg("you", text);
+  Chat.transcript.push({ role: "client", text });
+  $("chat-input").value = "";
+  autoGrow();
+
+  const parsed = parseUtterance(text);
+  if (/use the default plot/i.test(text)) Chat.askedPlot = true;
+  if (/that'?s everything/i.test(text)) Chat.askedFinal = true;
+  applyParsed(parsed, "you");
+  Brief.set("notes", (Brief.f.notes + " " + text).trim().slice(0, 2000), Brief.src.notes || "you");
+
+  if ($("chat-engine").value === "devin") return devinRound();
+
+  if (parsed.got.length) {
+    const li = $("chat-log").lastElementChild;
+    // echo what was understood under the client's own message
+    const row = el("div", "got");
+    parsed.got.forEach(([k, v]) => {
+      const c = el("span", "chip");
+      c.append(el("span", null, k + " "), el("b", null, v));
+      row.append(c);
+    });
+    li.append(row);
+  } else if (text.split(/\s+/).length > 6 && !/that'?s everything|default plot/i.test(text)) {
+    // The honest limit of the deterministic tier: when it reads nothing out
+    // of a real sentence, it says so and offers the agent that actually reads.
+    agentSay(
+      "I'm the instant rules engine, and I couldn't pull any rooms or facts out of that — my vocabulary is narrower than my colleague's. Rephrase with room words, or hand the conversation to Devin, which genuinely reads.",
+      { chips: [
+        { label: "Hand it to Devin", action: () => { $("chat-engine").value = "devin"; devinRound(); } },
+        { label: "I'll rephrase", action: () => { setChips([]); $("chat-input").focus(); } },
+      ] },
+    );
+    return;
+  }
+  instantNext(parsed);
+}
+
+/* --- the live agent: one round = one workflow run = one Devin turn ------ */
+
+async function devinRound() {
+  if (!GH.on) {
+    openPop();
+    agentSay("Live Devin needs a GitHub connection — the session runs in this repository's Actions so no key ever reaches this page. Connect, or switch back to instant.");
+    return;
+  }
+  Chat.id = Chat.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())).replace(/[^a-zA-Z0-9-]/g, "").slice(0, 40);
+  Chat.round += 1;
+  Chat.waiting = true;
+  $("chat-send").dataset.state = "busy";
+  $("chat-engine").disabled = true;
+
+  const wait = addMsg("agent", "Devin is reading the conversation… the session runs in CI, so the first reply usually takes 2–4 minutes.", { wait: true });
+  const meta = el("div", "meta");
+  wait.append(meta);
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    meta.textContent = `waiting ${Math.round((Date.now() - t0) / 1000)}s · relayed through Actions`;
+  }, 1000);
+  setChips([{ label: "Stop waiting", send: "__cancel__" }]);
+  const cancel = { hit: false };
+  $("chat-chips").firstChild.onclick = () => { cancel.hit = true; };
+
+  try {
+    await GH.dispatch("interview", {
+      id: Chat.id, round: Chat.round, session_id: Chat.session,
+      messages: Chat.transcript.slice(-30).map((m) => ({ role: m.role, text: m.text.slice(0, 2000) })),
+      known: Brief.f,
+    });
+  } catch (e) {
+    clearInterval(tick); wait.remove(); endWait();
+    agentSay(`Could not start the round: ${e.message}. Check the token's permissions (Contents read & write on ${GH.repo}).`);
+    return;
+  }
+
+  // surface the run link as soon as Actions picks it up
+  GH.findRun("interview", t0).then((r) => {
+    if (r) {
+      meta.append(" · ");
+      const a = el("a", null, "run ↗"); a.href = r.html_url; a.target = "_blank"; a.rel = "noopener";
+      meta.append(a);
+    }
+  }).catch(() => {});
+
+  const path = `interviews/${Chat.id}/reply-${Chat.round}.json`;
+  let reply = null;
+  const deadline = t0 + 12 * 60 * 1000;
+  while (Date.now() < deadline && !cancel.hit) {
+    await sleep(6000);
+    reply = await GH.raw(path, "studio-interviews").catch(() => null);
+    if (reply) break;
+  }
+  clearInterval(tick);
+  wait.remove();
+  endWait();
+
+  if (!reply) {
+    agentSay(cancel.hit
+      ? "Stopped waiting. The round may still finish — ask again to pick it up, or continue with the instant agent."
+      : "No reply arrived within 12 minutes. The workflow log will say why — ask again to retry.",
+      { chips: [{ label: "Ask Devin again", send: "__retry__" }] });
+    $("chat-chips").firstChild.onclick = () => { Chat.round -= 1; devinRound(); };
+    return;
+  }
+
+  Chat.session = reply.session_id || Chat.session;
+  if (reply.brief && Object.keys(reply.brief).length) {
+    const b = reply.brief;
+    if (b.rooms?.length) Brief.addRooms(Object.fromEntries(b.rooms.map((r) => [r.category, r.count || 1])), "devin");
+    for (const k of ["project", "building_class", "dwelling_count", "plot_width_m", "plot_depth_m", "occupants", "accessibility_tier", "notes"]) {
+      if (b[k] != null && b[k] !== "" && JSON.stringify(b[k]) !== JSON.stringify(Brief.f[k])) Brief.set(k, b[k], "devin");
+    }
+  }
+  const chips = (reply.questions || []).flatMap((q) =>
+    (q.options || []).slice(0, 4).map((o) => ({ label: o, send: o })));
+  agentSay(reply.message || "…", { devin: true, sessionUrl: reply.session_url, chips });
+  if (reply.done && reply.sealed_brief) {
+    agentSay("Devin sealed the brief — every field on the right is filled, and every inferred value is registered as an assumption. Press Design it when you're ready.", { devin: true, sessionUrl: reply.session_url });
+  } else if (reply.contract_error && !reply.questions?.length) {
+    agentSay(`(validator: ${reply.contract_error})`);
+  }
+}
+
+function endWait() {
+  Chat.waiting = false;
+  delete $("chat-send").dataset.state;
+  $("chat-engine").disabled = false;
+  setChips([]);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   The form — the same brief, for people who'd rather not chat
+   ══════════════════════════════════════════════════════════════════════ */
+
+const FORM_ROOMS = ["living", "kitchen", "bedroom", "bathroom", "office", "utility"];
+
+function renderForm() {
+  const list = $("qlist");
+  list.innerHTML = "";
+  const add = (title, why, field) => {
+    const li = el("li", "q");
+    const head = el("div", "qh");
+    head.append(el("span", "num"), el("label", "qt", title));
+    li.append(head);
+    const w = el("p", "why"); w.innerHTML = why; li.append(w);
+    li.append(field);
+    list.append(li);
+  };
+
+  const cls = el("div", "opts");
+  Object.entries(CLASS_LABELS).forEach(([val, label]) => {
+    const b = el("button", "opt", label);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(Brief.f.building_class === val));
+    b.onclick = () => {
+      Brief.set("building_class", val, "you");
+      [...cls.children].forEach((c) => c.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", "true");
+    };
+    cls.append(b);
+  });
+  add("What are you building?", "Selects which rules apply.", cls);
+
+  const dw = el("div", "pair");
+  const dwi = el("input");
+  Object.assign(dwi, { type: "number", min: 1, max: 24, value: Brief.f.dwelling_count ?? "" });
+  dwi.placeholder = "1";
+  dwi.oninput = () => Brief.set("dwelling_count", dwi.value ? Math.max(1, +dwi.value) : null, "you");
+  dw.append(dwi, el("span", null, "homes"));
+  add("How many homes are in it?", "Required by <b>BayBO Art. 48 (1)</b> — above two, one storey must be barrier-free.", dw);
+
+  const grid = el("div", "rooms-grid");
+  FORM_ROOMS.forEach((cat) => {
+    const count = Brief.f.rooms[cat] || 0;
+    const row = el("div", "room-row" + (count ? " on" : ""));
+    const n = el("span", "n", String(count));
+    const dec = el("button", null, "−"); dec.type = "button"; dec.setAttribute("aria-label", `fewer ${ROOM_LABELS[cat]}`);
+    const inc = el("button", null, "+"); inc.type = "button"; inc.setAttribute("aria-label", `more ${ROOM_LABELS[cat]}`);
+    const set = (v) => {
+      const nv = Math.max(0, Math.min(6, v));
+      Brief.addRooms({ [cat]: nv }, "you");
+      n.textContent = String(nv);
+      row.classList.toggle("on", nv > 0);
+    };
+    dec.onclick = () => set((Brief.f.rooms[cat] || 0) - 1);
+    inc.onclick = () => set((Brief.f.rooms[cat] || 0) + 1);
+    const step = el("div", "stepper");
+    step.append(dec, n, inc);
+    row.append(el("span", "nm", ROOM_LABELS[cat]), step);
+    grid.append(row);
+  });
+  add("Which rooms, and how many?", "The programme. A dwelling needs a kitchen and a bathroom — <b>BayBO Art. 46</b>.", grid);
+
+  const plot = el("div", "pair");
+  const w = el("input"), d = el("input");
+  Object.assign(w, { type: "number", min: 5, max: 100, value: Brief.f.plot_width_m });
+  Object.assign(d, { type: "number", min: 5, max: 100, value: Brief.f.plot_depth_m });
+  const upd = () => { Brief.set("plot_width_m", +w.value || 18, "you"); Brief.set("plot_depth_m", +d.value || 24, "you"); };
+  w.oninput = upd; d.oninput = upd;
+  plot.append(w, el("span", null, "×"), d, el("span", null, "m"));
+  add("How big is the plot?", "Bounds the envelope. Leave it if you're not sure.", plot);
+
+  const notes = el("input");
+  Object.assign(notes, { type: "text", placeholder: "e.g. living room facing the garden, south", value: "" });
+  notes.oninput = () => Brief.set("notes", notes.value, "you");
+  add("Anything else we should know?", "Free text — orientation, a view to keep, how you live in it.", notes);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Design it — dispatch a real run and watch it, or hand off honestly
+   ══════════════════════════════════════════════════════════════════════ */
+
+const slugify = (s) => {
+  let out = "";
+  for (const ch of s.toLowerCase()) out += /[a-z0-9]/.test(ch) ? ch : "-";
+  while (out.includes("--")) out = out.replaceAll("--", "-");
+  return out.replace(/^-+|-+$/g, "") || "project";
+};
+
+function renderStepList(items) {
+  // items: [{label, rt, state: done|run|pend|fail}]
+  const list = $("steps");
+  list.innerHTML = "";
+  for (const it of items) {
+    const li = el("li", `step ${it.state}`);
+    li.append(el("span", "dot"), el("span", "lb", it.label));
+    const rt = el("span", "rt");
+    if (it.href) { const a = el("a", null, it.rt || "log ↗"); a.href = it.href; a.target = "_blank"; a.rel = "noopener"; rt.append(a); }
+    else rt.textContent = it.rt || "";
+    li.append(rt);
+    list.append(li);
+  }
+}
+
+async function designIt() {
+  const sealed = Brief.seal();
+  if (!sealed) return;
+  const engine = $("run-engine").value;
+  show("working");
+  $("working-extra").innerHTML = "";
+  $("run-links").innerHTML = "";
+  $("working-note").textContent = "";
+
+  if (!GH.on) return handoff(sealed, engine);
+
+  $("working-title").textContent = engine === "devin" ? "Devin is designing" : "Designing";
+  $("working-sub").textContent = engine === "devin"
+    ? "Three Devin sessions plan three structurally different layouts in parallel; deterministic code builds and verifies each."
+    : "One brief, three layouts, each checked on its own. Nobody touches the run.";
+  renderStepList([{ label: "Dispatching the brief", rt: "repository_dispatch", state: "run" }]);
+
+  const t0 = Date.now();
+  try {
+    await GH.dispatch("design-request", { brief_json: sealed, engine });
+  } catch (e) {
+    renderStepList([{ label: "Dispatching the brief", rt: e.message.slice(0, 60), state: "fail" }]);
+    $("working-note").textContent = "The dispatch failed — check the token's permissions, or run it locally: uv run recognition autopilot <brief>";
+    backRow();
+    return;
+  }
+
+  // find the run
+  renderStepList([
+    { label: "Dispatching the brief", rt: "sent", state: "done" },
+    { label: "Waiting for Actions to pick it up", state: "run" },
+  ]);
+  let run = null;
+  for (let i = 0; i < 20 && !run; i++) { await sleep(4000); run = await GH.findRun("autopilot", t0).catch(() => null); }
+  if (!run) {
+    renderStepList([{ label: "Dispatching the brief", rt: "sent", state: "done" },
+                    { label: "Waiting for Actions to pick it up", rt: "no run appeared in 80 s", state: "fail" }]);
+    $("working-note").textContent = "Check the repository's Actions tab.";
+    backRow();
+    return;
+  }
+  const runLink = el("a", null, "run ↗"); runLink.href = run.html_url; runLink.target = "_blank"; runLink.rel = "noopener";
+  $("run-links").append(runLink);
+
+  // live steps from the jobs API — real names, real states, nothing invented
+  const slug = slugify(sealed.project);
+  const before = await fetch(`data/${slug}/run.json`, { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null);
+  let conclusion = null;
+  while (!conclusion) {
+    await sleep(6000);
+    const jobs = await GH.api(`/repos/${GH.repo}/actions/runs/${run.id}/jobs`).catch(() => null);
+    const steps = jobs?.jobs?.[0]?.steps || [];
+    const items = steps.filter((s) => !/^Set up|^Complete|Post /.test(s.name)).map((s) => ({
+      label: s.name,
+      rt: s.conclusion || s.status,
+      state: s.conclusion === "success" ? "done" : s.conclusion ? "fail" : s.status === "in_progress" ? "run" : "pend",
+    }));
+    if (items.length) renderStepList(items);
+    const r = await GH.api(`/repos/${GH.repo}/actions/runs/${run.id}`).catch(() => null);
+    if (r?.status === "completed") conclusion = r.conclusion || "failure";
+  }
+
+  if (conclusion !== "success") {
+    $("working-note").textContent = "No candidate cleared the compliance gate, or the run failed — nothing was merged, by design. The log has the findings.";
+    backRow();
+    return;
+  }
+
+  // green run merged itself; now the Studio publish rides the Pages deploy
+  const cur = [...$("steps").children].map((li) => ({ label: li.querySelector(".lb").textContent, rt: li.querySelector(".rt").textContent, state: "done" }));
+  cur.push({ label: "Publishing to the Studio (Pages deploy)", state: "run" });
+  renderStepList(cur);
+  const deadline = Date.now() + 5 * 60 * 1000;
+  let published = false;
+  while (Date.now() < deadline) {
+    await sleep(8000);
+    const now = await fetch(`data/${slug}/run.json`, { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null);
+    if (now && now !== before) { published = true; break; }
+  }
+  if (!published) {
+    $("working-note").textContent = "The run merged, but the Pages deploy hasn't landed yet — reload in a minute and it will be under Already built.";
+    backRow();
+    return;
+  }
+  await loadIndex();
+  openProject(slug);
+}
+
+/* The honest hand-off when no token is connected: the page cannot run the
+   pipeline, so it says so and hands over everything needed to run it. */
+function handoff(sealed, engine) {
+  $("working-title").textContent = "Ready to run";
+  renderStepList([{ label: "Brief sealed", rt: "the last moment a person is involved", state: "done" }]);
+  $("working-sub").textContent =
+    "This page is static, so it cannot start the pipeline by itself. Your brief is ready — run it with one command, or connect GitHub (top right) to trigger runs from here.";
+  $("working-note").textContent = `uv run recognition autopilot brief.json${engine === "devin" ? " --engine devin" : ""} --publish`;
+  const blob = new Blob([JSON.stringify(sealed, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = el("a", "primary", "Download the brief");
+  a.href = url; a.download = "brief.json";
+  a.style.display = "inline-block"; a.style.textDecoration = "none";
+  const back = el("button", "ghost", "Look at a finished design");
+  back.type = "button";
+  back.onclick = () => { URL.revokeObjectURL(url); show("brief"); $("existing").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth" }); };
+  const row = el("div", "brief-actions");
+  row.append(a, back);
+  $("working-extra").append(row);
+}
+
+function backRow() {
+  const back = el("button", "ghost", "Back to the brief");
+  back.type = "button";
+  back.onclick = () => show("brief");
+  const row = el("div", "brief-actions");
+  row.append(back);
+  $("working-extra").append(row);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   The 3D viewer
    ══════════════════════════════════════════════════════════════════════ */
 
 const COLOR = {
   bg: 0xffffff, wall: 0x9aa5ae, space: 0xdfe6ec,
-  door: 0xd07a2a, window: 0x2a62d8, edge: 0x15191d,
-  sky: 0xffffff, ground: 0xc7ced5,
+  door: 0xd07a2a, window: 0x2a62d8, edge: 0x2a3138, ground: 0xe4e8ec,
+};
+/* Room tints stay low-chroma and steer clear of verdict green/red — colour
+   that means pass/fail must never appear as decoration. */
+const SPACE_TINT = {
+  living: 0xe9dfc8, kitchen: 0xdde5e9, bedroom: 0xd9e2ef, bathroom: 0xcfe0ea,
+  office: 0xe4deef, hall: 0xe7e9eb, utility: 0xe3e6e0, other: 0xe6e4df,
 };
 const kindOf = (cls) =>
   cls === "IfcSpace" ? "space" : cls === "IfcDoor" ? "door" : cls === "IfcWindow" ? "window" : "wall";
@@ -216,6 +885,8 @@ function viewer() {
   const host = $("v3-host");
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.domElement.className = "v3-canvas";
   host.append(renderer.domElement);
 
@@ -225,16 +896,21 @@ function viewer() {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.09;
+  controls.maxPolarAngle = Math.PI * 0.495;
+  // a quiet idle orbit until the first touch — interruptible, and off
+  // entirely for people who asked for reduced motion
+  controls.autoRotate = !REDUCED;
+  controls.autoRotateSpeed = 0.5;
+  host.addEventListener("pointerdown", () => { controls.autoRotate = false; }, { once: true });
 
-  scene.add(
-    new THREE.HemisphereLight(COLOR.sky, COLOR.ground, 1.7),
-    new THREE.AmbientLight(0xffffff, 0.35),
-  );
-  const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-  sun.position.set(1, 2, 1.4);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xc7ced5, 1.15), new THREE.AmbientLight(0xffffff, 0.4));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+  sun.position.set(14, 22, 10);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
   scene.add(sun);
 
-  V = { renderer, scene, camera, controls, host, root: null,
+  V = { renderer, scene, camera, controls, host, root: null, ground: null, sun,
         raycaster: new THREE.Raycaster(), pointer: new THREE.Vector2(), spaces: [] };
 
   const resize = () => {
@@ -260,11 +936,13 @@ function viewer() {
 function loadMesh(json) {
   const v = viewer();
   if (v.root) { v.scene.remove(v.root); disposeTree(v.root); }
+  if (v.ground) { v.scene.remove(v.ground); disposeTree(v.ground); }
   const root = new THREE.Group();
   v.spaces = [];
 
   const [x0, y0, z0, x1, y1, z1] = json.bounds;
   const mid = new THREE.Vector3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  const span = Math.max(x1 - x0, y1 - y0, z1 - z0) || 10;
 
   for (const e of json.elements || []) {
     const kind = kindOf(e.cls);
@@ -276,16 +954,26 @@ function loadMesh(json) {
     g.dispose();
     flat.translate(-mid.x, -mid.y, -mid.z);
 
+    const base = kind === "space" ? (SPACE_TINT[e.category] ?? COLOR.space) : COLOR[kind];
     const mat = new THREE.MeshLambertMaterial({
-      color: COLOR[kind],
+      color: base,
       transparent: kind === "space",
-      opacity: kind === "space" ? 0.32 : 1,
+      opacity: kind === "space" ? 0.34 : 1,
       depthWrite: kind !== "space",
       side: kind === "space" ? THREE.DoubleSide : THREE.FrontSide,
     });
     const mesh = new THREE.Mesh(flat, mat);
-    mesh.userData = { tag: e.tag, name: e.name, kind, area: e.area };
+    mesh.userData = { tag: e.tag, name: e.name, kind, area: e.area, base };
     if (kind === "space") v.spaces.push(mesh);
+    else {
+      mesh.castShadow = true;
+      // ink-line edges — the drawing-office look, and corners stay legible
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(flat, 28),
+        new THREE.LineBasicMaterial({ color: COLOR.edge, transparent: true, opacity: 0.28 }),
+      );
+      mesh.add(edges);
+    }
     root.add(mesh);
   }
 
@@ -294,8 +982,29 @@ function loadMesh(json) {
   v.scene.add(root);
   v.root = root;
 
-  const span = Math.max(x1 - x0, y1 - y0, z1 - z0) || 10;
-  v.camera.position.set(span * 0.95, span * 0.78, span * 1.05);
+  // the desk the model sits on: a soft shadow catcher plus a faint grid
+  const ground = new THREE.Group();
+  const catcher = new THREE.Mesh(
+    new THREE.CircleGeometry(span * 2.2, 64),
+    new THREE.ShadowMaterial({ opacity: 0.16 }),
+  );
+  catcher.rotation.x = -Math.PI / 2;
+  catcher.position.y = -(z1 - z0) / 2 - 0.01;
+  catcher.receiveShadow = true;
+  const grid = new THREE.GridHelper(span * 4, 40, 0xc7ced5, 0xdde2e7);
+  grid.material.transparent = true;
+  grid.material.opacity = 0.35;
+  grid.position.y = catcher.position.y - 0.005;
+  ground.add(catcher, grid);
+  v.scene.add(ground);
+  v.ground = ground;
+
+  v.scene.fog = new THREE.Fog(COLOR.bg, span * 3, span * 7);
+  v.sun.shadow.camera.left = v.sun.shadow.camera.bottom = -span * 1.4;
+  v.sun.shadow.camera.right = v.sun.shadow.camera.top = span * 1.4;
+  v.sun.shadow.camera.updateProjectionMatrix();
+
+  v.camera.position.set(span * 0.95, span * 0.72, span * 1.05);
   v.controls.target.set(0, 0, 0);
   v.controls.update();
   applySpaceVisibility();
@@ -324,7 +1033,9 @@ function onHover(ev) {
   const hit = v.raycaster.intersectObjects(v.root.children, false)
     .find((h) => h.object.visible && h.object.userData.kind === "space");
   const chip = $("hoverchip");
+  v.spaces.forEach((m) => { m.material.opacity = 0.34; });
   if (!hit) { chip.classList.add("hide"); return; }
+  hit.object.material.opacity = 0.55;
   const d = hit.object.userData;
   chip.textContent = `${d.tag ? d.tag + "  " : ""}${d.name}${d.area ? "  ·  " + d.area + " m²" : ""}`;
   chip.style.left = `${ev.clientX - r.left}px`;
@@ -333,13 +1044,67 @@ function onHover(ev) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   3 · Results
+   The 2D sheet — zoom and pan, because contractors squint at dimensions
+   ══════════════════════════════════════════════════════════════════════ */
+
+const Sheet = { scale: 1, tx: 0, ty: 0 };
+
+function applySheet() {
+  $("sheet-zoom").style.transform = `translate(${Sheet.tx}px, ${Sheet.ty}px) scale(${Sheet.scale})`;
+  $("z-val").textContent = `${Math.round(Sheet.scale * 100)}%`;
+}
+function sheetReset() { Sheet.scale = 1; Sheet.tx = 0; Sheet.ty = 0; applySheet(); }
+function sheetZoom(factor, cx, cy) {
+  const next = Math.min(6, Math.max(0.4, Sheet.scale * factor));
+  const k = next / Sheet.scale;
+  if (cx != null) { Sheet.tx = cx - k * (cx - Sheet.tx); Sheet.ty = cy - k * (cy - Sheet.ty); }
+  Sheet.scale = next;
+  applySheet();
+}
+
+const STACKED = matchMedia("(max-width: 1080px)");
+
+function initSheetControls() {
+  const host = $("sheet-host");
+  host.addEventListener("wheel", (e) => {
+    // In the stacked layout the page itself scrolls; a plain wheel must keep
+    // scrolling it. ctrl/⌘-wheel (and trackpad pinch, which arrives as
+    // ctrl+wheel) zooms everywhere; a bare wheel zooms only on the desktop
+    // grid, where the page has nothing to scroll.
+    if (STACKED.matches && !e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const r = host.getBoundingClientRect();
+    sheetZoom(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  let pan = null;
+  host.addEventListener("pointerdown", (e) => {
+    pan = { x: e.clientX, y: e.clientY, tx: Sheet.tx, ty: Sheet.ty };
+    host.classList.add("panning");
+    host.setPointerCapture(e.pointerId);
+  });
+  host.addEventListener("pointermove", (e) => {
+    if (!pan) return;
+    Sheet.tx = pan.tx + (e.clientX - pan.x);
+    Sheet.ty = pan.ty + (e.clientY - pan.y);
+    applySheet();
+  });
+  const up = () => { pan = null; host.classList.remove("panning"); };
+  host.addEventListener("pointerup", up);
+  host.addEventListener("pointercancel", up);
+  host.addEventListener("dblclick", sheetReset);
+  $("z-in").onclick = () => sheetZoom(1.25);
+  $("z-out").onclick = () => sheetZoom(1 / 1.25);
+  $("z-fit").onclick = sheetReset;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Results
    ══════════════════════════════════════════════════════════════════════ */
 
 const base = (p, c) => `data/${p}/${c}`;
 
 async function openProject(key, candidate) {
-  const run = await fetch(`data/${key}/run.json`).then((r) => r.json());
+  const run = await fetch(`data/${key}/run.json`, { cache: "no-store" }).then((r) => r.json());
   State.run = run; State.project = key;
   State.candidate = candidate || run.winner || (run.candidates[0] || {}).name;
   show("result");
@@ -378,8 +1143,8 @@ async function showCandidate(name) {
     .catch(() => { wait.textContent = "no 3D model was published for this candidate"; });
 
   fetch(`${dir}/sheet.svg`).then((r) => (r.ok ? r.text() : Promise.reject()))
-    .then((svg) => { $("sheet-host").innerHTML = svg; })
-    .catch(() => { $("sheet-host").innerHTML = '<p class="hint">no sheet for this candidate</p>'; });
+    .then((svg) => { $("sheet-zoom").innerHTML = svg; sheetReset(); })
+    .catch(() => { $("sheet-zoom").innerHTML = '<p class="hint">no sheet for this candidate</p>'; });
   $("pdf-link").href = `${dir}/sheet.pdf`;
 
   fetch(`${dir}/design.py`).then((r) => r.text())
@@ -482,12 +1247,21 @@ function renderOptions() {
     m.append(el("span", null, `${c.checked} checked`),
              el("span", null, `${c.failed} failed`),
              el("span", null, `${c.not_evaluated} not evaluated`));
+    if (c.devin_session) {
+      const a = el("a", null, "Devin session ↗");
+      a.href = `https://app.devin.ai/sessions/${String(c.devin_session).replace(/^devin-/, "")}`;
+      a.target = "_blank"; a.rel = "noopener";
+      a.onclick = (e) => e.stopPropagation();
+      m.append(a);
+    }
     card.append(m);
     card.onclick = () => showCandidate(c.name);
     box.append(card);
   });
-  box.append(el("p", "chosen-note",
-    "The winner was chosen by the scorer from the compliance result — not by a person and not by a model. Picking another here is a new view, not an approval."));
+  const note = run.engine === "devin"
+    ? "Each layout was planned by its own Devin session, running in parallel; the winner was chosen by the deterministic scorer from the compliance result — not by a person, and not by a model."
+    : "The winner was chosen by the scorer from the compliance result — not by a person and not by a model. Picking another here is a new view, not an approval.";
+  box.append(el("p", "chosen-note", note));
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -507,62 +1281,118 @@ function toast(msg, ms = 4200) {
   toast._t = setTimeout(() => t.classList.add("hide"), ms);
 }
 
-const STEPS = [
-  ["Brief sealed", "the last moment a person is involved"],
-  ["Plan", "rooms, areas and adjacencies — no coordinates"],
-  ["Translate", "plan → building code, zero model tokens"],
-  ["Build", "IFC4, sheets, 3D mesh"],
-  ["Verify", "every rule, with its citation"],
-  ["Rank", "the scorer picks a winner"],
-];
+/* --- connect popover ----------------------------------------------------- */
 
-function renderSteps(activeIdx) {
-  const list = $("steps");
-  list.innerHTML = "";
-  STEPS.forEach(([lb, rt], i) => {
-    const li = el("li", "step " + (i < activeIdx ? "done" : i === activeIdx ? "run" : "pend"));
-    li.append(el("span", "dot"), el("span", "lb", lb), el("span", "rt", rt));
-    list.append(li);
-  });
+function openPop() {
+  $("connect-pop").classList.remove("hide");
+  $("connect").setAttribute("aria-expanded", "true");
+  $("gh-token").focus();
+}
+function closePop() {
+  $("connect-pop").classList.add("hide");
+  $("connect").setAttribute("aria-expanded", "false");
 }
 
-/* A static page cannot run the pipeline. Rather than fake it, the Studio says
-   plainly what to run, hands over the brief, and shows what already exists. */
-async function submitBrief(ev) {
-  ev.preventDefault();
-  State.brief = briefFromInterview();
-  show("working");
-  $("working-title").textContent = "Ready to run";
-  let i = 0;
-  renderSteps(0);
-  const tick = setInterval(() => {
-    i += 1;
-    renderSteps(Math.min(i, 1));
-    if (i >= 1) {
-      clearInterval(tick);
-      $("working-sub").textContent =
-        "This page is static, so it cannot run the pipeline itself. Your brief is ready — run it, or open a design that already exists.";
-      $("working-note").innerHTML =
-        `uv run recognition autopilot &lt;your-brief.json&gt;`;
-      const blob = new Blob([JSON.stringify(State.brief, null, 2)], { type: "application/json" });
-      const a = el("a", "primary", "Download the brief");
-      a.href = URL.createObjectURL(blob);
-      a.download = "brief.json";
-      a.style.display = "inline-block";
-      a.style.textDecoration = "none";
-      const back = el("button", "ghost", "Look at a finished design");
-      back.type = "button";
-      back.onclick = () => { show("brief"); document.getElementById("existing").scrollIntoView({ behavior: "smooth" }); };
-      const row = el("div", "brief-actions");
-      row.append(a, back);
-      $("steps").after(row);
+async function refreshConnect() {
+  const b = $("connect");
+  if (!GH.on) { b.textContent = "Connect"; b.dataset.on = ""; return; }
+  b.dataset.on = "1";
+  b.textContent = "Connected";
+  try {
+    const me = await GH.api("/user");
+    if (me?.login) b.textContent = `● ${me.login}`;
+  } catch { /* token may be fine-grained without user scope — still usable */ }
+}
+
+function initConnect() {
+  $("connect").onclick = () => {
+    $("connect-pop").classList.contains("hide") ? openPop() : closePop();
+  };
+  document.addEventListener("pointerdown", (e) => {
+    if (!$("connect-pop").classList.contains("hide") && !e.target.closest(".connect-wrap")) closePop();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePop(); });
+  $("gh-save").onclick = async () => {
+    const v = $("gh-token").value.trim();
+    if (!v) { $("gh-state").textContent = "paste a token first"; return; }
+    GH.token = v;
+    $("gh-state").textContent = "checking…";
+    try {
+      const repo = await GH.api(`/repos/${GH.repo}`);
+      $("gh-state").textContent = repo ? "connected ✓" : "token works, repo not visible";
+      $("gh-token").value = "";
+      refreshConnect();
+      setTimeout(closePop, 700);
+    } catch (e) {
+      $("gh-state").textContent = "rejected: " + e.message.slice(0, 60);
+      GH.token = "";
+      refreshConnect();
     }
-  }, 420);
+  };
+  $("gh-clear").onclick = () => {
+    GH.token = "";
+    $("gh-token").value = "";
+    $("gh-state").textContent = "forgotten";
+    refreshConnect();
+  };
+}
+
+/* --- boot ---------------------------------------------------------------- */
+
+function autoGrow() {
+  const ta = $("chat-input");
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 130) + "px";
+}
+
+async function loadIndex() {
+  let index = { projects: [] };
+  try {
+    index = await fetch("data/index.json", { cache: "no-store" }).then((r) => r.json());
+  } catch { /* fresh repo: no runs yet */ }
+  const grid = $("proj-grid");
+  grid.innerHTML = "";
+  $("existing").classList.toggle("hide", !index.projects.length);
+  index.projects.forEach((p) => {
+    const b = el("button", "proj");
+    b.type = "button";
+    b.append(el("div", "pn", p.project));
+    b.append(el("div", "pm",
+      `${p.candidates} layouts · ${p.checked} checked · ${p.not_evaluated} not evaluated · ${p.failed} failed`));
+    b.onclick = () => openProject(p.key);
+    grid.append(b);
+  });
+  return index;
+}
+
+function initModes() {
+  const chat = $("mode-chat"), form = $("mode-form");
+  const setMode = (m) => {
+    chat.classList.toggle("on", m === "chat");
+    form.classList.toggle("on", m === "form");
+    chat.setAttribute("aria-selected", String(m === "chat"));
+    form.setAttribute("aria-selected", String(m === "form"));
+    document.querySelector(".brief-grid").classList.toggle("hide", m !== "chat");
+    $("interview").classList.toggle("hide", m !== "form");
+    if (m === "form") renderForm();
+  };
+  chat.onclick = () => setMode("chat");
+  form.onclick = () => setMode("form");
 }
 
 async function boot() {
-  renderInterview();
-  $("interview").addEventListener("submit", submitBrief);
+  Brief.reset();
+  initModes();
+  initConnect();
+  initSheetControls();
+  refreshConnect();
+
+  $("composer").addEventListener("submit", (e) => { e.preventDefault(); submitUtterance($("chat-input").value); });
+  $("chat-input").addEventListener("input", autoGrow);
+  $("chat-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitUtterance($("chat-input").value); }
+  });
+  $("go").addEventListener("click", designIt);
   $("show-spaces").addEventListener("change", applySpaceVisibility);
   $("restart").addEventListener("click", () => {
     show("brief");
@@ -578,25 +1408,15 @@ async function boot() {
     };
   });
 
-  let index = { projects: [] };
-  try {
-    index = await fetch("data/index.json").then((r) => r.json());
-  } catch {
-    $("existing").classList.add("hide");
-  }
+  agentSay(
+    "Tell me about the building — a home, a studio, an office, a practice. Who it's for, which rooms, anything that matters. I'll only ask what the rules actually need.",
+    { chips: [
+      { label: "A family home", send: "A house for our family of four — three bedrooms, a study, an open kitchen, and the living room facing the garden. Plot is 18 by 24 m." },
+      { label: "A co-working space", send: "A co-working space for a team of ten — a studio with a desk for everyone, a conference room, a washroom and a small kitchen. Plot is 15 by 20 m." },
+    ] },
+  );
 
-  const grid = $("proj-grid");
-  grid.innerHTML = "";
-  if (!index.projects.length) $("existing").classList.add("hide");
-  index.projects.forEach((p) => {
-    const b = el("button", "proj");
-    b.type = "button";
-    b.append(el("div", "pn", p.project));
-    b.append(el("div", "pm",
-      `${p.candidates} layouts · ${p.checked} checked · ${p.not_evaluated} not evaluated · ${p.failed} failed`));
-    b.onclick = () => openProject(p.key);
-    grid.append(b);
-  });
+  await loadIndex();
 
   // Deep link: ?p=familienhaus&c=open
   const q = new URLSearchParams(location.search);
