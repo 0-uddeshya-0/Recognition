@@ -1,6 +1,6 @@
 """A small house, written as code.
 
-    uv run python design/house.py                 # → out/design/house.ifc + house-3d.png
+    uv run python design/house.py                 # → out/design/house.ifc
     uv run recognition run out/design/house.ifc out/design/pkg --project Haus-am-Hang
 
 Change a number, rerun: new 3D model, new 2D sheets, new compliance report.
@@ -51,5 +51,4 @@ for name, wall, at in [("F1", "S", 2.4), ("F2", "S", 10.4), ("F3", "E", 2.2), ("
 if __name__ == "__main__":
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("out/design/house.ifc")
     h.write(out)
-    h.axonometric(out.with_name("house-3d.png"))
-    print(f"wrote {out} and {out.with_name('house-3d.png')}")
+    print(f"wrote {out}")

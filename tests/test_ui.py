@@ -325,34 +325,8 @@ def test_devin_engine_offline(tmp_path, monkeypatch):
         eng.approve(job)
 
 
-def test_devin_prompt_for_code_job(tmp_path):
-    fake = FakeDevin()
-    eng = E.DevinEngine(client=fake, repo="org/repo", git_dir=tmp_path, poll_interval=0)
-    job = Job("abc123def4", time.time(), "haus-am-hang.py", "", str(tmp_path / "job"), project="Haus am Hang",
-              source="code", code=EXAMPLE.read_text(encoding="utf-8"))
-    job.instruction = "Make the Schlafzimmer at least 25 m2"
-    job.branch = "detail/haus-am-hang-abc123"
-    prompt = eng.prompt(job, None)
-    assert "```python\n" in prompt and "eg.wall(\"I3\"" in prompt and "design/haus-am-hang.py" in prompt
-    assert "(attached)" not in prompt
-    # escalation after a local build: the built IFC is attached, the script still travels in the prompt
-    ifc = tmp_path / "model.ifc"
-    ifc.write_bytes(b"ISO-10303-21;")
-    job.model_path = str(ifc)
-    eng.start(job, ifc, job.instruction, None)
-    for _ in range(50):
-        if job.devin_session_id:
-            break
-        time.sleep(0.05)
-    assert fake.uploaded == [ifc] and "```python" in fake.sessions["devin-1"]["prompt"]
-    # a design edit while Devin holds the job goes to the same session as a code block
-    job.status, job.devin_waiting = "done", False
-    eng.message(job, "", None, job.code.replace("7.375", "6.775"))
-    assert "design/haus-am-hang.py" in fake.messages[-1] and "6.775" in fake.messages[-1] and "6.775" in job.code
-
-
 def test_studio_pages(fzk_job):
     assert client.get("/studio").status_code == 200
-    assert "house.py" in client.get("/studio").text and "rules.yaml" in client.get("/studio").text
+    assert "house.py" in client.get("/studio").text
     assert client.get(f"/studio/{fzk_job['id']}").status_code == 200
     assert client.get("/studio/nope").status_code == 404

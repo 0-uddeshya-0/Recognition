@@ -57,8 +57,6 @@ def test_example_house_builds_and_passes(tmp_path):
     m = M.load(ifc)
     assert (len(m.walls), len(m.spaces), len(m.doors), len(m.windows)) == (9, 6, 6, 9)
     assert rules.check(m).errors == []
-    png = ns["h"].axonometric(tmp_path / "house.png")
-    assert png.stat().st_size > 5_000
 
 
 def test_opening_validation():

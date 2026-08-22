@@ -75,11 +75,6 @@ def code_changed(job: Job, code: str | None) -> bool:
     return code is not None and code.strip() != (job.code or "").strip()
 
 
-def design_filename(job: Job) -> str:
-    """Where the house script lives once it is committed: design/<slug>.py."""
-    return f"{slug(job.project).lower()}.py"
-
-
 def validate_rules(text: str) -> dict:
     try:
         data = yaml.safe_load(text)
@@ -386,11 +381,7 @@ class DevinEngine:
             parts.append("Apply this ruleset (write it to the package directory as rules.yaml and pass it with --rules):\n"
                          f"```yaml\n{rules_yaml.strip()}\n```")
         if code_changed(job, code):
-            if job.source != "code":
-                raise EngineError("This job started from an IFC file; only jobs written as code can be rebuilt.")
-            job.code = code
-            parts.append(f"The design changed. Replace `design/{design_filename(job)}` with this, build it and run the "
-                         f"pipeline on the new IFC:\n```python\n{code.strip()}\n```")
+            raise EngineError("Rebuilding a house written as code is a local-engine feature.")
         if not parts:
             raise EngineError("Nothing changed — describe a change or edit the rules.")
         parts.append(f"Regenerate the package under {PACKAGE_DIR}/{slug(job.project)}/ on branch {job.branch}, "
@@ -422,12 +413,7 @@ class DevinEngine:
 
     def prompt(self, job: Job, attachment_url: str | None) -> str:
         pkg = f"{PACKAGE_DIR}/{slug(job.project)}"
-        as_code = job.source == "code" and bool(job.code)
-        if as_code:
-            model_line = (f"Model: the house written as code below{' (its built IFC is attached for reference)' if attachment_url else ''}. "
-                          f"Project name: \"{job.project}\".")
-        else:
-            model_line = f"Model: {job.model_name} (attached). Project name: \"{job.project}\"."
+        model_line = f"Model: {job.model_name} (attached). Project name: \"{job.project}\"."
         lines = [
             job.instruction or "Produce the detailing package for the attached model.",
             "",
@@ -439,12 +425,6 @@ class DevinEngine:
         ]
         if not self.playbook_id and UI_PLAYBOOK.exists():
             lines += ["", "Follow this playbook:", "", UI_PLAYBOOK.read_text(encoding="utf-8")]
-        if as_code:
-            script = f"design/{design_filename(job)}"
-            lines += ["", f"This building is written as code. Save the script below as `{script}`, build it with "
-                          f"`uv run python {script} {pkg}/model.ifc`, and run the pipeline on that IFC. Design changes "
-                          f"are edits to `{script}` followed by a rebuild — commit the script with the package.",
-                      "```python", job.code.strip(), "```"]
         if job.rules_yaml:
             lines += ["", f"Use this ruleset instead of rules/residential.yaml (save it as `{pkg}/rules.yaml` and pass "
                           "`--rules`):", "```yaml", job.rules_yaml.strip(), "```"]
@@ -454,13 +434,9 @@ class DevinEngine:
 
     def _open_session(self, job: Job, run: Run, ifc_path: Path) -> None:
         try:
-            if job.source == "code" and not ifc_path.is_file():  # not built yet: Devin builds it from the script
-                url = None
-                job.set_step("Upload model", "done", "design as code — Devin builds the IFC")
-            else:
-                job.set_step("Upload model", "running", f"{ifc_path.name} ({ifc_path.stat().st_size / 1e6:.1f} MB)")
-                url = self.client.upload(ifc_path)
-                job.set_step("Upload model", "done", ifc_path.name)
+            job.set_step("Upload model", "running", f"{ifc_path.name} ({ifc_path.stat().st_size / 1e6:.1f} MB)")
+            url = self.client.upload(ifc_path)
+            job.set_step("Upload model", "done", ifc_path.name)
             job.set_step("Devin session", "running", "creating")
             body = {
                 "prompt": self.prompt(job, url),

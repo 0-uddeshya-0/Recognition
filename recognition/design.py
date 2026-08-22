@@ -9,7 +9,6 @@
     eg.door("D1", on="W1", at=8.3, width=2.01, height=2.2, external=True)
     eg.window("F1", on="W1", at=1.5, width=2.0, height=1.2, sill=0.9)
     h.write("out/house.ifc")           # 3D: IfcWall / IfcSpace / IfcDoor / IfcWindow with real solids
-    h.axonometric("out/house.png")     # a quick 3D view
     # then: recognition run out/house.ifc out/house   → 2D sheets, schedules, compliance
 
 Coordinates are metres in the storey plane (x east, y north); walls are
@@ -25,12 +24,9 @@ import math
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import cairosvg
 import ifcopenshell
 import ifcopenshell.api
-import ifcopenshell.geom
 import numpy as np
-import svgwrite
 
 run = ifcopenshell.api.run
 Pt = tuple[float, float]
@@ -176,9 +172,6 @@ class House:
         self.f.write(str(path))
         return path
 
-    def axonometric(self, path: str | Path, scale: float = 40.0) -> Path:
-        return axonometric(self.f, path, scale=scale, title=self.name)
-
     # --- ifc plumbing ------------------------------------------------------
 
     def _product(self, ifc_class: str, name: str):
@@ -198,70 +191,3 @@ class House:
     def _pset(self, product, name: str, props: dict) -> None:
         pset = run("pset.add_pset", self.f, product=product, name=name)
         run("pset.edit_pset", self.f, pset=pset, properties=props)
-
-
-# --- a quick 3D view ----------------------------------------------------------
-
-COLOURS = {"IfcWall": "#6B7480", "IfcDoor": "#B5651D", "IfcWindow": "#2F6FE4", "IfcSpace": "#DCE6F5"}
-
-
-def axonometric(ifc: ifcopenshell.file | str | Path, path: str | Path, scale: float = 40.0, title: str = "") -> Path:
-    """Isometric projection of walls, doors and windows (rooms as floor tints), painter-sorted. PNG via SVG."""
-    f = ifc if isinstance(ifc, ifcopenshell.file) else ifcopenshell.open(str(ifc))
-    settings = ifcopenshell.geom.settings()
-    settings.set("use-world-coords", True)
-    c30, s30 = math.cos(math.radians(30)), math.sin(math.radians(30))
-    faces = []  # (depth, points2d, colour, shade)
-    for cls, colour in COLOURS.items():
-        for el in f.by_type(cls):
-            try:
-                shape = ifcopenshell.geom.create_shape(settings, el)
-            except Exception:
-                continue
-            v, fc = shape.geometry.verts, shape.geometry.faces
-            pts = [(v[i], v[i + 1], v[i + 2]) for i in range(0, len(v), 3)]
-            if cls == "IfcSpace":  # floor only
-                z0 = min(p[2] for p in pts)
-                pts = [p for p in pts if abs(p[2] - z0) < 1e-6]
-            for i in range(0, len(fc), 3):
-                tri = [pts[fc[i]], pts[fc[i + 1]], pts[fc[i + 2]]] if cls != "IfcSpace" else None
-                if tri is None:
-                    break
-                a, b, c = (np.array(p) for p in tri)
-                n = np.cross(b - a, c - a)
-                if np.linalg.norm(n) < 1e-9:
-                    continue
-                n = n / np.linalg.norm(n)
-                shade = 0.62 + 0.38 * max(0.0, float(np.dot(n, [0.3, -0.5, 0.81])))
-                faces.append((sum(p[0] + p[1] + p[2] * 0.5 for p in tri), tri, colour, shade))
-            if cls == "IfcSpace" and pts:
-                xs = sorted(set(pts))
-                from shapely.geometry import MultiPoint
-                hull = MultiPoint([(p[0], p[1]) for p in xs]).convex_hull
-                if hull.geom_type == "Polygon":
-                    z0 = pts[0][2]
-                    poly = [(x, y, z0 + 0.01) for x, y in hull.exterior.coords]
-                    faces.append((-1e9, poly, colour, 1.0))
-
-    def proj(p):
-        return ((p[0] - p[1]) * c30 * scale, -((p[0] + p[1]) * s30 + p[2]) * scale)
-
-    faces.sort(key=lambda t: t[0])
-    projected = [([proj(p) for p in poly], col, sh) for _, poly, col, sh in faces]
-    xs = [x for poly, _, _ in projected for x, _ in poly]
-    ys = [y for poly, _, _ in projected for _, y in poly]
-    pad = 30
-    minx, miny = min(xs) - pad, min(ys) - pad
-    W, H = max(xs) - minx + pad, max(ys) - miny + pad + (28 if title else 0)
-    dwg = svgwrite.Drawing(size=(W, H))
-    dwg.add(dwg.rect((0, 0), (W, H), fill="white"))
-    for poly, col, sh in projected:
-        r, g, b = (int(col[i:i + 2], 16) for i in (1, 3, 5))
-        fill = f"rgb({int(r * sh)},{int(g * sh)},{int(b * sh)})"
-        dwg.add(dwg.polygon([(x - minx, y - miny) for x, y in poly], fill=fill, stroke=fill, stroke_width=0.4))
-    if title:
-        dwg.add(dwg.text(title, insert=(pad, H - 10), font_size=13, font_family="Helvetica, Arial, sans-serif", fill="#59646E"))
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    cairosvg.svg2png(bytestring=dwg.tostring().encode("utf-8"), write_to=str(path), background_color="white")
-    return path

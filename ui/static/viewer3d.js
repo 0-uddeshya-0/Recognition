@@ -9,7 +9,7 @@
  * IFC is z-up, metres; the camera keeps z up so north stays +y like on the sheets.
  */
 import * as THREE from "three";
-import { OrbitControls } from "/static/vendor/OrbitControls.js";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js";
 
 const COLOR = { wall: 0x6B7480, door: 0xB5651D, window: 0x2F6FE4, space: 0xDCE6F5, fail: 0xC8352A,
                 bg: 0xFFFFFF, grid: 0xE1E6EA, axis: 0xC7CED5, edge: 0x15191D, sky: 0xFFFFFF, ground: 0xD8DEE3 };
