@@ -1,0 +1,147 @@
+{
+  "message": "A single-storey studio for the six of you — open workspace, a meeting room, washroom and kitchenette, all barrier-free. I have everything the rules need, and I've noted my working assumptions (one storey, 2.50 m ceilings) so you can correct any of them. Anything else we should know before we hand this to the design team?",
+  "brief": {
+    "notes": "We are a small architecture practice, six of us. An open studio, a meeting room, a washroom and a kitchenette please - barrier-free.",
+    "rooms": [
+      {
+        "count": 1,
+        "label": "open studio",
+        "category": "office"
+      },
+      {
+        "count": 1,
+        "label": "meeting room",
+        "category": "meeting"
+      },
+      {
+        "count": 1,
+        "label": "washroom",
+        "category": "bathroom"
+      },
+      {
+        "count": 1,
+        "label": "kitchenette",
+        "category": "kitchen"
+      }
+    ],
+    "project": "Neubau",
+    "occupants": 6,
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 1,
+    "building_class": "architecture_practice",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "din18040_2"
+  },
+  "questions": [
+    {
+      "id": "anything_else",
+      "kind": "free",
+      "blocking": false,
+      "question": "Anything else we should know — storage, reception, natural light preferences, or anything that matters to how you work?"
+    }
+  ],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "Non-residential — treated as one unit; v1's cited ruleset is Bayern residential.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "Single storey — v1 designs one storey and nothing in your brief suggests more.",
+      "value": 1,
+      "confidence": "medium"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Ceiling 2.50 m — the Bayern minimum of 2.40 m plus a small build-up allowance.",
+      "value": 2.5,
+      "confidence": "medium"
+    },
+    {
+      "slot": "occupants",
+      "basis": "You said you are six — taken directly from your message, listed here only so you can correct it if the team grows.",
+      "value": 6,
+      "confidence": "high"
+    }
+  ],
+  "done": true,
+  "sealed_brief": {
+    "project": "Neubau",
+    "bundesland": "BY",
+    "building_class": "architecture_practice",
+    "plot_width_m": 18,
+    "plot_depth_m": 24,
+    "dwelling_count": 1,
+    "storey_count": 1,
+    "storey_height_m": 2.5,
+    "occupants": 6,
+    "rooms": [
+      {
+        "category": "office",
+        "count": 1,
+        "min_area_m2": null,
+        "label": "open studio"
+      },
+      {
+        "category": "meeting",
+        "count": 1,
+        "min_area_m2": null,
+        "label": "meeting room"
+      },
+      {
+        "category": "bathroom",
+        "count": 1,
+        "min_area_m2": null,
+        "label": "washroom"
+      },
+      {
+        "category": "kitchen",
+        "count": 1,
+        "min_area_m2": null,
+        "label": "kitchenette"
+      }
+    ],
+    "accessibility_tier": "din18040_2",
+    "assumptions": [
+      {
+        "slot": "dwelling_count",
+        "value": 1,
+        "basis": "Non-residential — treated as one unit; v1's cited ruleset is Bayern residential.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_count",
+        "value": 1,
+        "basis": "Single storey — v1 designs one storey and nothing in your brief suggests more.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_height_m",
+        "value": 2.5,
+        "basis": "Ceiling 2.50 m — the Bayern minimum of 2.40 m plus a small build-up allowance.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "occupants",
+        "value": 6,
+        "basis": "You said you are six — taken directly from your message, listed here only so you can correct it if the team grows.",
+        "confidence": "high",
+        "confirmed": false
+      }
+    ],
+    "notes": "We are a small architecture practice, six of us. An open studio, a meeting room, a washroom and a kitchenette please - barrier-free.",
+    "schema": "designbrief/v1"
+  },
+  "contract_error": "",
+  "session_id": "devin-345ddd1c5b2e4b55a6fcd9c1f1dcd8bc",
+  "session_url": "https://app.devin.ai/sessions/345ddd1c5b2e4b55a6fcd9c1f1dcd8bc",
+  "round": 1,
+  "engine": "devin"
+}
