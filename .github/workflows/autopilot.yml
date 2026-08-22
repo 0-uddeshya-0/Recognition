@@ -36,6 +36,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write     # the merge must dispatch the Pages deploy itself — see below
 
 concurrency:
   group: autopilot-${{ github.event.client_payload.brief || inputs.brief || github.ref }}
@@ -149,6 +150,11 @@ jobs:
           Winner \`${WINNER}\` cleared every \`tier: law\` rule. Merging automatically." \
             --base main --head "$BRANCH"
           gh pr merge "$BRANCH" --squash --delete-branch
+          # A push made with GITHUB_TOKEN never triggers other workflows (the
+          # anti-recursion rule), so the Studio would stay stale — dispatch
+          # the Pages deploy explicitly; workflow_dispatch is the sanctioned
+          # exception to that rule.
+          gh workflow run pages.yml --ref main
 
       - name: Report a failed gate honestly
         if: failure()
