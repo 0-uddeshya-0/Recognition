@@ -268,8 +268,13 @@ def load(path: str | Path) -> Model:
 
 
 def _infer_external(model: Model, tol: float = 0.03) -> None:
-    """Fill in IsExternal where the IFC lacks Pset_*Common: an element is external
-    if its footprint touches the outer boundary of the storey's built envelope."""
+    """Fill in IsExternal where the IFC lacks Pset_*Common.
+
+    A wall is external if its footprint lies on the outer boundary of the
+    storey's built envelope. An opening inherits from its host wall; if the
+    host is unknown it is external when it sits within 25 cm of that boundary.
+    """
+    walls_by_guid = {w.guid: w for w in model.walls}
     for st in model.storeys:
         walls = model.walls_on(st.name)
         if not walls:
@@ -277,11 +282,14 @@ def _infer_external(model: Model, tol: float = 0.03) -> None:
         envelope = unary_union([w.footprint for w in walls] + [s.footprint for s in model.spaces_on(st.name)]).buffer(tol).buffer(-tol)
         parts = envelope.geoms if isinstance(envelope, MultiPolygon) else [envelope]
         outer = unary_union([p.exterior for p in parts]).buffer(tol)
-        for el in walls + model.doors_on(st.name) + model.windows_on(st.name):
-            if el.is_external is None:
-                el.is_external = el.footprint.boundary.intersection(outer).length > 0.3
-    # Openings still unknown inherit from their host wall.
-    walls_by_guid = {w.guid: w for w in model.walls}
-    for op in model.doors + model.windows:
-        if op.is_external is None and op.host_wall in walls_by_guid:
-            op.is_external = walls_by_guid[op.host_wall].is_external
+        for w in walls:
+            if w.is_external is None:
+                w.is_external = w.footprint.boundary.intersection(outer).length > 0.3
+        for op in model.doors_on(st.name) + model.windows_on(st.name):
+            if op.is_external is not None:
+                continue
+            host = walls_by_guid.get(op.host_wall or "")
+            if host is not None and host.is_external is not None:
+                op.is_external = host.is_external
+            else:
+                op.is_external = op.footprint.buffer(0.25).intersects(outer)
