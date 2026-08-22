@@ -1,13 +1,35 @@
 {
   "candidate": "compact",
-  "ok": true,
-  "checked": 57,
-  "passed": 57,
-  "failed": 0,
+  "ok": false,
+  "checked": 66,
+  "passed": 64,
+  "failed": 2,
   "not_evaluated": 2,
-  "blocking_failures": 0,
-  "advisory_failures": 0,
+  "blocking_failures": 1,
+  "advisory_failures": 1,
   "findings": [
+    {
+      "rule_id": "ROOM-DAYLIGHT",
+      "tier": "law",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-09 Hausarbeitsraum",
+      "message": "Hausarbeitsraum: glazing 0% of floor area < 12%",
+      "citation": "BayBO Art. 45 (2)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-45",
+      "blocking": true
+    },
+    {
+      "rule_id": "ROOM-MIN-AREA",
+      "tier": "guidance",
+      "severity": "warning",
+      "status": "failed",
+      "element": "R-09 Hausarbeitsraum",
+      "message": "Hausarbeitsraum: 6.08 m² < 8.0 m² required for office",
+      "citation": "Richtwerte fuer Raumgroessen",
+      "url": "https://www.fertighaus.de/ratgeber/hausbau/grundriss-planen-richtwerte-fuer-raumgroessen/",
+      "blocking": false
+    },
     {
       "rule_id": "SMOKE-DETECTOR",
       "tier": "law",
@@ -32,12 +54,12 @@
     }
   ],
   "metrics": {
-    "envelope_m2": 137.5,
-    "room_area_m2": 117.06,
-    "usable_ratio": 0.7475,
-    "circulation_m2": 14.28,
-    "openings": 14,
-    "rooms": 8
+    "envelope_m2": 155.25,
+    "room_area_m2": 132.54,
+    "usable_ratio": 0.754,
+    "circulation_m2": 15.48,
+    "openings": 16,
+    "rooms": 9
   },
   "error": ""
 }

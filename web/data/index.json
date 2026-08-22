@@ -14,11 +14,11 @@
     {
       "key": "familienhaus",
       "project": "Familienhaus",
-      "winner": "open",
-      "engine": "local",
+      "winner": "linear",
+      "engine": "devin",
       "candidates": 3,
       "ok": true,
-      "checked": 54,
+      "checked": 57,
       "not_evaluated": 2,
       "failed": 0
     }

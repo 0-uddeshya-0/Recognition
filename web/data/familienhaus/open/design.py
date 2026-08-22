@@ -12,46 +12,48 @@ eg = h.storey('Erdgeschoss', elevation=0.0, height=2.5)
 
 
 # --- walls: external envelope, then partitions between rooms ---
-eg.wall('EXT-S', (0.15, 0.15), (13.35, 0.15), thickness=0.3, external=True)
-eg.wall('EXT-E', (13.35, 0.15), (13.35, 9.85), thickness=0.3, external=True)
-eg.wall('EXT-N', (13.35, 9.85), (0.15, 9.85), thickness=0.3, external=True)
-eg.wall('EXT-W', (0.15, 9.85), (0.15, 0.15), thickness=0.3, external=True)
-eg.wall('INT-1', (0.15, 6.8), (5.15, 6.8), thickness=0.15)
-eg.wall('INT-2', (5.15, 0.15), (5.15, 4.55), thickness=0.15)
-eg.wall('INT-3', (5.15, 4.55), (5.15, 6.8), thickness=0.15)
-eg.wall('INT-4', (5.15, 6.8), (5.15, 9.85), thickness=0.15)
-eg.wall('INT-5', (9.25, 0.15), (9.25, 4.55), thickness=0.15)
-eg.wall('INT-6', (5.15, 4.55), (8.55, 4.55), thickness=0.15)
-eg.wall('INT-7', (9.25, 4.55), (13.35, 4.55), thickness=0.15)
-eg.wall('INT-8', (8.55, 4.55), (8.55, 6.65), thickness=0.15)
-eg.wall('INT-9', (8.55, 6.65), (8.55, 9.85), thickness=0.15)
-eg.wall('INT-10', (8.55, 6.65), (13.35, 6.65), thickness=0.15)
+eg.wall('EXT-S', (0.15, 0.15), (12.85, 0.15), thickness=0.3, external=True)
+eg.wall('EXT-E', (12.85, 0.15), (12.85, 11.35), thickness=0.3, external=True)
+eg.wall('EXT-N', (12.85, 11.35), (0.15, 11.35), thickness=0.3, external=True)
+eg.wall('EXT-W', (0.15, 11.35), (0.15, 0.15), thickness=0.3, external=True)
+eg.wall('INT-1', (0.15, 7.75), (5.6, 7.75), thickness=0.15)
+eg.wall('INT-2', (5.6, 0.15), (5.6, 4.75), thickness=0.15)
+eg.wall('INT-3', (5.6, 4.75), (5.6, 7.75), thickness=0.15)
+eg.wall('INT-4', (5.6, 8.05), (5.6, 11.35), thickness=0.15)
+eg.wall('INT-5', (8.55, 0.15), (8.55, 4.75), thickness=0.15)
+eg.wall('INT-6', (5.6, 4.75), (8.55, 4.75), thickness=0.15)
+eg.wall('INT-7', (8.55, 4.75), (10.05, 4.75), thickness=0.15)
+eg.wall('INT-8', (10.05, 4.75), (12.85, 4.75), thickness=0.15)
+eg.wall('INT-9', (5.6, 8.05), (10.05, 8.05), thickness=0.15)
+eg.wall('INT-10', (10.05, 4.75), (10.05, 8.05), thickness=0.15)
+eg.wall('INT-11', (10.05, 8.7), (10.05, 11.35), thickness=0.15)
+eg.wall('INT-12', (10.05, 8.7), (12.85, 8.7), thickness=0.15)
 
 # --- rooms: floor outlines inset to the inside face of their walls ---
-eg.room('Wohnen', [(0.3, 0.3), (5.05, 0.3), (5.05, 6.7), (0.3, 6.7)])   # R-01 33.2 m2 target 29.1
-eg.room('Küche', [(0.3, 6.9), (5.05, 6.9), (5.05, 9.7), (0.3, 9.7)])   # R-02 15.2 m2 target 13.4
-eg.room('Schlafzimmer 1', [(5.2, 0.3), (9.2, 0.3), (9.2, 4.45), (5.2, 4.45)])   # R-03 18.0 m2 target 15.7
-eg.room('Schlafzimmer 2', [(9.3, 0.3), (13.2, 0.3), (13.2, 4.45), (9.3, 4.45)])   # R-04 18.0 m2 target 15.7
-eg.room('Schlafzimmer 3', [(5.2, 4.6), (8.5, 4.6), (8.5, 9.7), (5.2, 9.7)])   # R-05 18.0 m2 target 15.7
-eg.room('Bad', [(8.6, 4.6), (13.2, 4.6), (13.2, 6.6), (8.6, 6.6)])   # R-06 10.1 m2 target 9.0
-eg.room('Büro', [(8.6, 6.7), (13.2, 6.7), (13.2, 9.7), (8.6, 9.7)])   # R-07 15.4 m2 target 13.4
+eg.room('Wohnen (offener Wohnbereich)', [(0.3, 0.3), (5.5, 0.3), (5.5, 7.65), (0.3, 7.65)])   # R-01 41.4 m2 target 34.0
+eg.room('Wohnkueche', [(0.3, 7.8), (5.5, 7.8), (5.5, 11.2), (0.3, 11.2)])   # R-02 19.6 m2 target 16.0
+eg.room('Arbeitsnische', [(5.65, 0.3), (8.5, 0.3), (8.5, 4.65), (5.65, 4.65)])   # R-03 13.6 m2 target 11.0
+eg.room('Elternschlafzimmer', [(8.6, 0.3), (12.7, 0.3), (12.7, 4.65), (8.6, 4.65)])   # R-04 19.8 m2 target 16.0
+eg.room('Kinderzimmer 1', [(5.65, 4.8), (10.0, 4.8), (10.0, 8.0), (5.65, 8.0)])   # R-05 14.7 m2 target 12.0
+eg.room('Kinderzimmer 2', [(5.65, 8.1), (10.0, 8.1), (10.0, 11.2), (5.65, 11.2)])   # R-06 14.7 m2 target 12.0
+eg.room('Bad', [(10.1, 4.8), (12.7, 4.8), (12.7, 8.6), (10.1, 8.6)])   # R-07 11.1 m2 target 9.0
+eg.room('Hauswirtschaftsraum', [(10.1, 8.75), (12.7, 8.75), (12.7, 11.2), (10.1, 11.2)])   # R-08 7.4 m2 target 6.0
 
 # --- doors: one per adjacency declared in the plan ---
-eg.door('D-00', on='EXT-S', at=6.6, width=1.01, height=2.10, external=True, type_name='Eingangstuer')
-eg.door('D-01', on='INT-1', at=2.5, width=0.885, height=2.05)   # R-01 <-> R-02
-eg.door('D-02', on='INT-2', at=2.2, width=0.885, height=2.05)   # R-01 <-> R-03
-eg.door('D-03', on='INT-5', at=2.2, width=0.885, height=2.05)   # R-03 <-> R-04  (plan asked for R-01; rerouted to the neighbour it touches)
-eg.door('D-04', on='INT-3', at=1.1, width=0.885, height=2.05)   # R-01 <-> R-05
-eg.door('D-05', on='INT-10', at=2.4, width=0.885, height=2.05)   # R-07 <-> R-06  (plan asked for R-01; rerouted to the neighbour it touches)
-eg.door('D-06', on='INT-10', at=1.4, width=0.885, height=2.05)   # R-06 <-> R-07  (plan asked for R-01; rerouted to the neighbour it touches)
+eg.door('D-00', on='EXT-S', at=6.35, width=1.01, height=2.10, external=True, type_name='Eingangstuer')
+eg.door('D-01', on='INT-5', at=2.3, width=0.885, height=2.05)   # R-03 <-> R-04  (plan asked for R-01; rerouted to the neighbour it touches)
+eg.door('D-02', on='INT-3', at=1.5, width=0.885, height=2.05)   # R-01 <-> R-05
+eg.door('D-03', on='INT-9', at=2.25, width=0.885, height=2.05)   # R-05 <-> R-06  (plan asked for R-01; rerouted to the neighbour it touches)
+eg.door('D-04', on='INT-10', at=1.65, width=0.885, height=2.05)   # R-05 <-> R-07  (plan asked for R-01; rerouted to the neighbour it touches)
+eg.door('D-05', on='INT-12', at=1.4, width=0.885, height=2.05)   # R-07 <-> R-08  (plan asked for R-02; rerouted to the neighbour it touches)
 
 # --- windows: sized to the daylight rule, on exterior walls ---
-eg.window('F-01', on='EXT-W', at=6.4, width=2.95, height=1.4, sill=0.9)   # R-01 needs 4.16 m2
-eg.window('F-02', on='EXT-N', at=10.7, width=1.35, height=1.4, sill=0.9)   # R-02 needs 1.91 m2
-eg.window('F-03', on='EXT-S', at=8.0, width=1.6, height=1.41, sill=0.9)   # R-03 needs 2.25 m2  (short: 2.25 m2 is all this wall can carry)
-eg.window('F-04', on='EXT-E', at=2.2, width=1.6, height=1.4, sill=0.9)   # R-04 needs 2.25 m2
-eg.window('F-05', on='EXT-N', at=6.5, width=1.6, height=1.4, sill=0.9)   # R-05 needs 2.25 m2
-eg.window('F-06', on='EXT-N', at=2.4, width=1.35, height=1.4, sill=0.9)   # R-07 needs 1.92 m2
+eg.window('F-01', on='EXT-W', at=7.4, width=3.7, height=1.4, sill=0.9)   # R-01 needs 5.18 m2
+eg.window('F-02', on='EXT-N', at=9.95, width=1.75, height=1.4, sill=0.9)   # R-02 needs 2.45 m2
+eg.window('F-03', on='EXT-S', at=7.55, width=1.15, height=1.48, sill=0.9)   # R-03 needs 1.70 m2  (short: 1.69 m2 is all this wall can carry)
+eg.window('F-04', on='EXT-E', at=2.3, width=1.75, height=1.4, sill=0.9)   # R-04 needs 2.47 m2
+# TODO_AGENT: room R-05 (Kinderzimmer 1) has no exterior wall, so it cannot meet the daylight rule; move it to the perimeter
+eg.window('F-05', on='EXT-N', at=5.0, width=1.3, height=1.4, sill=0.9)   # R-06 needs 1.84 m2
 
 if __name__ == "__main__":
     h.write("out/familienhaus/model.ifc")

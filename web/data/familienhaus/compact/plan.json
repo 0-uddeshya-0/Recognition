@@ -1,8 +1,8 @@
 {
   "project": "Familienhaus",
   "envelope": {
-    "width_m": 12.5,
-    "depth_m": 11.0,
+    "width_m": 13.5,
+    "depth_m": 11.5,
     "external_wall_m": 0.3,
     "internal_wall_m": 0.15
   },
@@ -11,35 +11,35 @@
       "id": "R-01",
       "category": "living",
       "label": "Wohnen",
-      "target_area_m2": 26.0,
+      "target_area_m2": 28.0,
       "exterior_wall": true
     },
     {
       "id": "R-02",
       "category": "kitchen",
-      "label": "Küche",
-      "target_area_m2": 12.0,
+      "label": "Küche (Essküche)",
+      "target_area_m2": 13.0,
       "exterior_wall": true
     },
     {
       "id": "R-03",
       "category": "bedroom",
-      "label": "Schlafzimmer 1",
-      "target_area_m2": 14.0,
+      "label": "Elternschlafzimmer",
+      "target_area_m2": 15.0,
       "exterior_wall": true
     },
     {
       "id": "R-04",
       "category": "bedroom",
-      "label": "Schlafzimmer 2",
-      "target_area_m2": 14.0,
+      "label": "Kinderzimmer 1",
+      "target_area_m2": 12.0,
       "exterior_wall": true
     },
     {
       "id": "R-05",
       "category": "bedroom",
-      "label": "Schlafzimmer 3",
-      "target_area_m2": 14.0,
+      "label": "Kinderzimmer 2",
+      "target_area_m2": 12.0,
       "exterior_wall": true
     },
     {
@@ -53,60 +53,82 @@
       "id": "R-07",
       "category": "office",
       "label": "Büro",
-      "target_area_m2": 12.0,
+      "target_area_m2": 10.0,
       "exterior_wall": true
     },
     {
       "id": "R-08",
+      "category": "utility",
+      "label": "Hausarbeitsraum",
+      "target_area_m2": 6.0,
+      "exterior_wall": false
+    },
+    {
+      "id": "R-09",
       "category": "hall",
-      "label": "Flur",
-      "target_area_m2": 10.0,
-      "exterior_wall": true
+      "label": "Diele / Flur",
+      "target_area_m2": 14.0,
+      "exterior_wall": false
     }
   ],
   "adjacency": [
     {
-      "a": "R-08",
+      "a": "R-09",
       "b": "R-01",
       "via": "door"
     },
     {
-      "a": "R-08",
+      "a": "R-09",
       "b": "R-02",
       "via": "door"
     },
     {
-      "a": "R-08",
+      "a": "R-09",
       "b": "R-03",
       "via": "door"
     },
     {
-      "a": "R-08",
+      "a": "R-09",
       "b": "R-04",
       "via": "door"
     },
     {
-      "a": "R-08",
+      "a": "R-09",
       "b": "R-05",
       "via": "door"
     },
     {
-      "a": "R-08",
+      "a": "R-09",
       "b": "R-06",
       "via": "door"
     },
     {
-      "a": "R-08",
+      "a": "R-09",
       "b": "R-07",
+      "via": "door"
+    },
+    {
+      "a": "R-09",
+      "b": "R-08",
+      "via": "door"
+    },
+    {
+      "a": "R-02",
+      "b": "R-01",
+      "via": "open"
+    },
+    {
+      "a": "R-02",
+      "b": "R-08",
       "via": "door"
     }
   ],
   "storey_name": "Erdgeschoss",
   "storey_height_m": 2.5,
-  "circulation_id": "R-08",
+  "circulation_id": "R-09",
   "glazing_ratio": 0.125,
   "accessibility_tier": "none",
-  "rationale": "Compact core: Squarer envelope with a central hall spine. Least external wall per m2, so cheapest to build and to heat.",
+  "rationale": "Compact core: a near-square 13.5 × 11.5 m envelope (1.17 : 1) minimises external wall per m² of floor, which is the cheapest shell to build and the cheapest to heat, and it sits comfortably inside the 18 × 24 m plot with room for the entrance court on the short side. A single straight Diele spine runs across the middle of the plan and every room hangs directly off it, so the loud half (Wohnen with the open Essküche) and the quiet half (three bedrooms plus Büro) are separated by circulation rather than by shared party walls, and the bath is entered from the hall, never through a bedroom. The trade-off I accepted is a generous 14 m² hall — about 12% of the programme — and a windowless Hausarbeitsraum tucked into the deep centre of the plan next to the kitchen: burying the one room that does not need daylight in the core is what lets all four habitable perimeter rooms plus the bath keep full-height glazing on an outside wall in a plan this deep. Areas total 118 m² against 155 m² gross, leaving ~24% for walls and circulation.",
   "todo_agent": [],
   "schema": "architectplan/v1"
 }

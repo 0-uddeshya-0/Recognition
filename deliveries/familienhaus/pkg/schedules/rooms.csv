@@ -1,0 +1,9 @@
+tag,storey,name,category,area_m2,height_m,doors,windows
+R-01,Erdgeschoss,Wohnen,living,28.04,2.5,D-01 D-02,W-01
+R-02,Erdgeschoss,Kinderzimmer 2,bedroom,11.81,2.5,D-03,W-02
+R-03,Erdgeschoss,Bad,bathroom,7.88,2.5,D-04,
+R-04,Erdgeschoss,Flur,hall,19.25,2.5,D-02 D-06 D-05 D-07 D-03 D-08 D-04,
+R-05,Erdgeschoss,Elternschlafzimmer,bedroom,14.08,2.5,D-05,W-04
+R-06,Erdgeschoss,Küche,kitchen,12.16,2.5,D-06,W-05
+R-07,Erdgeschoss,Kinderzimmer 1,bedroom,11.68,2.5,D-07,W-06
+R-08,Erdgeschoss,Büro,office,9.92,2.5,D-08,W-03
