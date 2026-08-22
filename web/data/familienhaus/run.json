@@ -28,7 +28,9 @@
         "rooms": 8
       },
       "label": "Compact core",
-      "error": ""
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
     },
     {
       "name": "linear",
@@ -54,7 +56,9 @@
         "rooms": 8
       },
       "label": "Linear frontage",
-      "error": ""
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
     },
     {
       "name": "open",
@@ -80,7 +84,9 @@
         "rooms": 7
       },
       "label": "Open plan",
-      "error": ""
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
     }
   ]
 }

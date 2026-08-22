@@ -34,18 +34,18 @@ eg.room('Bad', [(10.45, 4.5), (13.2, 4.5), (13.2, 7.2), (10.45, 7.2)])   # R-05 
 eg.room('Flur', [(0.3, 3.2), (13.2, 3.2), (13.2, 4.35), (0.3, 4.35)])   # R-06 17.2 m2 target 10.0
 
 # --- doors: one per adjacency declared in the plan ---
+eg.door('D-00', on='EXT-S', at=6.6, width=0.9, height=2.10, external=True, type_name='Eingangstuer')
 eg.door('D-01', on='INT-2', at=4.5, width=0.8, height=2.05)   # R-06 <-> R-01
-eg.door('D-02', on='INT-3', at=2.05, width=0.8, height=2.05)   # R-06 <-> R-02
-eg.door('D-03', on='INT-5', at=2.6, width=0.8, height=2.05)   # R-06 <-> R-03
+eg.door('D-02', on='INT-3', at=2.1, width=0.8, height=2.05)   # R-06 <-> R-02
+eg.door('D-03', on='INT-5', at=2.55, width=0.8, height=2.05)   # R-06 <-> R-03
 eg.door('D-04', on='INT-7', at=2.55, width=0.8, height=2.05)   # R-06 <-> R-04
 eg.door('D-05', on='INT-8', at=1.45, width=0.8, height=2.05)   # R-06 <-> R-05
-eg.door('D-00', on='EXT-S', at=6.6, width=0.9, height=2.10, external=True, type_name='Eingangstuer')
 
 # --- windows: sized to the daylight rule, on exterior walls ---
-eg.window('F-01', on='EXT-S', at=4.5, width=2.4, height=1.4, sill=0.90)   # R-01 needs 3.34 m2
-eg.window('F-02', on='EXT-S', at=11.1, width=1.1, height=1.4, sill=0.90)   # R-02 needs 1.53 m2
-eg.window('F-03', on='EXT-N', at=10.6, width=1.35, height=1.4, sill=0.90)   # R-03 needs 1.90 m2
-eg.window('F-04', on='EXT-N', at=5.5, width=1.35, height=1.4, sill=0.90)   # R-04 needs 1.88 m2
+eg.window('F-01', on='EXT-S', at=4.5, width=2.4, height=1.4, sill=0.9)   # R-01 needs 3.34 m2
+eg.window('F-02', on='EXT-S', at=11.1, width=1.1, height=1.4, sill=0.9)   # R-02 needs 1.53 m2
+eg.window('F-03', on='EXT-N', at=10.6, width=1.35, height=1.4, sill=0.9)   # R-03 needs 1.90 m2
+eg.window('F-04', on='EXT-N', at=5.5, width=1.35, height=1.4, sill=0.9)   # R-04 needs 1.88 m2
 
 if __name__ == "__main__":
     h.write("out/dreifamilienhaus/model.ifc")

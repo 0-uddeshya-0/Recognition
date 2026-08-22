@@ -3,11 +3,11 @@
     {
       "key": "dreifamilienhaus",
       "project": "Dreifamilienhaus",
-      "winner": "open",
+      "winner": "compact",
       "engine": "local",
       "candidates": 3,
       "ok": true,
-      "checked": 39,
+      "checked": 42,
       "not_evaluated": 2,
       "failed": 0
     },
