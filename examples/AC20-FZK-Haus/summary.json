@@ -1,0 +1,89 @@
+{
+  "recognition_version": "0.1.0",
+  "revision": "b46fb61",
+  "model": "AC20-FZK-Haus.ifc",
+  "schema": "IFC4",
+  "project": "AC20-FZK-Haus",
+  "counts": {
+    "storeys": 2,
+    "walls": 13,
+    "spaces": 7,
+    "doors": 5,
+    "windows": 11
+  },
+  "compliance": {
+    "status": "PASS",
+    "checks": 27,
+    "passed": 27,
+    "errors": 0,
+    "warnings": 0,
+    "by_rule": {
+      "ROOM-MIN-AREA": {
+        "checked": 5,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum floor area for habitable rooms"
+      },
+      "ROOM-MIN-WIDTH": {
+        "checked": 3,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Minimum clear width of habitable rooms"
+      },
+      "DOOR-MIN-WIDTH": {
+        "checked": 5,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum door leaf width"
+      },
+      "DOOR-MIN-HEIGHT": {
+        "checked": 5,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum door leaf height"
+      },
+      "ROOM-DAYLIGHT": {
+        "checked": 4,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Glazing area as a share of floor area in habitable rooms"
+      },
+      "ROOM-HAS-DOOR": {
+        "checked": 5,
+        "failed": 0,
+        "severity": "error",
+        "title": "Every room must be reachable through a door"
+      }
+    }
+  },
+  "schedules": {
+    "rooms": 7,
+    "doors": 5,
+    "windows": 11
+  },
+  "sheets": [
+    {
+      "sheet": "A-101",
+      "storey": "Erdgeschoss",
+      "svg": "A-101_Erdgeschoss.svg",
+      "pdf": "A-101_Erdgeschoss.pdf",
+      "png": "A-101_Erdgeschoss.png",
+      "dxf": "A-101_Erdgeschoss.dxf"
+    },
+    {
+      "sheet": "A-102",
+      "storey": "Dachgeschoss",
+      "svg": "A-102_Dachgeschoss.svg",
+      "pdf": "A-102_Dachgeschoss.pdf",
+      "png": "A-102_Dachgeschoss.png",
+      "dxf": "A-102_Dachgeschoss.dxf"
+    }
+  ],
+  "files": {
+    "schedules": "schedules/",
+    "report_md": "report.md",
+    "report_json": "report.json",
+    "enriched_ifc": "model.detailed.ifc",
+    "sheets": "sheets/"
+  }
+}

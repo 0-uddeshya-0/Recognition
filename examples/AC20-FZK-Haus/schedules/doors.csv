@@ -1,0 +1,6 @@
+tag,storey,name,type,width_m,height_m,external,connects
+D-01,Erdgeschoss,Terrassentuer,Schiebetür_3-teilig,2.01,2.375,yes,R-02 / R-01
+D-02,Erdgeschoss,Haustuer,Eingangstür,1.01,2.01,yes,R-03
+D-03,Erdgeschoss,Innentuer-1,IFC Tür - Eine Öffnunsgrichtung,0.885,2.01,no,R-03 / R-04
+D-04,Erdgeschoss,Innentuer-3,IFC Tür - Eine Öffnunsgrichtung,0.885,2.01,no,R-03 / R-05
+D-05,Erdgeschoss,Innentuer-2,IFC Tür - Eine Öffnunsgrichtung,0.885,2.01,no,R-03 / R-06
