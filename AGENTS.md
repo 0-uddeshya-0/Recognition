@@ -19,8 +19,11 @@ comes out, all produced by code in `recognition/`:
 | Enriched IFC (tags + findings as psets) | `<out>/model.detailed.ifc` | `recognition/cli.py` |
 | Machine-readable summary | `<out>/summary.json` | `recognition/cli.py` |
 
-`examples/<model>/` is the committed output for the two sample models in
-`samples/`. It must always match what the current code generates.
+`examples/<model>/` is the committed output for the two core sample models in
+`samples/`. It must always match what the current code generates. Larger
+models under `samples/extended/` (terraced houses, office building) are for
+manual checks and demos; they are not covered by tests or `examples/` —
+run them when a change touches geometry, categorisation or drawing layout.
 
 ## Commands
 
