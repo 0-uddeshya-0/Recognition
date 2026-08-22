@@ -10,6 +10,7 @@ import csv
 from pathlib import Path
 
 from .model import Model, Opening
+from .sanitize import sanitize_csv_cell, sanitize_markdown_cell
 
 
 def _rooms_for(model: Model, op: Opening) -> list[str]:
@@ -61,7 +62,7 @@ def write_csv(rows: list[dict], path: Path) -> Path:
         if rows:
             w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
             w.writeheader()
-            w.writerows(rows)
+            w.writerows({key: sanitize_csv_cell(value) for key, value in row.items()} for row in rows)
     return path
 
 
@@ -70,7 +71,7 @@ def to_markdown(rows: list[dict], title: str) -> str:
         return f"## {title}\n\n_none_\n"
     cols = list(rows[0].keys())
     out = [f"## {title}", "", "| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
-    out += ["| " + " | ".join(str(r[c]) for c in cols) + " |" for r in rows]
+    out += ["| " + " | ".join(sanitize_markdown_cell(r[c]) for c in cols) + " |" for r in rows]
     return "\n".join(out) + "\n"
 
 

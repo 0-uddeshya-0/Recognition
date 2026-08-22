@@ -17,6 +17,7 @@ from typing import Callable
 import yaml
 
 from .model import Model, Space, _rect_dims
+from .sanitize import sanitize_markdown_cell
 
 DEFAULT_RULESET = Path(__file__).resolve().parent.parent / "rules" / "residential.yaml"
 HABITABLE = ("bedroom", "living", "kitchen", "bathroom", "office")
@@ -190,8 +191,9 @@ def to_markdown(report: Report) -> str:
     if report.failures:
         out += ["", "## Findings", "", "| Rule | Sev | Element | Storey | Value | Limit | Message |", "|---|---|---|---|---|---|---|"]
         for r in report.failures:
-            out.append(f"| {r.rule_id} | {r.severity} | {r.element_tag} | {r.storey} | "
-                       f"{'' if r.value is None else r.value} | {'' if r.limit is None else r.limit} | {r.message} |")
+            out.append(f"| {r.rule_id} | {r.severity} | {sanitize_markdown_cell(r.element_tag)} | "
+                       f"{sanitize_markdown_cell(r.storey)} | {sanitize_markdown_cell(r.value)} | "
+                       f"{sanitize_markdown_cell(r.limit)} | {sanitize_markdown_cell(r.message)} |")
     else:
         out += ["", "No findings."]
     return "\n".join(out) + "\n"
