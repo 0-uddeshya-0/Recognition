@@ -73,10 +73,16 @@ jobs:
             jq -n '{message: "The interview run failed before Devin could answer — see the workflow log.", done: false, contract_error: "workflow failure"}' > /tmp/reply.json
           fi
           PATH_IN_REPO="interviews/${ID}/reply-${ROUND}.json"
-          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}?ref=studio-interviews" --jq .sha 2>/dev/null || true)
+          # On 404 gh prints the error body to stdout, so capture defensively
+          # and accept only something shaped like a blob sha — an unquoted
+          # JSON blob here word-splits into bogus extra arguments under bash.
+          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}?ref=studio-interviews" --jq .sha 2>/dev/null) || SHA=""
+          case "$SHA" in (*[!0-9a-f]*) SHA="";; esac
+          EXTRA=()
+          [ -n "$SHA" ] && EXTRA=(-f "sha=$SHA")
           gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}" \
             -f branch=studio-interviews \
-            -f message="interview ${ID} · round ${ROUND}" \
+            -f message="interview ${ID} - round ${ROUND}" \
             -f content="$(base64 -w0 /tmp/reply.json)" \
-            ${SHA:+-f sha=$SHA} >/dev/null
+            "${EXTRA[@]}" >/dev/null
           echo "reply published to ${PATH_IN_REPO} on studio-interviews"
