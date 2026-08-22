@@ -100,20 +100,21 @@ every finding, and `design.py` — the building as reviewable source.
 
 ### Clarity — follow the loop in one demo
 
-1. **Describe it** — chat: *"a co-working space for a team of ten — a studio
-   with a desk for everyone, a conference room, a washroom, a small kitchen"*.
-   Watch the brief sheet fill in, each value tagged **you / Devin / assumed**.
-   Switch the agent to *Devin · live session* for the real reader (relayed
-   through CI; every reply badged with its engine and session link).
-2. **See a verdict fail honestly** — open Dreifamilienhaus → `linear`: the
-   stamp reads FAIL, and the findings panel explains in plain words: the
-   corridor is 1.15 m, barrier-free needs 1.20 m — with the fix suggested.
-3. **Say the change in words** — type *"make the hall at least 20 m²"* into
-   Rebuild: the whole building is re-planned, re-drawn and re-verified (never
-   patched), and a before/after strip shows which findings the change fixed.
-4. **Check the provenance** — Options links each layout to the Devin session
-   that planned it; the merged design PR sits in the repo history, authored by
-   the workflow.
+1. **Say it** — *"an office for my small startup — 8 of us, an open studio, a
+   meeting room, a small kitchen"*. The agent asks only what it can't infer
+   (here: nothing) and proposes drafting. Switch it to *Devin · live* for the
+   session that genuinely reads; every reply is badged with its engine.
+2. **Choose from four takes** — dimensioned blueprints as cards, each with a
+   quiet code pill (`✓ 28 checks · 2 unchecked` — never a bare pass). When a
+   take fails, the agent says so in plain words and the checks drawer carries
+   the citation and the fix.
+3. **Keep talking** — "make the studio bigger", "add a meeting room" — the
+   whole set is redrafted and re-verified; nothing is ever patched by hand.
+4. **Pick one** — the 3D model rises on the stage; **archive** re-verifies,
+   merges itself, and the design joins the portfolio with builder-grade files.
+5. **Check the provenance** — archived designs link the Devin sessions that
+   planned them, and every merged design PR in the history is authored by the
+   workflow, not a person.
 
 ## Where Devin does the work
 

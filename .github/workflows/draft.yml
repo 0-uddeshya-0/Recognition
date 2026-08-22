@@ -1,0 +1,98 @@
+# The drafting loop. One run = one round of blueprints, nothing merged.
+#
+# The Studio's conversation asks for "a few takes on this brief"; this workflow
+# designs and verifies every strategy, packs the round into a single bundle
+# (sheets, meshes, compacted verdicts inline), and ships it back on the relay
+# branch for the page to render as selectable options. Drafts are proposals:
+# no PR, no merge, no Pages deploy. Choosing one later triggers the real
+# autopilot run, which is what archives a design into the portfolio.
+#
+# A round where nothing clears the gate still returns its bundle — a failing
+# blueprint with its findings is an answer, not an error.
+name: draft
+
+on:
+  repository_dispatch:
+    types: [draft]
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: 'JSON: {"id": "...", "round": 1, "engine": "local", "strategies": "", "brief": {…DesignBrief…}}'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draft-${{ github.event.client_payload.id || github.run_id }}
+  cancel-in-progress: true      # a newer round supersedes a stale one
+
+jobs:
+  round:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the round
+        id: cfg
+        env:
+          PAYLOAD: ${{ github.event_name == 'repository_dispatch' && toJSON(github.event.client_payload) || inputs.payload }}
+        run: |
+          printf '%s' "$PAYLOAD" > /tmp/payload.json
+          jq -e .brief.project /tmp/payload.json >/dev/null
+          ID=$(jq -r '.id // empty' /tmp/payload.json | tr -cd 'a-zA-Z0-9-' | cut -c1-64)
+          ROUND=$(jq -r '.round // 1' /tmp/payload.json | tr -cd '0-9' | cut -c1-2)
+          ENGINE=$(jq -r 'if .engine == "devin" then "devin" else "local" end' /tmp/payload.json)
+          STRATS=$(jq -r '.strategies // ""' /tmp/payload.json | tr -cd 'a-z,')
+          jq '.brief' /tmp/payload.json > /tmp/brief.json
+          if [ -z "$ID" ]; then echo "::error::payload.id is required"; exit 1; fi
+          echo "id=$ID"            >> "$GITHUB_OUTPUT"
+          echo "round=${ROUND:-1}" >> "$GITHUB_OUTPUT"
+          echo "engine=$ENGINE"    >> "$GITHUB_OUTPUT"
+          echo "strategies=$STRATS" >> "$GITHUB_OUTPUT"
+
+      - name: System libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libcairo2
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --no-dev
+
+      # Exit code deliberately not the gate here: a failed gate is a bundle
+      # full of honest findings, and the conversation carries on.
+      - name: Draft the round
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
+        run: |
+          uv run recognition autopilot /tmp/brief.json \
+            --out /tmp/draft \
+            --engine "${{ steps.cfg.outputs.engine }}" \
+            ${{ steps.cfg.outputs.strategies && format('--strategies {0}', steps.cfg.outputs.strategies) || '' }} \
+            || echo "gate not cleared — the bundle still ships"
+          RUN_DIR=$(ls -d /tmp/draft/*/ | head -1)
+          uv run recognition bundle "$RUN_DIR" --brief /tmp/brief.json --out /tmp/bundle.json
+
+      - name: Publish the bundle
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ID: ${{ steps.cfg.outputs.id }}
+          ROUND: ${{ steps.cfg.outputs.round }}
+        run: |
+          if [ ! -f /tmp/bundle.json ]; then
+            jq -n '{schema: "draftbundle/v1", error: "the draft run failed before a bundle existed — see the workflow log", candidates: []}' > /tmp/bundle.json
+          fi
+          PATH_IN_REPO="drafts/${ID}/round-${ROUND}.json"
+          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}?ref=studio-interviews" --jq .sha 2>/dev/null) || SHA=""
+          case "$SHA" in (*[!0-9a-f]*) SHA="";; esac
+          EXTRA=()
+          [ -n "$SHA" ] && EXTRA=(-f "sha=$SHA")
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}" \
+            -f branch=studio-interviews \
+            -f message="draft ${ID} - round ${ROUND}" \
+            -f content="$(base64 -w0 /tmp/bundle.json)" \
+            "${EXTRA[@]}" >/dev/null
+          echo "bundle published to ${PATH_IN_REPO}"

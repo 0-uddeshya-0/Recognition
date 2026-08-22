@@ -70,6 +70,10 @@ STRATEGIES: list[Strategy] = [
              "No dedicated corridor; living spaces connect directly. Converts "
              "circulation area into usable floor.",
              aspect=1.35, circulation=False, generosity=1.12),
+    Strategy("generous", "Generous plan",
+             "Squarer envelope, every room a size up and a wide hall. Comfort "
+             "over cost — the most building for the same programme.",
+             aspect=1.05, circulation=True, generosity=1.22),
 ]
 
 
@@ -589,6 +593,7 @@ _CATEGORY_SYNONYMS = {
     "conference": "meeting", "conference_room": "meeting", "boardroom": "meeting",
     "meeting_room": "meeting", "besprechung": "meeting", "besprechungsraum": "meeting",
     "workshop": "lab", "werkstatt": "lab", "maker_space": "lab",
+    "warehouse": "lab", "warehouse_floor": "lab", "lager": "lab", "lagerhalle": "lab",
     "storage": "utility", "technical": "utility", "laundry": "utility", "hwr": "utility",
     "server_room": "utility", "abstellraum": "utility",
     "cafeteria": "kitchen", "canteen": "kitchen", "kitchenette": "kitchen",

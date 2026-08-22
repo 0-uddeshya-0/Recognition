@@ -41,7 +41,7 @@ ROOM_CATEGORIES: dict[str, list[str]] = {
     "kitchen": ["kitchen", "küche", "kueche", "kochen", "keuken", "teeküche", "teekueche",
                 "cafeteria", "kantine", "canteen", "break room", "pantry"],
     "meeting": ["meeting", "conference", "besprechung", "seminar", "boardroom", "konferenz"],
-    "lab": ["labor", "lab ", "workshop", "werkstatt", "maker"],
+    "lab": ["labor", "lab ", "workshop", "werkstatt", "maker", "warehouse", "lager", "halle"],
     "hall": ["hall", "flur", "corridor", "foyer", "entry", "lobby", "gang", "diele", "entree",
              "reception", "empfang"],
     "utility": ["utility", "storage", "store", "technik", "hwr", "closet", "keller", "abstell",
