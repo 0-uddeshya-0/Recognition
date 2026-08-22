@@ -130,6 +130,11 @@ def _autopilot(a) -> int:
         return 1
     print(f"\nwinner: {res.winner}  →  {out / res.winner}")
     print(f"run summary: {out / 'run.json'}")
+
+    if a.publish:
+        from .publish import publish_run
+        dest = publish_run(out, project=brief.project, brief=a.brief)
+        print(f"published to {dest} — the Studio will show it on next load")
     return 0
 
 
@@ -160,6 +165,8 @@ def main(argv: list[str] | None = None) -> int:
     p_auto.add_argument("--timeout", type=float, default=1800)
     p_auto.add_argument("--no-critic", action="store_true",
                         help="skip the adversarial review session (devin engine only)")
+    p_auto.add_argument("--publish", action="store_true",
+                        help="copy the artifacts into web/data/ for the static Studio")
 
     a = ap.parse_args(argv)
 

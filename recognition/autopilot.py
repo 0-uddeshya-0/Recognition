@@ -184,8 +184,13 @@ class Candidate:
 
 def build_and_verify(plan: ArchitectPlan, out_dir: Path, *, name: str,
                      rules_path: Path = DEFAULT_RULES,
-                     brief: DesignBrief | None = None) -> Verdict:
-    """Plan -> DSL -> IFC -> compliance verdict. Every step deterministic."""
+                     brief: DesignBrief | None = None,
+                     viewable: bool = True) -> Verdict:
+    """Plan -> DSL -> IFC -> compliance verdict. Every step deterministic.
+
+    With `viewable`, also renders the sheets and the 3D mesh the Studio needs.
+    Tests turn it off: geometry is the thing under test, rendering is not.
+    """
     import recognition.model as M
     import recognition.rules as R
 
@@ -204,7 +209,29 @@ def build_and_verify(plan: ArchitectPlan, out_dir: Path, *, name: str,
                 brief=(brief.to_dict() if brief else None),
                 metrics=_metrics(plan, model))
     v.write(out_dir / "verdict.json")
+
+    if viewable:
+        _viewables(ifc_path, out_dir, plan.project, rules_path)
     return v
+
+
+def _viewables(ifc_path: Path, out_dir: Path, project: str, rules_path: Path) -> None:
+    """Sheets and the 3D mesh: everything a person needs to judge the result.
+
+    Best-effort by design. A candidate is legal or not on the strength of its
+    compliance verdict; a missing PNG must never turn a passing building into a
+    failing one, so rendering problems are reported and swallowed.
+    """
+    from . import mesh
+    from .cli import run as run_package
+    try:
+        run_package(ifc_path, out_dir / "pkg", rules_path, project, "")
+    except Exception as e:                      # noqa: BLE001 - presentation only
+        print(f"      (sheets unavailable: {type(e).__name__}: {str(e)[:90]})")
+    try:
+        mesh.write(ifc_path, out_dir / "mesh.json")
+    except Exception as e:                      # noqa: BLE001 - presentation only
+        print(f"      (3D mesh unavailable: {type(e).__name__}: {str(e)[:90]})")
 
 
 def _exec_dsl(dsl_path: Path, ifc_path: Path) -> None:

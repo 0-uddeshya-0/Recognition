@@ -1,0 +1,86 @@
+{
+  "project": "Familienhaus",
+  "engine": "local",
+  "winner": "open",
+  "critic": "",
+  "candidates": [
+    {
+      "name": "compact",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 57,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 137.5,
+        "room_area_m2": 117.06,
+        "usable_ratio": 0.7475,
+        "circulation_m2": 14.28,
+        "openings": 14,
+        "rooms": 8
+      },
+      "label": "Compact core",
+      "error": ""
+    },
+    {
+      "name": "linear",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 57,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 139.5,
+        "room_area_m2": 117.92,
+        "usable_ratio": 0.7171,
+        "circulation_m2": 17.88,
+        "openings": 14,
+        "rooms": 8
+      },
+      "label": "Linear frontage",
+      "error": ""
+    },
+    {
+      "name": "open",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 54,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 135.0,
+        "room_area_m2": 116.31,
+        "usable_ratio": 0.8616,
+        "circulation_m2": 0,
+        "openings": 13,
+        "rooms": 7
+      },
+      "label": "Open plan",
+      "error": ""
+    }
+  ]
+}

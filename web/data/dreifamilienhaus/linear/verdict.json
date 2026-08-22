@@ -1,0 +1,65 @@
+{
+  "candidate": "linear",
+  "ok": false,
+  "checked": 42,
+  "passed": 40,
+  "failed": 2,
+  "not_evaluated": 2,
+  "blocking_failures": 1,
+  "advisory_failures": 1,
+  "findings": [
+    {
+      "rule_id": "CORRIDOR-WIDTH",
+      "tier": "standard",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-03 Flur",
+      "message": "Flur: corridor width 1.15 m < 1.2 m",
+      "citation": "DIN 18040-2",
+      "url": "https://www.weka.de/architekten-ingenieure/din-18040-2/",
+      "blocking": true
+    },
+    {
+      "rule_id": "ROOM-MIN-WIDTH",
+      "tier": "guidance",
+      "severity": "warning",
+      "status": "failed",
+      "element": "R-01 Wohnen",
+      "message": "Wohnen: clear width 2.70 m < 3.0 m for living",
+      "citation": "Richtwerte fuer Raumgroessen",
+      "url": "https://www.fertighaus.de/ratgeber/hausbau/grundriss-planen-richtwerte-fuer-raumgroessen/",
+      "blocking": false
+    },
+    {
+      "rule_id": "SMOKE-DETECTOR",
+      "tier": "law",
+      "severity": "error",
+      "status": "not_evaluated",
+      "element": "-",
+      "message": "The model carries no smoke-detector data. Reported as NOT EVALUATED rather than passed. Resolve by enriching the model or by collecting a declaration in the brief.",
+      "citation": "BayBO Art. 46 (4)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-46",
+      "blocking": false
+    },
+    {
+      "rule_id": "THRESHOLD",
+      "tier": "standard",
+      "severity": "error",
+      "status": "not_evaluated",
+      "element": "-",
+      "message": "Threshold heights are not represented in the model. Reported as NOT EVALUATED.",
+      "citation": "DIN 18040-2",
+      "url": "https://nullbarriere.de/din18040-2-tueren.htm",
+      "blocking": false
+    }
+  ],
+  "metrics": {
+    "envelope_m2": 101.25,
+    "room_area_m2": 83.15,
+    "usable_ratio": 0.6747,
+    "circulation_m2": 14.84,
+    "openings": 10,
+    "rooms": 6
+  },
+  "error": ""
+}
