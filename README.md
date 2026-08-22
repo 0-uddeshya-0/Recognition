@@ -42,6 +42,14 @@ because the artifacts it is judged on are produced downstream by code it never r
 
 ## Try it
 
+**In the browser — [the Studio](https://0-uddeshya-0.github.io/Recognition/)**:
+describe the house in chat (an instant rules engine, or a live Devin session
+relayed through Actions), watch the brief sheet fill in, and open the finished
+designs in 3D and 2D. The page holds no secret; live runs use your own GitHub
+token and this repository's workflows.
+
+Locally:
+
 ```bash
 uv sync
 uv run recognition autopilot briefs/familienhaus.json          # ~20 s, no API key, no cost
@@ -56,7 +64,7 @@ builds and verifies each, and picks a winner — with nobody choosing.
 autopilot · Familienhaus · engine=local · 3 candidates
   · compact  PASS — 57 checked · 2 not evaluated · 0 failed
   · linear   PASS — 57 checked · 2 not evaluated · 0 failed
-  · open     PASS — 48 checked · 2 not evaluated · 0 failed
+  · open     PASS — 54 checked · 2 not evaluated · 0 failed
 
   winner: open — chosen by the scorer, not a human
 ```
@@ -168,6 +176,7 @@ gh api repos/0-uddeshya-0/Recognition/dispatches \
 ```
 recognition/
   contracts.py    DesignBrief / ArchitectPlan — validated at every boundary
+  interview.py    L1 — prose in, sealed brief out, via a relayed Devin session
   translate.py    plan → design DSL, deterministic, zero model tokens
   design.py       the DSL → IFC4 via ifcopenshell
   drawings.py     IFC → dimensioned SVG / PDF / PNG / DXF sheets
@@ -175,9 +184,11 @@ recognition/
   score.py        provenance tiers, the verdict, and the ranking
   devin.py        Devin v1 client and parallel fan-out
   autopilot.py    the loop
+.agents/skills/   repo skills any agent discovers (@skills:architect-plan …)
+playbooks/        Devin playbooks (interview, detailing, rule changes)
 rules/by/         jurisdiction packs — data, with citations
 briefs/           the triggers
-web/              the Studio — static, hostable on GitHub Pages
+web/              the Studio — static, live on GitHub Pages
 docs/architecture/  how and why
 ```
 

@@ -35,9 +35,21 @@ Three rules that keep it feeling like a drawing office and not a dashboard:
 
 ### 1 · Brief — the interview
 
-Deliberately short. Enough to know intent and the specifications the rules actually
-need, and not one question more. The whole interview is **five questions**, each with
-options and a free-text escape:
+A conversation first, a form second — the client describes the house in their
+own words, and the **brief sheet** beside the chat fills in like a title block,
+each value tagged with who set it (*you* · *Devin* · *assumed*).
+
+Two agents can conduct it, and every reply is labelled with the engine that
+produced it, because an unlabelled bot pretending to be a person is exactly the
+kind of silent default this product exists to remove:
+
+| Agent | What it is | Latency |
+|---|---|---|
+| **Instant** | a deterministic rules engine in the page — parses the prose, fills slots, asks the rules-derived questions | immediate |
+| **Devin** | a live session relayed through the `interview` workflow (the browser cannot and must not hold the API key) | minutes, shown honestly with the run link |
+
+The question set itself is the same five-question core, derived from the
+rules' `requires:` fields — never a hand-maintained question bank:
 
 | Question | Why it is asked |
 |---|---|
@@ -114,16 +126,31 @@ GitHub Pages serves `web/` as static files. A run publishes its artifacts into
 web/
   index.html          the Studio
   studio.css          brand tokens + layout
-  studio.js           viewer, interview, state
+  studio.js           interview, viewers, run tracking, state
   data/
     index.json        which projects exist
     <project>/
-      mesh.json  sheet.svg  verdict.json  plan.json  design.py
+      run.json  brief.json
+      <candidate>/
+        mesh.json  sheet.svg  sheet.pdf  verdict.json  plan.json  design.py
 ```
 
-The page never holds a secret. A live run is a `repository_dispatch` posted with the
-viewer's own credentials, or — for the common case — the Studio simply reads the
-artifacts a previous run already committed.
+The page never holds a secret. Two live paths exist, both driven by the
+**viewer's own GitHub token** (stored only in their browser, sent only to
+`api.github.com`):
+
+- **Design it** posts `repository_dispatch: design-request` with the sealed
+  brief inline; the autopilot workflow designs, verifies, merges the winner
+  and publishes it into `web/data/`, and the page watches the run's real jobs
+  until the Pages deploy lands the result.
+- **The Devin interview** posts `repository_dispatch: interview`; the
+  workflow talks to the Devin API with the repository secret and writes the
+  reply to the orphan branch `studio-interviews`, which the page polls through
+  the Contents API. One workflow run per conversational round; the Devin
+  session persists across rounds.
+
+Without a token the Studio does what it always did: hands over the sealed
+brief and the exact command, and shows the runs that already exist.
 
 ## What the Studio deliberately does not have
 
