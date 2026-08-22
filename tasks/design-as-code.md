@@ -146,3 +146,12 @@ For the sample models (straight walls, rectangular rooms) the loss is irrelevant
 Branch `poc/design-as-code` from `ui/poc`. Commit after: `design.py` build → decompile →
 round-trip tests → CLI → playbook → UI hook. PR against `ui/poc` with before/after plans of
 the FZK demo. Time box: one day.
+
+## Status (2026-08-22)
+
+Step 1 exists: `recognition/design.py` (the `House` / `Storey` API, IFC via `ifcopenshell.api`, an
+axonometric PNG) and `design/house.py` (a six-room house). `uv run python design/house.py` then
+`uv run recognition run out/design/house.ifc out/design/pkg` gives the 3D model, the A-101 sheet,
+schedules and the compliance report. With `bedroom: 25.0` the house fails on the Schlafzimmer
+(24.2 m²); moving wall `I3` 600 mm west in `house.py` makes it pass (27.5 m²). Tests:
+`tests/test_design.py`. Not done yet: `decompile` (IFC → `house.py`), the Devin playbook, the UI hook.
