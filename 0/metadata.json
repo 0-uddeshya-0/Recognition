@@ -1,0 +1,106 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NVR30T61YD110HMENSE77W",
+  "session_id": "4477f20d-a259-41c6-be23-09cf01804e81",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-22T23:09:03.095838Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/workflows/draft.yml",
+    ".github/workflows/interview.yml"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-fable-5",
+  "turn_id": "57fefebaaaa7",
+  "checkpoint_transcript_start": 2136,
+  "transcript_lines_at_start": 2136,
+  "compact_transcript_start": 377,
+  "token_usage": {
+    "input_tokens": 22,
+    "cache_creation_tokens": 12545,
+    "cache_read_tokens": 8910941,
+    "output_tokens": 8222,
+    "api_call_count": 11
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01MfhFNhXm82eWSm3ybosViV",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "hallmark"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "57fefebaaaa7",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 397,
+        "end": 398,
+        "entry_ids": [
+          "15ac593e-2fea-4772-8493-8c7ea0b7415c"
+        ],
+        "tool_use_id": "toolu_01MfhFNhXm82eWSm3ybosViV"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01MfhFNhXm82eWSm3ybosViV"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: hallmark",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_016ZmfFDdA3Sfd8fop8MHRgU",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "ui-ux-pro-max"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "57fefebaaaa7",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 409,
+        "end": 410,
+        "entry_ids": [
+          "97ce8889-57c1-4961-bd09-a6be0c39d22e"
+        ],
+        "tool_use_id": "toolu_016ZmfFDdA3Sfd8fop8MHRgU"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_016ZmfFDdA3Sfd8fop8MHRgU"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: ui-ux-pro-max",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-22T23:09:02.690392Z",
+    "agent_lines": 21,
+    "agent_removed": 15,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 21,
+    "total_lines_changed": 36,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
