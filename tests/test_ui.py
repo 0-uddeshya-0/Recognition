@@ -349,3 +349,10 @@ def test_devin_prompt_for_code_job(tmp_path):
     job.status, job.devin_waiting = "done", False
     eng.message(job, "", None, job.code.replace("7.375", "6.775"))
     assert "design/haus-am-hang.py" in fake.messages[-1] and "6.775" in fake.messages[-1] and "6.775" in job.code
+
+
+def test_studio_pages(fzk_job):
+    assert client.get("/studio").status_code == 200
+    assert "house.py" in client.get("/studio").text and "rules.yaml" in client.get("/studio").text
+    assert client.get(f"/studio/{fzk_job['id']}").status_code == 200
+    assert client.get("/studio/nope").status_code == 404

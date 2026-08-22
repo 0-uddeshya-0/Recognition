@@ -16,6 +16,7 @@ Routes
     GET  /jobs/{id}/bundle/{kind}   zip: pdf | dxf | schedules | all
     GET  /jobs/{id}/mesh.json       triangle meshes of the latest package's model for the 3D viewer
     GET  /api/rules                 default rules YAML
+    GET  /studio[/{id}]             code | 3D + 2D, one Build button (the focused view)
     GET  /api/design/example        design/house.py — the starting point for a house written as code
 """
 from __future__ import annotations
@@ -89,6 +90,20 @@ def index(request: Request):
 def job_page(request: Request, job_id: str):
     get_job(job_id)
     return page(request, job_id)
+
+
+@app.get("/studio", response_class=HTMLResponse)
+def studio(request: Request):
+    """Source code on the left, 3D and 2D on the right, one Build button — nothing else."""
+    return templates.TemplateResponse(request, "studio.html", {"job_id": None, "version": __version__,
+                                                               "default_rules": E.default_rules_yaml()})
+
+
+@app.get("/studio/{job_id}", response_class=HTMLResponse)
+def studio_job(request: Request, job_id: str):
+    get_job(job_id)
+    return templates.TemplateResponse(request, "studio.html", {"job_id": job_id, "version": __version__,
+                                                               "default_rules": E.default_rules_yaml()})
 
 
 @app.get("/api/rules", response_class=PlainTextResponse)
