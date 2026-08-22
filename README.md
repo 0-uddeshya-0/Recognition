@@ -194,6 +194,7 @@ docs/architecture/  how and why
 
 ## Docs
 
+- [The pitch](docs/pitch.md) — problem · approach · solution, and every judging criterion mapped to a live run
 - [Architecture](docs/architecture/README.md) — the nine layers in full
 - [Autonomy](docs/architecture/autonomy.md) — where the human is, and is not
 - [Contracts](docs/architecture/contracts.md) — the typed handoffs

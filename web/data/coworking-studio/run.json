@@ -1,0 +1,92 @@
+{
+  "project": "Coworking Studio",
+  "engine": "local",
+  "winner": "open",
+  "critic": "",
+  "candidates": [
+    {
+      "name": "compact",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 28,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 115.0,
+        "room_area_m2": 97.99,
+        "usable_ratio": 0.7383,
+        "circulation_m2": 13.08,
+        "openings": 7,
+        "rooms": 5
+      },
+      "label": "Compact core",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    },
+    {
+      "name": "linear",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 28,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 123.25,
+        "room_area_m2": 104.52,
+        "usable_ratio": 0.7071,
+        "circulation_m2": 17.37,
+        "openings": 7,
+        "rooms": 5
+      },
+      "label": "Linear frontage",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    },
+    {
+      "name": "open",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 25,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 118.75,
+        "room_area_m2": 102.44,
+        "usable_ratio": 0.8627,
+        "circulation_m2": 0,
+        "openings": 6,
+        "rooms": 4
+      },
+      "label": "Open plan",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    }
+  ]
+}

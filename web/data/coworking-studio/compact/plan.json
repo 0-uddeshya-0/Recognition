@@ -1,0 +1,76 @@
+{
+  "project": "Coworking Studio",
+  "envelope": {
+    "width_m": 11.5,
+    "depth_m": 10.0,
+    "external_wall_m": 0.3,
+    "internal_wall_m": 0.15
+  },
+  "rooms": [
+    {
+      "id": "R-01",
+      "category": "office",
+      "label": "Studio",
+      "target_area_m2": 50.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-02",
+      "category": "meeting",
+      "label": "Conference",
+      "target_area_m2": 18.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-03",
+      "category": "bathroom",
+      "label": "Washroom",
+      "target_area_m2": 8.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-04",
+      "category": "kitchen",
+      "label": "Kitchenette",
+      "target_area_m2": 12.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-05",
+      "category": "hall",
+      "label": "Flur",
+      "target_area_m2": 10.0,
+      "exterior_wall": true
+    }
+  ],
+  "adjacency": [
+    {
+      "a": "R-05",
+      "b": "R-01",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-02",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-03",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-04",
+      "via": "door"
+    }
+  ],
+  "storey_name": "Erdgeschoss",
+  "storey_height_m": 2.7,
+  "circulation_id": "R-05",
+  "glazing_ratio": 0.125,
+  "accessibility_tier": "none",
+  "rationale": "Compact core: Squarer envelope with a central hall spine. Least external wall per m2, so cheapest to build and to heat.",
+  "todo_agent": [],
+  "schema": "architectplan/v1"
+}

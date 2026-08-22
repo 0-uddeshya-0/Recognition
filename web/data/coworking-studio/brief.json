@@ -1,0 +1,8 @@
+{"project": "Coworking Studio", "bundesland": "BY", "building_class": "coworking_space",
+ "plot_width_m": 15.0, "plot_depth_m": 20.0, "dwelling_count": 1, "storey_count": 1,
+ "storey_height_m": 2.7, "occupants": 10,
+ "rooms": [{"category": "office", "count": 1, "min_area_m2": null, "label": "Studio"},
+           {"category": "meeting", "count": 1, "min_area_m2": null, "label": "Conference"},
+           {"category": "bathroom", "count": 1, "min_area_m2": null, "label": "Washroom"},
+           {"category": "kitchen", "count": 1, "min_area_m2": null, "label": "Kitchenette"}],
+ "accessibility_tier": "none", "assumptions": [], "notes": "desks for each person", "schema": "designbrief/v1"}

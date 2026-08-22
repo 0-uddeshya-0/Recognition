@@ -1,0 +1,64 @@
+{
+  "project": "Coworking Studio",
+  "envelope": {
+    "width_m": 12.5,
+    "depth_m": 9.5,
+    "external_wall_m": 0.3,
+    "internal_wall_m": 0.15
+  },
+  "rooms": [
+    {
+      "id": "R-01",
+      "category": "office",
+      "label": "Studio",
+      "target_area_m2": 56.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-02",
+      "category": "meeting",
+      "label": "Conference",
+      "target_area_m2": 20.2,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-03",
+      "category": "bathroom",
+      "label": "Washroom",
+      "target_area_m2": 9.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-04",
+      "category": "kitchen",
+      "label": "Kitchenette",
+      "target_area_m2": 13.4,
+      "exterior_wall": true
+    }
+  ],
+  "adjacency": [
+    {
+      "a": "R-01",
+      "b": "R-02",
+      "via": "door"
+    },
+    {
+      "a": "R-01",
+      "b": "R-03",
+      "via": "door"
+    },
+    {
+      "a": "R-01",
+      "b": "R-04",
+      "via": "door"
+    }
+  ],
+  "storey_name": "Erdgeschoss",
+  "storey_height_m": 2.7,
+  "circulation_id": null,
+  "glazing_ratio": 0.125,
+  "accessibility_tier": "none",
+  "rationale": "Open plan: No dedicated corridor; living spaces connect directly. Converts circulation area into usable floor.",
+  "todo_agent": [],
+  "schema": "architectplan/v1"
+}

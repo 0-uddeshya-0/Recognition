@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "key": "coworking-studio",
+      "project": "Coworking Studio",
+      "winner": "open",
+      "engine": "local",
+      "candidates": 3,
+      "ok": true,
+      "checked": 25,
+      "not_evaluated": 2,
+      "failed": 0
+    },
+    {
       "key": "dreifamilienhaus",
       "project": "Dreifamilienhaus",
       "winner": "compact",
