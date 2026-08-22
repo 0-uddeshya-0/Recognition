@@ -1,0 +1,69 @@
+so, i upload some ifc, what's happens next? simply
+
+---
+
+so devin edits what? yml?
+
+---
+
+so, now tell me about this app, to explain it to others
+
+---
+
+put this to PR comment to explain, i want to explain to my teammates of contributors
+
+---
+
+so, architect now can insert IFC, and we can later launch agent to change details and stuff?
+
+---
+
+One thing to be precise about: Devin changes the detailing — how drawings are made, what rules apply, what gets shown. It does not change the building design itself. If the architect wants a wider door, that's their change in the IFC; Devin's job
+what? it can't change door sizes and stuff? so what it changes?
+
+---
+
+One thing to be precise about: Devin changes the detailing — how drawings are made, what rules apply, what gets shown. It does not change the building design itself. If the architect wants a wider door, that's their change in the IFC; Devin's job
+what? it can't change door sizes and stuff? so what it changes?
+
+---
+
+i think it should do! and i think ideally it propose several designs of the room for example, when we let multiple parallel agents to work and show us results, prices and stuff, what do you think?
+
+---
+
+my idea was to make changes on whole architecture, it's could be better, but we can't do this on IFC right? what about freecad? it has python API and i think it'd be good if devin will treat that API like a project and stuff, you get what i mean?
+
+---
+
+my idea was to make changes on whole architecture, it's could be better, but we can't do this on IFC right? what about freecad? it has python API and i think it'd be good if devin will treat that API like a project and stuff, you get what i mean?
+
+---
+
+so, we're making py of this IFC and then editing it?
+
+---
+
+<task-notification>
+<task-id>beaklfz8t</task-id>
+<tool-use-id>toolu_013JAf4unfYo9bCBLLJFTvX2</tool-use-id>
+<output-file>/tmp/claude-1000/-home-luka-hackathon-Recognition/109e4d69-75e1-4d3a-930b-40a06e7fb9ed/tasks/beaklfz8t.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait (up to 30 min) for the Devin e2e job to finish, then print the tail of its log" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+still not 100% clear what are we doing
+
+---
+
+so we can make PoC of this, fast?
+
+---
+
+but what if we build parser, turn existing IFC to python for devin later to edit
+
+---
+
+can you produce readme file for that?
