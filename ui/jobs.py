@@ -1,10 +1,11 @@
 """In-memory job store.
 
-A Job is one uploaded model plus a sequence of *runs*: the initial package,
-then re-runs triggered by an edited ruleset or by a Devin session. Each run
-writes its own package directory; ``job.result_dir`` always points at the
-latest successful one. Nothing is persisted beyond the files on disk — this
-is a proof of concept, restart the server and the list is empty.
+A Job is one uploaded model — or one house written as code — plus a sequence
+of *runs*: the initial package, then re-runs triggered by an edited ruleset,
+an edited design or a Devin session. Each run writes its own package
+directory; ``job.result_dir`` always points at the latest successful one.
+Nothing is persisted beyond the files on disk — this is a proof of concept,
+restart the server and the list is empty.
 """
 from __future__ import annotations
 
@@ -22,6 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 JOBS_ROOT = Path(os.environ.get("RECOGNITION_JOBS_DIR", REPO_ROOT / "out" / "ui-jobs"))
 
 LOCAL_STEPS = ["Load model", "Schedules", "Compliance", "Sheets", "Enriched IFC"]
+CODE_STEPS = ["Build model", *LOCAL_STEPS]  # a design written as code is built into an IFC first
 DEVIN_STEPS = ["Upload model", "Devin session", "Working", "Pull request", "Fetch package"]
 
 
@@ -41,7 +43,7 @@ class Run:
     index: int
     started_at: float
     out_dir: str
-    trigger: str  # initial | rules | devin
+    trigger: str  # initial | rules | code | devin
     instruction: str | None = None
     rules_yaml: str | None = None
     finished_at: float | None = None
@@ -84,6 +86,8 @@ class Job:
     instruction: str | None = None
     runs: list[Run] = field(default_factory=list)
     finished_at: float | None = None
+    source: str = "ifc"  # ifc | code — where the model comes from
+    code: str | None = None  # the house as Python (source == "code"); built into model_path on each run
 
     # --- lifecycle helpers ------------------------------------------------
 
@@ -172,6 +176,7 @@ class Job:
             "devin_message": self.devin_message, "devin_acus": self.devin_acus, "devin_waiting": self.devin_waiting,
             "error": self.error, "note": self.note, "approved": self.approved,
             "rules_yaml": self.rules_yaml, "instruction": self.instruction,
+            "source": self.source, "code": self.code,
             "runs": [{"index": r.index, "trigger": r.trigger, "status": r.status, "instruction": r.instruction,
                       "started_at": r.started_at, "finished_at": r.finished_at, "commit": r.commit,
                       "compliance": (r.summary or {}).get("compliance", {}).get("status"),
@@ -225,11 +230,12 @@ class JobStore:
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
 
-    def create(self, model_path: Path, model_name: str, engine: str = "local") -> Job:
+    def create(self, model_path: Path, model_name: str, engine: str = "local", project: str | None = None) -> Job:
         jid = uuid.uuid4().hex[:10]
         jdir = self.root / jid
         jdir.mkdir(parents=True, exist_ok=True)
-        job = Job(jid, time.time(), model_name, str(model_path), str(jdir), project=Path(model_name).stem, engine=engine)
+        job = Job(jid, time.time(), model_name, str(model_path), str(jdir), project=project or Path(model_name).stem,
+                  engine=engine)
         with self._lock:
             self._jobs[jid] = job
         return job

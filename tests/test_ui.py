@@ -128,6 +128,124 @@ def test_upload_file_and_list():
     assert any(x["id"] == j["id"] for x in client.get("/api/jobs").json())
 
 
+# --- design as code -------------------------------------------------------------
+
+EXAMPLE = Path(__file__).resolve().parent.parent / "design" / "house.py"
+
+
+def move_wall_i3_west(code: str) -> str:
+    """Wall I3 (and the end of I4) 600 mm west; Flur/Bad shrink, the Schlafzimmer grows to 5.0 × 5.5 m."""
+    return (code.replace("7.375", "6.775")          # I3 both ends, I4 end
+                .replace("(7.45,", "(6.85,")        # Schlafzimmer x0
+                .replace("(7.3,", "(6.7,"))         # Flur and Bad x1
+
+
+@pytest.fixture(scope="module")
+def code_job() -> dict:
+    r = client.post("/api/jobs", data={"code": EXAMPLE.read_text(encoding="utf-8"), "project": "Haus am Hang"})
+    assert r.status_code == 200, r.text
+    return wait_done(r.json()["job_id"])
+
+
+def test_design_example_endpoint():
+    r = client.get("/api/design/example")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/plain")
+    assert r.text == EXAMPLE.read_text(encoding="utf-8") and "House(" in r.text
+
+
+def test_code_job_builds_and_runs(code_job, fzk_job):
+    j = code_job
+    assert j["status"] == "done", j["error"]
+    assert j["source"] == "code" and j["code"] == EXAMPLE.read_text(encoding="utf-8")
+    assert j["project"] == "Haus am Hang" and j["model_name"] == "haus-am-hang.py"
+    assert [s["name"] for s in j["steps"]][:2] == ["Build model", "Load model"] and len(j["steps"]) == 6
+    assert [s["status"] for s in j["steps"]] == ["done"] * 6
+    assert "model.ifc" in j["steps"][0]["detail"]
+    c = j["summary"]["counts"]
+    assert {k: c[k] for k in ("walls", "spaces", "doors", "windows")} == {"walls": 9, "spaces": 6, "doors": 6, "windows": 9}
+    assert j["summary"]["compliance"]["status"] == "PASS"
+    run_dir = Path(store.get(j["id"]).result_dir)
+    assert (run_dir / "house.py").read_text(encoding="utf-8") == j["code"] and (run_dir / "model.ifc").is_file()
+    # uploaded / sample jobs are IFC jobs without code
+    assert fzk_job["source"] == "ifc" and fzk_job["code"] is None
+
+
+def test_mesh_json(code_job, fzk_job):
+    jid = code_job["id"]
+    r = client.get(f"/jobs/{jid}/mesh.json?r=1")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("application/json")
+    mesh = r.json()
+    assert set(mesh) == {"elements", "bounds"} and len(mesh["bounds"]) == 6
+    els = mesh["elements"]
+    assert {e["cls"] for e in els} == {"IfcWall", "IfcSpace", "IfcDoor", "IfcWindow"}
+    assert sum(e["cls"] == "IfcWall" for e in els) == 9 and sum(e["cls"] == "IfcSpace" for e in els) == 6
+    bedroom = next(e for e in els if e["cls"] == "IfcSpace" and e["tag"] == "R-04")
+    assert bedroom["name"] == "Schlafzimmer" and bedroom["storey"] == "Erdgeschoss"
+    for e in els:
+        assert set(e) == {"tag", "name", "cls", "storey", "verts", "faces"}
+        assert len(e["verts"]) % 3 == 0 and len(e["faces"]) % 3 == 0 and e["faces"]
+        assert max(e["faces"]) < len(e["verts"]) // 3 and min(e["faces"]) >= 0
+        assert all(isinstance(v, float) and round(v, 4) == v for v in e["verts"])
+        assert e["cls"] != "IfcWall" or e["tag"] == "" and e["name"]
+    assert {e["tag"] for e in els if e["cls"] == "IfcDoor"} == {f"D-{i:02d}" for i in range(1, 7)}
+    minx, miny, minz, maxx, maxy, maxz = mesh["bounds"]
+    assert (minx, miny, minz) == pytest.approx((-0.15, -0.15, 0.0), abs=0.01)
+    assert (maxx, maxy, maxz) == pytest.approx((12.15, 10.15, 2.5), abs=0.01)
+    # cached next to the package, served again from the cache, not bundled as a deliverable
+    assert (Path(store.get(jid).result_dir) / "mesh.json").is_file()
+    assert client.get(f"/jobs/{jid}/mesh.json").json()["bounds"] == mesh["bounds"]
+    import io as _io, zipfile as _zip
+    names = _zip.ZipFile(_io.BytesIO(client.get(f"/jobs/{jid}/bundle/all").content)).namelist()
+    assert not any(n.endswith("mesh.json") for n in names) and any(n.endswith("house.py") for n in names)
+    # an IFC job meshes its uploaded model with the same contract
+    m = client.get(f"/jobs/{fzk_job['id']}/mesh.json").json()
+    assert any(e["cls"] == "IfcSpace" and e["tag"] == "R-04" for e in m["elements"])
+    assert len([e for e in m["elements"] if e["cls"] == "IfcWall"]) == 13
+
+
+def test_code_message_rebuilds(code_job, fzk_job):
+    jid = code_job["id"]
+    before = client.get(f"/api/jobs/{jid}/package").json()["schedules"]["rooms"]
+    assert float(next(r for r in before if r["tag"] == "R-04")["area_m2"]) < 25
+    code = move_wall_i3_west(code_job["code"])
+    assert code != code_job["code"]
+    r = client.post(f"/api/jobs/{jid}/message", json={"code": code})
+    assert r.status_code == 200, r.text
+    j = wait_done(jid)
+    assert j["status"] == "done", j["error"]
+    assert len(j["runs"]) == 2 and j["runs"][-1]["trigger"] == "code" and j["code"] == code
+    assert j["steps"][0]["name"] == "Build model" and j["steps"][0]["status"] == "done"
+    rooms = client.get(f"/api/jobs/{jid}/package").json()["schedules"]["rooms"]
+    bedroom = next(r for r in rooms if r["tag"] == "R-04")
+    assert bedroom["name"] == "Schlafzimmer" and float(bedroom["area_m2"]) > 26
+    # the mesh follows the new package: the bedroom now starts further west
+    mesh = client.get(f"/jobs/{jid}/mesh.json?r=2").json()
+    bed = next(e for e in mesh["elements"] if e["cls"] == "IfcSpace" and e["tag"] == "R-04")
+    assert min(bed["verts"][0::3]) == pytest.approx(6.85, abs=0.01)
+    # the same code again is a no-op; code on an IFC job is refused
+    assert client.post(f"/api/jobs/{jid}/message", json={"code": code}).status_code == 400
+    r = client.post(f"/api/jobs/{fzk_job['id']}/message", json={"code": code})
+    assert r.status_code == 400 and "IFC" in r.json()["detail"]
+
+
+def test_code_with_syntax_error_fails_and_has_no_mesh():
+    code = EXAMPLE.read_text(encoding="utf-8").replace("eg = h.storey(", "eg = h.storey((")
+    r = client.post("/api/jobs", data={"code": code})
+    assert r.status_code == 200, r.text
+    j = wait_done(r.json()["job_id"])
+    assert j["status"] == "failed" and j["project"] == "House" and j["source"] == "code"
+    assert "SyntaxError" in j["error"] and "house.py" in j["error"]
+    assert j["steps"][0]["name"] == "Build model" and j["steps"][0]["status"] == "failed"
+    assert "SyntaxError" in j["steps"][0]["detail"]
+    assert [s["status"] for s in j["steps"][1:]] == ["pending"] * 5
+    assert client.get(f"/jobs/{j['id']}/mesh.json").status_code == 409
+    assert client.get(f"/api/jobs/{j['id']}/package").status_code == 409
+    # a script that runs but writes nothing is reported too
+    r = client.post("/api/jobs", data={"code": "print('hello')\n"})
+    j = wait_done(r.json()["job_id"])
+    assert j["status"] == "failed" and "model.ifc" in j["error"]
+
+
 # --- Devin engine, fully offline -----------------------------------------------
 
 class FakeDevin:
@@ -205,3 +323,29 @@ def test_devin_engine_offline(tmp_path, monkeypatch):
     job.pr_url = None
     with pytest.raises(E.EngineError):
         eng.approve(job)
+
+
+def test_devin_prompt_for_code_job(tmp_path):
+    fake = FakeDevin()
+    eng = E.DevinEngine(client=fake, repo="org/repo", git_dir=tmp_path, poll_interval=0)
+    job = Job("abc123def4", time.time(), "haus-am-hang.py", "", str(tmp_path / "job"), project="Haus am Hang",
+              source="code", code=EXAMPLE.read_text(encoding="utf-8"))
+    job.instruction = "Make the Schlafzimmer at least 25 m2"
+    job.branch = "detail/haus-am-hang-abc123"
+    prompt = eng.prompt(job, None)
+    assert "```python\n" in prompt and "eg.wall(\"I3\"" in prompt and "design/haus-am-hang.py" in prompt
+    assert "(attached)" not in prompt
+    # escalation after a local build: the built IFC is attached, the script still travels in the prompt
+    ifc = tmp_path / "model.ifc"
+    ifc.write_bytes(b"ISO-10303-21;")
+    job.model_path = str(ifc)
+    eng.start(job, ifc, job.instruction, None)
+    for _ in range(50):
+        if job.devin_session_id:
+            break
+        time.sleep(0.05)
+    assert fake.uploaded == [ifc] and "```python" in fake.sessions["devin-1"]["prompt"]
+    # a design edit while Devin holds the job goes to the same session as a code block
+    job.status, job.devin_waiting = "done", False
+    eng.message(job, "", None, job.code.replace("7.375", "6.775"))
+    assert "design/haus-am-hang.py" in fake.messages[-1] and "6.775" in fake.messages[-1] and "6.775" in job.code

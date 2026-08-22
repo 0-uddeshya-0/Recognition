@@ -3,7 +3,14 @@
   const CFG = window.RECOGNITION;
   const app = document.getElementById("app");
   const S = { jobId: CFG.jobId, job: null, pkg: null, pkgRun: null, sheet: 0, tab: "findings", file: null, engine: "local",
-              rules: CFG.defaultRules, timer: null, tick: null, clockBase: 0, clockAt: 0, stamped: null };
+              rules: CFG.defaultRules, timer: null, tick: null, clockBase: 0, clockAt: 0, stamped: null,
+              mode: "file", code: null, project: "Haus am Hang", view: "2d", showRooms: true, mesh: null, meshRun: null,
+              meshLoading: false, designDraft: null, rebuilt: false };
+  // deep-link hooks: #code opens the editor, #3d opens the model view, #design opens the Design tab
+  const H = location.hash.toLowerCase();
+  if (H.includes("code")) S.mode = "code";
+  if (H.includes("3d")) S.view = "3d";
+  if (H.includes("design")) S.tab = "design";
 
   // --- helpers ------------------------------------------------------------
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -50,12 +57,24 @@
   // --- state 1: start ---------------------------------------------------------
   function renderStart() {
     const f = S.file;
+    const codeMode = S.mode === "code";
     app.innerHTML = `
       <section class="start">
         <div class="lede">
-          <h2>Drop a model, get the drawings.</h2>
-          <p>Schedules, code compliance and dimensioned plan sheets, derived from the IFC by code — so a design change means regenerate and review, not redraw.</p>
+          <h2>${codeMode ? "Write the house, get the drawings." : "Drop a model, get the drawings."}</h2>
+          <p>${codeMode ? "The building as a few lines of Python: storeys, walls, rooms, doors, windows. Run it and get the 3D model, the plan sheets, the schedules and the code check — change a number, run again."
+                        : "Schedules, code compliance and dimensioned plan sheets, derived from the IFC by code — so a design change means regenerate and review, not redraw."}</p>
         </div>
+        <div class="seg mode" id="mode"><button data-m="file" class="${codeMode ? "" : "on"}">Model file</button><button data-m="code" class="${codeMode ? "on" : ""}">Write it as code <span class="chip-new">NEW</span></button></div>
+        ${codeMode ? `
+        <div class="field" style="margin-top:0">
+          <label for="project">Project name</label>
+          <input type="text" id="project" value="${esc(S.project)}">
+        </div>
+        <div class="field">
+          <label for="code-editor">house.py <span class="muted" style="font-weight:400">— runs on the server, writes an IFC, then the usual pipeline</span></label>
+          <textarea id="code-editor" class="mono code" spellcheck="false">${esc(S.code ?? "")}</textarea>
+        </div>` : `
         <label class="dropzone${f ? " has-file" : ""}" id="drop">
           <input type="file" accept=".ifc" id="file">
           <span class="north">N ▲</span>
@@ -67,26 +86,34 @@
         </label>
         <div class="samples">
           ${CFG.samples.map((v) => `<button class="sample" data-sample="${v.key}"><span class="try">Try a sample</span><b>${esc(v.label)}</b><span>${esc(v.hint)}</span></button>`).join("")}
-        </div>
+        </div>`}
         <div class="field">
           <label for="instr">Anything to change? <span class="muted" style="font-weight:400">optional</span></label>
           <textarea id="instr" rows="2" placeholder="e.g. “Bedrooms must be ≥ 10 m² under the new code”"></textarea>
         </div>
         <div class="actions">
           ${CFG.devin ? `<div class="seg" id="engine"><button data-e="local" class="${S.engine === "local" ? "on" : ""}">Run here · seconds</button><button data-e="devin" class="${S.engine === "devin" ? "on" : ""}">Send to Devin · opens a PR</button></div>` : ""}
-          <button class="btn" id="run" ${f ? "" : "disabled"}>Run detailing</button>
-          <span class="muted" id="run-hint">${f ? "" : "Choose a file or a sample"}</span>
+          <button class="btn" id="run" ${f || codeMode ? "" : "disabled"}>${codeMode ? "Build & run" : "Run detailing"}</button>
+          <span class="muted" id="run-hint">${f || codeMode ? "" : "Choose a file or a sample"}</span>
         </div>
         <div id="start-err"></div>
         <div class="recent" id="recent" hidden></div>
       </section>`;
-    const drop = $("#drop");
-    $("#file").addEventListener("change", (e) => { S.file = e.target.files[0] || null; renderStart(); });
-    ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
-    ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
-    drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) { S.file = f; renderStart(); } });
-    app.querySelectorAll(".sample").forEach((b) => b.addEventListener("click", () => startJob({ sample: b.dataset.sample })));
-    $("#run").addEventListener("click", () => startJob({ file: S.file }));
+    $("#mode").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { S.mode = b.dataset.m; renderStart(); } });
+    if (codeMode) {
+      if (S.code === null) fetch("/api/design/example").then((r) => r.text()).then((t) => { if (S.code === null) { S.code = t; const el = $("#code-editor"); if (el && !el.value) { el.value = t; el.scrollTop = 0; } } });
+      $("#code-editor").addEventListener("input", (e) => { S.code = e.target.value; });
+      $("#project").addEventListener("input", (e) => { S.project = e.target.value; });
+      $("#run").addEventListener("click", () => startJob({ code: $("#code-editor").value, project: $("#project").value.trim() || "House" }));
+    } else {
+      const drop = $("#drop");
+      $("#file").addEventListener("change", (e) => { S.file = e.target.files[0] || null; renderStart(); });
+      ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+      ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+      drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) { S.file = f; renderStart(); } });
+      app.querySelectorAll(".sample").forEach((b) => b.addEventListener("click", () => startJob({ sample: b.dataset.sample })));
+      $("#run").addEventListener("click", () => startJob({ file: S.file }));
+    }
     if (CFG.devin) $("#engine").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { S.engine = b.dataset.e; renderStart(); } });
     loadRecent();
   }
@@ -97,9 +124,10 @@
       el.innerHTML = `<h3>Recent</h3>` + jobs.map((j) => `<a href="/jobs/${j.id}"><span class="dot ${j.compliance || ""}"></span>${esc(j.project)} <span class="muted mono">${j.status}${j.engine === "devin" ? " · Devin" : ""}</span></a>`).join("");
     } catch (_) { /* no recent list, no problem */ }
   }
-  async function startJob({ sample, file }) {
+  async function startJob({ sample, file, code, project }) {
     const fd = new FormData();
-    if (sample) fd.append("sample", sample); else if (file) fd.append("file", file, file.name); else return;
+    if (code !== undefined) { if (!code.trim()) return; fd.append("code", code); fd.append("project", project || "House"); }
+    else if (sample) fd.append("sample", sample); else if (file) fd.append("file", file, file.name); else return;
     const instr = $("#instr"); if (instr && instr.value.trim()) fd.append("instruction", instr.value.trim());
     fd.append("engine", S.engine);
     if (S.rules !== CFG.defaultRules) fd.append("rules_yaml", S.rules);
@@ -107,11 +135,12 @@
     try {
       const { job_id } = await api("/api/jobs", { method: "POST", body: fd });
       S.jobId = job_id; S.job = null; S.pkg = null; S.pkgRun = null; S.sheet = 0; S.stamped = null;
+      resetViewer(); S.designDraft = null; S.tab = "findings";
       history.pushState({}, "", `/jobs/${job_id}`);
       poll(true);
     } catch (e) {
       $("#start-err").innerHTML = `<div class="err">${esc(e.message)}</div>`;
-      if (run) { run.disabled = false; run.textContent = "Run detailing"; }
+      if (run) { run.disabled = false; run.textContent = code !== undefined ? "Build & run" : "Run detailing"; }
     }
   }
 
@@ -151,7 +180,10 @@
     const failedIn = (rows) => rows.filter((r) => bad.has(r.tag)).length;
     const tabs = [["findings", "Findings", counts.findings, counts.findings > 0], ["rooms", "Rooms", counts.rooms, failedIn(p.schedules.rooms) > 0],
                   ["doors", "Doors", counts.doors, failedIn(p.schedules.doors) > 0], ["windows", "Windows", counts.windows, failedIn(p.schedules.windows) > 0]];
+    if (j.source === "code") tabs.push(["design", "Design", "", false]);
+    if (S.tab === "design" && j.source !== "code") S.tab = "findings";
     const devinJob = j.engine === "devin";
+    const three = S.view === "3d";
     app.innerHTML = `
       <div class="two">
         <section class="viewer">
@@ -159,27 +191,34 @@
             <span class="nav"><button id="prev" ${S.sheet === 0 ? "disabled" : ""} aria-label="previous sheet">◀</button><button id="next" ${S.sheet === sheets.length - 1 ? "disabled" : ""} aria-label="next sheet">▶</button></span>
             <span class="sheetno">${esc(sh.sheet)}</span><span class="storey">${esc(sh.storey)}</span><span class="count">${S.sheet + 1} / ${sheets.length}</span>
             <span class="spacer"></span>
-            <a href="${files("sheets/" + sh.pdf)}" target="_blank" rel="noopener">Open PDF ↗</a>
+            <span class="seg view" id="view"><button data-v="2d" class="${three ? "" : "on"}">2D</button><button data-v="3d" class="${three ? "on" : ""}">3D</button></span>
+            ${three ? `<label class="v3-opts"><input type="checkbox" id="rooms" ${S.showRooms ? "checked" : ""}> Rooms</label><span class="muted" id="v3-stats"></span>`
+                    : `<a href="${files("sheets/" + sh.pdf)}" target="_blank" rel="noopener">Open PDF ↗</a>
             <a href="${files("sheets/" + sh.dxf)}?download=1">DXF</a>
-            <a href="${files("sheets/" + sh.svg)}" target="_blank" rel="noopener">SVG</a>
+            <a href="${files("sheets/" + sh.svg)}" target="_blank" rel="noopener">SVG</a>`}
           </div>
-          <a class="sheet" href="${files("sheets/" + sh.pdf)}" target="_blank" rel="noopener" title="Open ${esc(sh.sheet)} as PDF">
+          ${three ? `<div class="sheet v3" id="v3" title="Drag to orbit · wheel to zoom · right-drag to pan · double-click to reset">
+            <div class="v3-wait" id="v3-wait">Loading model…</div>
+            ${stamp(s.compliance, true)}
+            ${j.approved ? `<span class="stamp big approved">Approved</span>` : ""}
+          </div>` : `<a class="sheet" href="${files("sheets/" + sh.pdf)}" target="_blank" rel="noopener" title="Open ${esc(sh.sheet)} as PDF">
             <img src="${files("sheets/" + sh.png)}?r=${j.runs.length}" alt="${esc(sh.sheet)} ${esc(sh.storey)} floor plan">
             ${stamp(s.compliance, true)}
             ${j.approved ? `<span class="stamp big approved">Approved</span>` : ""}
-          </a>
+          </a>`}
           <div class="downloads">
             <span class="lbl">Download</span>
             <a href="/jobs/${S.jobId}/bundle/pdf">PDF set (${sheets.length})</a>
             <a href="/jobs/${S.jobId}/bundle/dxf">DXF set</a>
             <a href="/jobs/${S.jobId}/bundle/schedules">Schedules</a>
             <a href="${files("model.detailed.ifc")}?download=1">model.detailed.ifc</a>
+            ${j.source === "code" ? `<a href="${files("house.py")}?download=1">house.py</a>` : ""}
             <a href="${files("report.md")}" target="_blank" rel="noopener">report.md</a>
             <a href="/jobs/${S.jobId}/bundle/all">Everything (zip)</a>
           </div>
         </section>
         <section class="card panel">
-          <div class="tabs">${tabs.map(([k, l, n, b]) => `<button data-tab="${k}" class="${S.tab === k ? "on" : ""}">${l}<span class="n${b ? " bad" : ""}">${n}</span></button>`).join("")}</div>
+          <div class="tabs">${tabs.map(([k, l, n, b]) => `<button data-tab="${k}" class="${S.tab === k ? "on" : ""}">${l}${k === "design" ? `<span class="chip-new">NEW</span>` : `<span class="n${b ? " bad" : ""}">${n}</span>`}</button>`).join("")}</div>
           <div class="tabbody" id="tabbody"></div>
         </section>
       </div>
@@ -216,6 +255,8 @@
     renderTab();
     $("#prev").addEventListener("click", () => { S.sheet--; renderResult(); });
     $("#next").addEventListener("click", () => { S.sheet++; renderResult(); });
+    $("#view").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && b.dataset.v !== S.view) { S.view = b.dataset.v; renderResult(); } });
+    if (three) { $("#rooms").addEventListener("change", (e) => { S.showRooms = e.target.checked; if (window.Viewer3D) Viewer3D.update({ showRooms: S.showRooms }); }); mount3d(); }
     $(".tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { S.tab = b.dataset.tab; renderResult(); } });
     $("#send").addEventListener("click", () => sendMessage($("#req").value.trim(), null, "#req-err"));
     $("#apply").addEventListener("click", () => sendMessage("", $("#rules-text").value, "#rules-err"));
@@ -223,11 +264,34 @@
     $("#approve").addEventListener("click", approve);
     $("#rules").open = S.rulesOpen || false;
     $("#rules").addEventListener("toggle", (e) => { S.rulesOpen = e.target.open; });
-    document.onkeydown = (e) => { if (e.target.tagName === "TEXTAREA") return; if (e.key === "ArrowLeft" && S.sheet > 0) { S.sheet--; renderResult(); } if (e.key === "ArrowRight" && S.sheet < sheets.length - 1) { S.sheet++; renderResult(); } };
+    document.onkeydown = (e) => { if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT" || three) return; if (e.key === "ArrowLeft" && S.sheet > 0) { S.sheet--; renderResult(); } if (e.key === "ArrowRight" && S.sheet < sheets.length - 1) { S.sheet++; renderResult(); } };
+  }
+
+  // --- 3D ---------------------------------------------------------------------------
+  function resetViewer() { S.mesh = null; S.meshRun = null; S.meshLoading = false; if (window.Viewer3D) Viewer3D.dispose(); }
+  function whenViewer(fn) { if (window.Viewer3D) fn(); else window.addEventListener("viewer3d-ready", fn, { once: true }); }
+  async function mount3d() {
+    const j = S.job, run = j.runs.length;
+    if (!S.mesh || S.meshRun !== run) {
+      if (S.meshLoading) return;
+      S.meshLoading = true;
+      try { S.mesh = await api(`/jobs/${S.jobId}/mesh.json?r=${run}`); S.meshRun = run; }
+      catch (e) { S.meshLoading = false; const w = $("#v3-wait"); if (w) w.textContent = "3D view unavailable: " + e.message; return; }
+      S.meshLoading = false;
+    }
+    const host = $("#v3");
+    if (!host || S.view !== "3d" || S.job !== j) return;   // the screen moved on while the mesh was loading
+    whenViewer(() => {
+      const h = $("#v3"); if (!h) return;
+      const w = $("#v3-wait"); if (w) w.remove();
+      const info = Viewer3D.mount(h, S.mesh, { failing: new Set(S.pkg.failing_tags), showRooms: S.showRooms });
+      const st = $("#v3-stats"); if (st) st.textContent = `${info.elements} elements · ${(info.triangles / 1000).toFixed(1)}k triangles`;
+    });
   }
   function renderTab() {
     const p = S.pkg, bad = new Set(p.failing_tags), body = $("#tabbody");
     if (S.tab === "findings") return body.innerHTML = renderFindings(p);
+    if (S.tab === "design") return renderDesign(body);
     const rows = p.schedules[S.tab];
     const cols = { rooms: [["tag", "Tag"], ["storey", "Storey"], ["name", "Name"], ["category", "Category"], ["area_m2", "Area m²", 2], ["height_m", "Height m", 2], ["doors", "Doors"], ["windows", "Windows"]],
                    doors: [["tag", "Tag"], ["storey", "Storey"], ["name", "Name"], ["type", "Type"], ["width_m", "Width m", 3], ["height_m", "Height m", 3], ["external", "Ext."], ["connects", "Connects"]],
@@ -236,6 +300,18 @@
     body.innerHTML = `<table><thead><tr>${cols.map(([k, l, d]) => `<th class="${d ? "num" : ""}">${l}</th>`).join("")}</tr></thead><tbody>
       ${rows.map((r) => `<tr class="${bad.has(r.tag) ? "bad" : ""}">${cols.map(([k, l, d]) => k === "tag" ? `<td><span class="tag${bad.has(r.tag) ? " bad" : ""}">${esc(r.tag)}</span></td>` :
         `<td class="${d ? "num" : ""}" title="${esc(r[k])}">${d ? num(r[k], d) : esc(r[k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  }
+  function renderDesign(body) {
+    const j = S.job;
+    body.innerHTML = `<div class="design">
+      <div class="hint">The building as code — what a design change edits. Move a wall, press <b>Apply &amp; rebuild</b>: new 3D model, new sheet, new check.</div>
+      <textarea id="design-text" class="mono code" spellcheck="false">${esc(S.designDraft ?? j.code ?? "")}</textarea>
+      <div class="row"><button class="btn accent" id="design-apply">Apply &amp; rebuild</button><button class="ghost" id="design-reset">Reset</button>
+        <span class="hint" style="margin-left:auto">run ${j.runs.length}${j.runs.length > 1 && j.runs[j.runs.length - 1].trigger === "code" ? " · rebuilt from code" : ""}</span></div>
+      <div id="design-err"></div></div>`;
+    $("#design-text").addEventListener("input", (e) => { S.designDraft = e.target.value; });
+    $("#design-apply").addEventListener("click", () => { S.rebuilt = true; sendMessage("", null, "#design-err", $("#design-text").value); });
+    $("#design-reset").addEventListener("click", () => { S.designDraft = null; $("#design-text").value = j.code || ""; });
   }
   function renderFindings(p) {
     const c = p.summary.compliance;
@@ -260,11 +336,11 @@
   }
 
   // --- actions ------------------------------------------------------------------
-  async function sendMessage(text, rules, errSel) {
+  async function sendMessage(text, rules, errSel, code = null) {
     const el = $(errSel); if (el) el.innerHTML = "";
-    if (!text && rules === null) { if (el) el.innerHTML = `<div class="note">Describe the change first.</div>`; return; }
+    if (!text && rules === null && code === null) { if (el) el.innerHTML = `<div class="note">Describe the change first.</div>`; return; }
     try {
-      await api(`/api/jobs/${S.jobId}/message`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, rules_yaml: rules }) });
+      await api(`/api/jobs/${S.jobId}/message`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, rules_yaml: rules, code }) });
       S.pkg = null; S.pkgRun = null; S.stamped = null;
       poll(true);
     } catch (e) { if (el) el.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
@@ -284,6 +360,7 @@
       S.pkg = await api(`/api/jobs/${S.jobId}/package`); S.forceResult = false;
       if (S.pkgRun === null) S.sheet = defaultSheet(S.pkg);
       S.pkgRun = S.job.runs.length;
+      if (S.rebuilt) { S.rebuilt = false; S.view = "3d"; S.designDraft = null; }   // show the change where it is most visible
     }
     render();
     if (loop && (S.job.status === "running" || S.job.status === "queued")) S.timer = setTimeout(() => poll(true), 1000);
@@ -291,6 +368,7 @@
   function render() {
     renderTop();
     clearInterval(S.tick);
+    if (window.Viewer3D) Viewer3D.unmount();   // the DOM below is about to be rebuilt
     const j = S.job;
     if (!j) return renderStart();
     if (j.status === "done" && S.pkg) return renderResult();
@@ -298,6 +376,6 @@
     renderWorking();
     if (j.status === "running" || j.status === "queued") S.tick = setInterval(() => { const c = $("#clock"); if (c) c.textContent = fmtClock(S.clockBase + (performance.now() - S.clockAt) / 1000); }, 100);
   }
-  window.addEventListener("popstate", () => { const m = location.pathname.match(/^\/jobs\/([a-z0-9]+)/); S.jobId = m ? m[1] : null; S.job = null; S.pkg = null; S.pkgRun = null; if (S.jobId) poll(true); else render(); });
+  window.addEventListener("popstate", () => { const m = location.pathname.match(/^\/jobs\/([a-z0-9]+)/); S.jobId = m ? m[1] : null; S.job = null; S.pkg = null; S.pkgRun = null; resetViewer(); if (S.jobId) poll(true); else render(); });
   if (S.jobId) poll(true); else render();
 })();

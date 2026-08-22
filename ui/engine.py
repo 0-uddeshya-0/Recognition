@@ -2,7 +2,9 @@
 
 * ``LocalEngine`` runs ``recognition run`` in a subprocess on this machine and
   ticks the step list by watching the output directory fill up (the CLI only
-  prints when it is finished, so the files *are* the progress signal).
+  prints when it is finished, so the files *are* the progress signal). A job
+  written as code gets one extra step in front: the house script is run to
+  build the IFC the pipeline then reads.
 * ``DevinEngine`` uploads the model, opens a Devin session (API v1 — the key
   format this org has) that works in the GitHub repo, and pulls the package
   Devin committed on its branch back into the job directory.
@@ -25,12 +27,14 @@ from typing import Protocol
 import httpx
 import yaml
 
-from .jobs import DEVIN_STEPS, LOCAL_STEPS, REPO_ROOT, Job, Run, slug
+from .jobs import CODE_STEPS, DEVIN_STEPS, LOCAL_STEPS, REPO_ROOT, Job, Run, slug
 
 DEFAULT_RULES = REPO_ROOT / "rules" / "residential.yaml"
+EXAMPLE_DESIGN = REPO_ROOT / "design" / "house.py"
 DEVIN_API = "https://api.devin.ai/v1"
 PACKAGE_DIR = "deliveries"  # tracked folder where a Devin session commits the package
 UI_PLAYBOOK = REPO_ROOT / "playbooks" / "detailing-ui.devin.md"
+BUILD_TIMEOUT = 90.0  # seconds a house script may take to write its IFC
 
 
 class EngineError(Exception):
@@ -42,7 +46,7 @@ class Engine(Protocol):
 
     def start(self, job: Job, ifc_path: Path, instruction: str | None, rules_yaml: str | None) -> None: ...
     def poll(self, job: Job) -> None: ...
-    def message(self, job: Job, text: str, rules_yaml: str | None = None) -> None: ...
+    def message(self, job: Job, text: str, rules_yaml: str | None = None, code: str | None = None) -> None: ...
     def approve(self, job: Job) -> None: ...
 
 
@@ -60,6 +64,20 @@ def load_dotenv(path: Path = REPO_ROOT / ".env") -> None:
 
 def default_rules_yaml() -> str:
     return DEFAULT_RULES.read_text(encoding="utf-8")
+
+
+def example_design() -> str:
+    """The repo's example house script — what the code editor starts from."""
+    return EXAMPLE_DESIGN.read_text(encoding="utf-8")
+
+
+def code_changed(job: Job, code: str | None) -> bool:
+    return code is not None and code.strip() != (job.code or "").strip()
+
+
+def design_filename(job: Job) -> str:
+    """Where the house script lives once it is committed: design/<slug>.py."""
+    return f"{slug(job.project).lower()}.py"
 
 
 def validate_rules(text: str) -> dict:
@@ -101,9 +119,22 @@ class LocalEngine:
     def poll(self, job: Job) -> None:  # the worker thread keeps the job current
         return
 
-    def message(self, job: Job, text: str, rules_yaml: str | None = None) -> None:
-        if rules_yaml is not None and rules_changed(job, rules_yaml):
+    def message(self, job: Job, text: str, rules_yaml: str | None = None, code: str | None = None) -> None:
+        rules_new = rules_yaml is not None and rules_changed(job, rules_yaml)
+        if rules_new:
             validate_rules(rules_yaml)
+        if code_changed(job, code):
+            if job.source != "code":
+                raise EngineError("This job started from an IFC file; only jobs written as code can be rebuilt.")
+            if not code.strip():
+                raise EngineError("The design is empty — nothing to build.")
+            job.code = code
+            if rules_new:
+                job.rules_yaml = rules_yaml
+            job.note = None
+            self._launch(job, "code", text or None, job.rules_yaml)
+            return
+        if rules_new:
             job.rules_yaml = rules_yaml
             job.note = None
             self._launch(job, "rules", text or None, rules_yaml)
@@ -125,7 +156,7 @@ class LocalEngine:
         if job.status == "running":
             raise EngineError("A run is already in progress.")
         run = job.new_run(trigger, instruction, rules_yaml)
-        job.reset_steps(LOCAL_STEPS)
+        job.reset_steps(CODE_STEPS if job.source == "code" else LOCAL_STEPS)
         t = threading.Thread(target=self._worker, args=(job, run), daemon=True, name=f"run-{job.id}-{run.index}")
         t.start()
 
@@ -137,8 +168,44 @@ class LocalEngine:
             cmd += ["--rules", str(rules_path)]
         return cmd
 
+    def _build(self, job: Job, run: Run) -> bool:
+        """Run the house script to write <out_dir>/model.ifc; False (and the run failed) if it did not."""
+        out = Path(run.out_dir)
+        script, ifc = out / "house.py", out / "model.ifc"
+        script.write_text(job.code or "", encoding="utf-8")
+        job.set_step("Build model", "running", script.name)
+        env = dict(os.environ)
+        env["PYTHONPATH"] = os.pathsep.join(p for p in (str(REPO_ROOT), env.get("PYTHONPATH")) if p)
+        try:
+            proc = subprocess.run([self.python, str(script), str(ifc)], cwd=REPO_ROOT, env=env,
+                                  capture_output=True, text=True, timeout=BUILD_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            self._fail_build(job, run, f"the design script did not finish within {BUILD_TIMEOUT:.0f} s")
+            return False
+        except OSError as e:
+            self._fail_build(job, run, f"could not run the design script: {e}")
+            return False
+        tail = "\n".join(proc.stderr.strip().splitlines()[-8:])
+        if proc.returncode != 0:
+            self._fail_build(job, run, tail or f"the design script exited with {proc.returncode}")
+            return False
+        if not ifc.is_file():
+            self._fail_build(job, run, tail or f"the design script exited cleanly but did not write {ifc.name} "
+                                               "(it must write its IFC to sys.argv[1])")
+            return False
+        job.model_path = str(ifc)
+        job.set_step("Build model", "done", f"{script.name} → {ifc.name} ({ifc.stat().st_size / 1e3:.0f} kB)")
+        return True
+
+    @staticmethod
+    def _fail_build(job: Job, run: Run, detail: str) -> None:
+        job.fail_run(run, detail)
+        job.set_step("Build model", "failed", detail[-1200:])  # the traceback tail, not just its last line
+
     def _worker(self, job: Job, run: Run) -> None:
         out = Path(run.out_dir)
+        if job.source == "code" and not self._build(job, run):
+            return
         job.set_step("Load model", "running", Path(job.model_path).name)
         try:
             proc = subprocess.Popen(self._command(job, run), cwd=REPO_ROOT, stdout=subprocess.PIPE,
@@ -307,7 +374,7 @@ class DevinEngine:
             return
         self._apply_session(job, s)
 
-    def message(self, job: Job, text: str, rules_yaml: str | None = None) -> None:
+    def message(self, job: Job, text: str, rules_yaml: str | None = None, code: str | None = None) -> None:
         if not job.devin_session_id:
             raise EngineError("No Devin session for this job.")
         if job.status == "running" and not job.devin_waiting:
@@ -318,6 +385,12 @@ class DevinEngine:
             job.rules_yaml = rules_yaml
             parts.append("Apply this ruleset (write it to the package directory as rules.yaml and pass it with --rules):\n"
                          f"```yaml\n{rules_yaml.strip()}\n```")
+        if code_changed(job, code):
+            if job.source != "code":
+                raise EngineError("This job started from an IFC file; only jobs written as code can be rebuilt.")
+            job.code = code
+            parts.append(f"The design changed. Replace `design/{design_filename(job)}` with this, build it and run the "
+                         f"pipeline on the new IFC:\n```python\n{code.strip()}\n```")
         if not parts:
             raise EngineError("Nothing changed — describe a change or edit the rules.")
         parts.append(f"Regenerate the package under {PACKAGE_DIR}/{slug(job.project)}/ on branch {job.branch}, "
@@ -349,17 +422,29 @@ class DevinEngine:
 
     def prompt(self, job: Job, attachment_url: str | None) -> str:
         pkg = f"{PACKAGE_DIR}/{slug(job.project)}"
+        as_code = job.source == "code" and bool(job.code)
+        if as_code:
+            model_line = (f"Model: the house written as code below{' (its built IFC is attached for reference)' if attachment_url else ''}. "
+                          f"Project name: \"{job.project}\".")
+        else:
+            model_line = f"Model: {job.model_name} (attached). Project name: \"{job.project}\"."
         lines = [
             job.instruction or "Produce the detailing package for the attached model.",
             "",
             f"Repository: https://github.com/{self.repo} — base branch `poc/ifc-detailing`. Work on branch `{job.branch}`.",
-            f"Model: {job.model_name} (attached). Project name: \"{job.project}\".",
+            model_line,
             f"Commit the generated package to `{pkg}/` (summary.json, report.json, report.md, schedules/, sheets/, "
             "model.detailed.ifc) and open a pull request against `poc/ifc-detailing`.",
             "When done, call the structured output tool with branch, pr_url, package_dir and the compliance counts.",
         ]
         if not self.playbook_id and UI_PLAYBOOK.exists():
             lines += ["", "Follow this playbook:", "", UI_PLAYBOOK.read_text(encoding="utf-8")]
+        if as_code:
+            script = f"design/{design_filename(job)}"
+            lines += ["", f"This building is written as code. Save the script below as `{script}`, build it with "
+                          f"`uv run python {script} {pkg}/model.ifc`, and run the pipeline on that IFC. Design changes "
+                          f"are edits to `{script}` followed by a rebuild — commit the script with the package.",
+                      "```python", job.code.strip(), "```"]
         if job.rules_yaml:
             lines += ["", f"Use this ruleset instead of rules/residential.yaml (save it as `{pkg}/rules.yaml` and pass "
                           "`--rules`):", "```yaml", job.rules_yaml.strip(), "```"]
@@ -369,9 +454,13 @@ class DevinEngine:
 
     def _open_session(self, job: Job, run: Run, ifc_path: Path) -> None:
         try:
-            job.set_step("Upload model", "running", f"{ifc_path.name} ({ifc_path.stat().st_size / 1e6:.1f} MB)")
-            url = self.client.upload(ifc_path)
-            job.set_step("Upload model", "done", ifc_path.name)
+            if job.source == "code" and not ifc_path.is_file():  # not built yet: Devin builds it from the script
+                url = None
+                job.set_step("Upload model", "done", "design as code — Devin builds the IFC")
+            else:
+                job.set_step("Upload model", "running", f"{ifc_path.name} ({ifc_path.stat().st_size / 1e6:.1f} MB)")
+                url = self.client.upload(ifc_path)
+                job.set_step("Upload model", "done", ifc_path.name)
             job.set_step("Devin session", "running", "creating")
             body = {
                 "prompt": self.prompt(job, url),
