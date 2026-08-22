@@ -1,0 +1,16 @@
+
+\begin{itemize}\item[-] TRACK SHOWCASE
+\end{itemize}
+
+\section*{Devin for X - Building the Autonomous Layer}
+
+Your job is to find another industry with that same structure and build the layer that puts Devin to work inside it using our API
+\begin{itemize}
+\item[01] Pick a domain where the output can be expressed as code
+\item[02] Then build a system that programmatically triggers Devin sessions, gives them a way to check their own work, and produces real artifacts without a human in the loop.
+\end{itemize}
+
+\section*{Every industry has an engineering problem. Give it an engineer}
+
+COGNITION - TUM.ai Hackathon
+AUGUST 2026

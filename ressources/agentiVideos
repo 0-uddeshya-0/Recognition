@@ -1,0 +1,65 @@
+How I Make Product Demo Videos with Claude (CGI Included)
+A guide by Emma Guetta, founder of Retriever
+We won the NVIDIA prize at the Raise hackathon with a demo video that had real CGI in it: a cinematic 3D drone shot with a live HUD on top. Here's the exact method. Claude does the building; you just direct.
+The idea
+A demo video is two layers:
+Base footage - either 3D CGI (rendered in Blender) or a plain screen recording of your product.
+Code overlays - captions, a HUD, callout brackets, transitions, and sound effects, built with Remotion (a tool that turns code into video).
+Claude writes and runs everything. You don't touch a video timeline and you don't type terminal commands. You describe what you want, look at the result, and give feedback.
+My hackathon video followed one pipeline: Blender (CGI) -> Remotion (overlays + final render) -> ffmpeg (audio). The product dashboard was a simple screen recording, intercut with the drone shot for contrast.
+The tools
+Claude Code - writes the 3D scripts and the video code, and runs every command for you.
+Blender (free) - the 3D tool for the CGI shots. Claude scripts it; you never open its interface.
+Remotion (free) - turns code into video: the overlays, captions, and the final render.
+ffmpeg (free, bundled with Remotion) - the final audio-leveling pass.
+A screen recorder - built into macOS (Cmd+Shift+5) and Windows. Captures your real product.
+Asset libraries - free 3D models, footage, and music (list at the end).
+On hardware: rendering CGI is the one heavy step, and it's much faster on a computer with a dedicated GPU (graphics card). Not every machine has one. If yours doesn't, or it's slow, keep the 3D shots short and use EEVEE (the fast renderer, below), or render in the cloud. You don't need a powerful machine to start.
+Step 1 - Storyboard first, with AI
+A storyboard is a shot-by-shot plan written before you build. It's the step that saves the most time: changing your mind in text costs seconds, changing it after a render costs hours.
+Give Claude this prompt:
+Two things make a storyboard work:
+One message. Decide the single thing a viewer should remember, and cut any shot that doesn't serve it.
+One wow moment, with contrast. Place one standout shot and cut to something plain right before it. In my video, the ordinary dashboard made the cinematic drone shot land harder.
+Save the final storyboard as  in your project folder. Claude reads it and builds each shot to that spec.
+Step 2 - The CGI shots (Blender)
+You never open Blender or run anything. You describe the shot; Claude writes the Blender script, runs it, and renders the clip. Then you look at the result and tell it what to change.
+Then just tell Claude what's off ("light too harsh," "push the camera in faster") and it re-renders.
+Step 3 - Keep CGI renders fast
+CGI is the slow part. A few choices decide between two minutes and all night:
+Use EEVEE, not Cycles, unless the shot needs real reflections. EEVEE is Blender's fast renderer, often 10-50x quicker. Save Cycles (the photorealistic one) for a single hero shot with glass or chrome.
+Render on the GPU if you have one, with the denoiser on so quality settings can stay low.
+Keep CGI short and few. Two great 3-second shots beat ten seconds of mediocre 3D. Do everything else with screen recordings.
+Render at your final resolution, not higher.
+Tell Claude the engine and settings you want per shot; it sets them in the script.
+Step 4 - Screen-record your product
+For the non-CGI shots, record your real product with your OS recorder. Record clean: hide notifications, use a demo account, move a little slower than feels natural, and capture at full resolution. Intercutting a plain, real screen recording with a cinematic shot is what creates the contrast.
+The powerful alternative: let Remotion reuse your product's actual code. Because Remotion is React, it can rebuild your UI straight from your real components. You point Claude at your product's front-end code and it recreates the exact screens, fonts, and colors as animated video, pixel-perfect and resolution-independent, with no screen recording at all. The video literally runs on your product's own code, so it always looks identical to the real thing and you can animate anything (a number counting up, rows sliding in, a cursor typing). It's more setup than a screen capture, so I used a recording for my video, but for a polished, UI-heavy demo this is the cleanest option there is.
+
+
+Step 5 - Put it together in Remotion
+Claude sets up the Remotion project and opens a live preview (the Remotion Studio) where every change updates the video instantly. You drop your clips (Blender output + screen recordings) into the project and describe the overlays:
+Because the overlays are code, they're frame-accurate and endlessly tweakable. When it looks right, Claude renders the final mp4. If your brand uses Google Fonts, ask Claude to load them via  so captions match your product.
+Step 6 - Final audio pass
+Claude runs one loudness pass with ffmpeg so the music and sound effects sit at an even level and nothing clips. That's your finished video.
+Where to get assets
+3D, HDRIs, textures (for Blender)
+Poly Haven - free CC0 HDRIs (one file lights and reflects your whole scene), textures, and models. Start here.
+ambientCG - more free textures.
+Sketchfab - 3D models; check each model's license.
+Footage & backgrounds
+Pexels, Coverr, Mixkit - free stock clips.
+Music & sound effects
+Uppbeat, Pixabay - free (check the license per track).
+Epidemic Sound, Artlist - paid, big catalogs. Good music matters more than another hour of 3D tweaking.
+Fonts & brand look
+Google Fonts, loaded in Remotion via . Reuse your site's palette and fonts so the video matches your brand - see my guide on building a beautiful website with Claude.
+Icons
+Lucide - clean, free icon set for React/Remotion.
+What to do next
+Storyboard with Claude and save it as .
+Render one CGI hero shot in Blender (start with EEVEE).
+Screen-record one shot of your product or use remotion to create it. 
+Composite in Remotion, level the audio, render.
+Make the first one rough and ship it. The second one will be the one people ask you about.
+Questions? Reply to my DM, or comment on the post.

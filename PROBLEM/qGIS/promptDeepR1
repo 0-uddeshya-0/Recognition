@@ -1,0 +1,37 @@
+Act as a Lead Product Researcher and Geospatial Systems Architect. Conduct an exhaustive deep-dive research into real user pain points, recurring friction, and workflow bottlenecks experienced by practitioners using GIS software—specifically focusing on QGIS, PyQGIS, ArcGIS Pro, and Python geospatial stacks (GeoPandas, Shapely, GDAL/OGR).
+
+Search across primary practitioner communities, specifically:
+- Reddit: r/gis, r/QGIS, r/urbanplanning, r/geospatial, r/datascience
+- GIS Stack Exchange (gis.stackexchange.com)
+- GitHub Issue Trackers & Discussions (qgis/QGIS, geopandas/geopandas, OSGeo repos)
+- Specialized planning & GIS forums (e.g., CartoTalk, ESRI Community, LinkedIn GIS Groups)
+
+### Research Objectives:
+
+1. TOOL-CHAINING & PROCESSING BOTTLENECKS
+   - Which multi-step tool workflows (e.g., Buffer -> Intersect -> Dissolve -> Clip -> Calculate Field) cause the most errors or repetitive manual work?
+   - Identify common pitfalls where users get stuck in the QGIS Processing Modeler vs. writing custom PyQGIS scripts.
+   - What are the most frequent CRS (Coordinate Reference System) reprojection and geometry invalidity errors (e.g., self-intersections, sliver polygons) that break processing pipelines?
+
+2. NON-CODER BARRIERS & AD HOC SPATIAL QUERIES
+   - What specific spatial questions do domain professionals (urban planners, environmental consultants, site evaluators, real estate analysts) struggle to execute without coding skills?
+   - What complaints exist around finding the "right tool" among hundreds in the QGIS processing toolbox?
+   - Where do non-GIS experts fail when attempting Multi-Criteria Decision Analysis (MCDA) or site suitability mapping?
+
+3. DATA PREPARATION & INTEGRATION FRICTION
+   - What are the recurring complaints about importing, joining, and cleaning CAD/DWG, messy Shapefiles, WFS/WMS feeds, OpenStreetMap extracts, and tabular Excel/CSV coordinates?
+   - What breaks most frequently during raster-to-vector workflows, zonal statistics, and polygon overlay operations?
+
+4. EXPORT, STYLING & DECISION-MAKER REPORTING
+   - Why do users complain about the QGIS Print Layout Designer / automated map report generation?
+   - What friction exists when translating complex GIS spatial analysis results into business summaries, PDFs, or lightweight web maps for non-technical stakeholders?
+
+### Required Output Format:
+
+- **Executive Summary:** The top 5 structural pain points across all GIS sub-disciplines.
+- **Top 10 High-Frequency Problem Archetypes:** For each archetype, provide:
+  - Exact User Intent / Task (e.g., "Finding parcels within 500m of public transit avoiding flood zones")
+  - Manual Failure Mode / Where they get stuck (specific tools, cryptic errors)
+  - Literal quotes, paraphrased complaint themes, or common forum question titles
+  - Time wasted & frequency of recurrence
+- **Agentic Opportunity Matrix:** Map each identified bottleneck to how an Autonomous AI Agent (executing headless PyQGIS / GeoPandas code or tool-calling) solves it in one shot vs. manual GUI steps.
