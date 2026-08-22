@@ -144,6 +144,19 @@
     }
   }
 
+  // Devin's messages carry attachments as `ATTACHMENT:{json}` lines — show them as links (images as thumbnails)
+  function devinText(msg) {
+    const att = [];
+    const text = String(msg).replace(/ATTACHMENT:\s*(\{[^\n]*?\})/g, (_, json) => { try { att.push(JSON.parse(json)); } catch (_) { att.push({ url: json }); } return ""; })
+                            .replace(/ATTACHMENT:"([^"]+)"/g, (_, url) => { att.push({ url }); return ""; }).trim();
+    const files = att.map((a) => {
+      const name = (a.url || "").split("/").pop() || "attachment";
+      const isImg = /\.(png|jpe?g|gif|webp|svg)$/i.test(name);
+      return `<a class="att" href="${esc(a.url)}" target="_blank" rel="noopener">${isImg ? `<img src="${esc(a.url)}" alt="${esc(name)}">` : ""}<span>${esc(name)}</span></a>`;
+    }).join("");
+    return esc(text) + (files ? `<div class="atts">${files}</div>` : "");
+  }
+
   // --- state 2: working -------------------------------------------------------
   function renderWorking() {
     const j = S.job;
@@ -155,7 +168,7 @@
         <ul class="steps">
           ${j.steps.map((s) => `<li class="${s.status}"><span class="glyph"></span><span class="name">${esc(s.name)}</span><span class="detail" title="${esc(s.detail)}">${esc(s.detail)}</span></li>`).join("")}
         </ul>
-        ${j.engine === "devin" ? `<div class="devin-line"><div class="msg">${esc(j.devin_message || "starting session…")}</div><div class="acu">${j.devin_acus != null ? `${j.devin_acus} ACU` : ""}</div></div>` : ""}
+        ${j.engine === "devin" ? `<div class="devin-line"><div class="msg">${devinText(j.devin_message || "starting session…")}</div><div class="acu">${j.devin_acus != null ? `${j.devin_acus} ACU` : ""}</div></div>` : ""}
         ${failed ? `<div class="err">${esc(j.error || "unknown error")}</div>` : ""}
         ${j.devin_waiting ? `<div class="request" style="padding:14px 0 0"><label for="reply">Devin is waiting for your answer</label><div class="row"><textarea id="reply" placeholder="Reply to Devin…"></textarea><button class="btn accent" id="reply-send">Reply</button></div><div id="reply-err"></div></div>` : ""}
         <div class="foot">
@@ -229,7 +242,7 @@
             <textarea id="req" placeholder="${CFG.devin ? "e.g. “Bedrooms must be ≥ 25 m² under the new code” — Devin edits the rules or the generator, regenerates, opens a PR" : "Free-text requests need Devin mode on this server — edit the rules below to re-run here"}"></textarea>
             <button class="btn ${CFG.devin ? "accent" : "secondary"}" id="send">${CFG.devin ? "Send to Devin" : "Send"}</button>
           </div>
-          <div class="hint">${devinJob && j.devin_message ? `Devin · ${esc(j.devin_message)}` : j.note ? esc(j.note) : ""}</div>
+          <div class="hint">${devinJob && j.devin_message ? `Devin · ${devinText(j.devin_message)}` : j.note ? esc(j.note) : ""}</div>
           <div id="req-err"></div>
         </section>
         <section class="card decide">
