@@ -50,20 +50,33 @@ jobs:
 
       - name: Resolve the trigger
         id: cfg
+        env:
+          # The Studio dispatches the sealed brief inline — it has no way to
+          # commit a file first. Through env, never shell interpolation: the
+          # brief is client-typed data.
+          BRIEF_JSON: ${{ toJSON(github.event.client_payload.brief_json) }}
         run: |
           BRIEF="${{ github.event.client_payload.brief || inputs.brief }}"
           ENGINE="${{ github.event.client_payload.engine || inputs.engine }}"
           STRATS="${{ github.event.client_payload.strategies || inputs.strategies }}"
+          if [ "${BRIEF_JSON:-null}" != "null" ] && [ -n "$BRIEF_JSON" ]; then
+            printf '%s' "$BRIEF_JSON" > /tmp/dispatched-brief.json
+            jq -e .project /tmp/dispatched-brief.json >/dev/null
+            BRIEF=/tmp/dispatched-brief.json
+            SLUG=$(jq -r '.project' /tmp/dispatched-brief.json \
+                   | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-' | cut -c1-48)
+          fi
           # A push to briefs/** carries no inputs: design whatever changed.
           if [ -z "$BRIEF" ]; then
             BRIEF=$(git diff --name-only HEAD~1 HEAD -- 'briefs/*.json' | head -1)
           fi
           [ -z "$BRIEF" ] && BRIEF=briefs/familienhaus.json
           [ -z "$ENGINE" ] && ENGINE=local
+          [ -z "${SLUG:-}" ] && SLUG=$(basename "$BRIEF" .json)
           echo "brief=$BRIEF"       >> "$GITHUB_OUTPUT"
           echo "engine=$ENGINE"     >> "$GITHUB_OUTPUT"
           echo "strategies=$STRATS" >> "$GITHUB_OUTPUT"
-          echo "slug=$(basename "$BRIEF" .json)" >> "$GITHUB_OUTPUT"
+          echo "slug=$SLUG"         >> "$GITHUB_OUTPUT"
 
       # cairosvg needs the native cairo library; without it sheet rendering dies
       # with a dlopen error that looks nothing like a missing apt package.
@@ -88,6 +101,7 @@ jobs:
           uv run recognition autopilot "${{ steps.cfg.outputs.brief }}" \
             --engine "${{ steps.cfg.outputs.engine }}" \
             --out out/autopilot \
+            --publish \
             ${{ steps.cfg.outputs.strategies && format('--strategies {0}', steps.cfg.outputs.strategies) || '' }} \
             2>&1 | tee autopilot.log
           echo "winner=$(jq -r '.winner // ""' out/autopilot/*/run.json)" >> "$GITHUB_OUTPUT"
@@ -117,7 +131,10 @@ jobs:
           git checkout -b "$BRANCH"
           mkdir -p "deliveries/${SLUG}"
           cp -r out/autopilot/*/"${WINNER}"/. "deliveries/${SLUG}/"
-          git add "deliveries/${SLUG}"
+          # deliveries/ is the record; web/data/ (written by --publish) is what
+          # the Studio shows. Merging both means a green CI run appears on the
+          # live site as soon as Pages redeploys.
+          git add "deliveries/${SLUG}" web/data
           git commit -m "design(${SLUG}): ${WINNER} — passed the compliance gate
 
           Produced by the autopilot with no human in the loop. The winning

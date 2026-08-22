@@ -1,0 +1,82 @@
+# The Studio's chat relay. One run = one conversational round.
+#
+# The static Studio cannot call the Devin API from the browser (CORS, and the
+# page must never hold a key). So the page posts a repository_dispatch with
+# the transcript; this workflow runs `recognition interview` with the org's
+# key server-side; and the reply lands as a JSON file on the orphan branch
+# `studio-interviews`, which the page reads back through the CORS-enabled
+# GitHub Contents API. The browser holds only the viewer's own GitHub token.
+#
+# The payload travels through env vars, never through shell interpolation —
+# a transcript is client-typed text and must not be able to escape a script.
+name: interview
+
+on:
+  repository_dispatch:
+    types: [interview]
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: 'JSON: {"id": "...", "round": 1, "messages": [{"role": "client", "text": "..."}], "session_id": ""}'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: interview-${{ github.event.client_payload.id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  round:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the round
+        id: cfg
+        env:
+          PAYLOAD: ${{ github.event_name == 'repository_dispatch' && toJSON(github.event.client_payload) || inputs.payload }}
+        run: |
+          printf '%s' "$PAYLOAD" > /tmp/payload.json
+          jq -e . /tmp/payload.json >/dev/null   # refuse malformed payloads loudly
+          ID=$(jq -r '.id // empty' /tmp/payload.json | tr -cd 'a-zA-Z0-9-' | cut -c1-64)
+          ROUND=$(jq -r '.round // 1' /tmp/payload.json | tr -cd '0-9' | cut -c1-2)
+          if [ -z "$ID" ]; then echo "::error::client_payload.id is required"; exit 1; fi
+          echo "id=$ID"           >> "$GITHUB_OUTPUT"
+          echo "round=${ROUND:-1}" >> "$GITHUB_OUTPUT"
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync
+
+      - name: Conduct the round
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
+        run: |
+          uv run recognition interview /tmp/payload.json --out /tmp/reply.json --timeout 540
+          jq '{message, questions: (.questions | length), done, session_id}' /tmp/reply.json
+
+      # The reply must be written even when Devin timed out — "not yet" is a
+      # reply the Studio renders honestly, not a failure to hide.
+      - name: Publish the reply
+        if: always() && steps.cfg.outputs.id != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ID: ${{ steps.cfg.outputs.id }}
+          ROUND: ${{ steps.cfg.outputs.round }}
+        run: |
+          if [ ! -f /tmp/reply.json ]; then
+            jq -n '{message: "The interview run failed before Devin could answer — see the workflow log.", done: false, contract_error: "workflow failure"}' > /tmp/reply.json
+          fi
+          PATH_IN_REPO="interviews/${ID}/reply-${ROUND}.json"
+          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}?ref=studio-interviews" --jq .sha 2>/dev/null || true)
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}" \
+            -f branch=studio-interviews \
+            -f message="interview ${ID} · round ${ROUND}" \
+            -f content="$(base64 -w0 /tmp/reply.json)" \
+            ${SHA:+-f sha=$SHA} >/dev/null
+          echo "reply published to ${PATH_IN_REPO} on studio-interviews"
