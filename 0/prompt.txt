@@ -1,0 +1,57 @@
+when we build this, how it'll look like?
+
+---
+
+so what happens when someone imports IFC
+
+---
+
+so i still struggling to imagine simple app, how it'll look like
+
+---
+
+so the rules when we say it fails, based on what?
+
+---
+
+is this regulations or something?
+
+---
+
+we should focus on some regulations, to show on the demo
+
+---
+
+so let's explore german one, forget about the thing we discussed, now we're working like: user uploads sketch, we make artifact(readable code for devin) and then we also apply regulations and stuff
+
+---
+
+[Image #2] nice, it's aggregated information, but do we have single source of this or what?
+
+---
+
+so, we should have like software of regulations which then checks our source of truth(code) if it's applied for bavarian relugations or something like this?
+
+---
+
+so it'll be check by AI or system?
+
+---
+
+why AI writes rules? i think we should have existing rules by us hardcoded and expand over time
+
+---
+
+so, then we provide sketch(hand-drawing on the paper) and AI will write down some code based on that that will produce 3D and 2D, what library should we use?
+
+---
+
+so IFCOPENSHELL?
+
+---
+
+so it'll havee like test.py and readable code and editable right? and it can produce 3D + 2D
+
+---
+
+can we create some python file which will produce 3D + 2D? just to demonstrate and do PoC?
