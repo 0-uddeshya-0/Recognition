@@ -17,8 +17,12 @@ on:
     inputs:
       brief:
         description: Path to a DesignBrief JSON in the repo
-        required: true
+        required: false
         default: briefs/familienhaus.json
+      brief_json:
+        description: A full DesignBrief as inline JSON (overrides `brief`) — what the Studio's tokenless trigger passes
+        required: false
+        default: ""
       engine:
         description: local (deterministic) or devin (one session per strategy)
         required: true
@@ -54,8 +58,10 @@ jobs:
         env:
           # The Studio dispatches the sealed brief inline — it has no way to
           # commit a file first. Through env, never shell interpolation: the
-          # brief is client-typed data.
-          BRIEF_JSON: ${{ toJSON(github.event.client_payload.brief_json) }}
+          # brief is client-typed data. workflow_dispatch carries it as a raw
+          # JSON string input (the tokenless trigger); repository_dispatch as
+          # a JSON object in the client payload.
+          BRIEF_JSON: ${{ github.event_name == 'workflow_dispatch' && inputs.brief_json || toJSON(github.event.client_payload.brief_json) }}
         run: |
           BRIEF="${{ github.event.client_payload.brief || inputs.brief }}"
           ENGINE="${{ github.event.client_payload.engine || inputs.engine }}"

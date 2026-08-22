@@ -385,6 +385,37 @@ select:disabled { opacity: .45; cursor: default; }
 @keyframes msg-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .msg { animation: none; } }
 
+/* --- revise: change it in words, rebuild, re-verify ---------------------- */
+.revise { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line-2); flex: none; background: var(--paper); }
+.revise input {
+  flex: 1; min-width: 0; font: inherit; font-size: 13px; padding: 8px 11px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper);
+}
+.revise input::placeholder { color: var(--ink-3); }
+.revise input:hover { border-color: var(--ink-3); }
+.revise input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.revise input:disabled { background: var(--paper-2); cursor: default; }
+
+/* the agent's plain-words read of a failing verdict */
+.advice { background: var(--paper-2); border: 1px solid var(--line-2); border-left: 3px solid var(--warn); border-radius: 4px; padding: 11px 13px; margin-bottom: 16px; }
+.advice-h { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 7px; }
+.advice-p { font-size: 13px; margin: 0 0 8px; color: var(--ink-2); }
+.advice-p b { color: var(--ink); font-weight: 600; }
+.advice .hint { margin: 0; }
+
+/* before/after strip after a revision */
+.delta { border: 1px solid var(--line); border-radius: 4px; padding: 11px 13px; margin-bottom: 16px; background: var(--paper); }
+.delta-h { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.delta-line { font-size: 12px; color: var(--ink-2); margin-bottom: 7px; }
+.delta-row { font-size: 12.5px; margin: 2px 0; }
+.delta-row.good b { color: var(--pass); }
+.delta-row.bad b { color: var(--fail); }
+.delta-row.meh b { color: var(--warn); }
+
+/* the tokenless trigger command */
+.cmd { border: 1px solid var(--line-2); border-radius: 5px; background: var(--paper-2); padding: 9px 11px; margin-top: 8px; max-width: 100%; }
+.cmd pre { margin: 0 0 8px; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); max-height: 140px; overflow-y: auto; }
+
 .colophon { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); }
 .colophon a { color: var(--ink-2); text-decoration: underline; }
 .colophon a:hover { color: var(--accent); }

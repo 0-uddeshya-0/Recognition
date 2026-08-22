@@ -51,16 +51,20 @@ const GH = {
   set token(v) { v ? localStorage.setItem("recognition.gh_token", v) : localStorage.removeItem("recognition.gh_token"); },
   get on() { return !!this.token; },
 
+  /* Reading a public repository needs no credential at all — only triggering
+     does. Tokenless mode therefore follows everything (runs, jobs, replies)
+     and merely cannot start things; it polls gently to respect the
+     unauthenticated rate limit, and reads replies off the CDN mirror. */
+  get pollMs() { return this.token ? 6000 : 12000; },
+
   async api(path, opts = {}) {
-    const r = await fetch(`https://api.github.com${path}`, {
-      ...opts,
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${this.token}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-        ...(opts.headers || {}),
-      },
-    });
+    const headers = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      ...(opts.headers || {}),
+    };
+    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    const r = await fetch(`https://api.github.com${path}`, { ...opts, headers });
     if (r.status === 404) return null;
     if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 140)}`);
     return r.status === 204 ? true : r.json();
@@ -74,6 +78,15 @@ const GH = {
   },
 
   async raw(path, ref) {
+    if (!this.token) {
+      // the CDN mirror is uncounted by the API limit; its cache can lag up
+      // to ~a minute, and the waiting bubble owns up to that
+      const r = await fetch(
+        `https://raw.githubusercontent.com/${this.repo}/${ref}/${path}?t=${Date.now()}`,
+        { cache: "no-store" },
+      );
+      return r.ok ? r.json().catch(() => null) : null;
+    }
     const r = await fetch(
       `https://api.github.com/repos/${this.repo}/contents/${path}?ref=${ref}&t=${Date.now()}`,
       { headers: { Accept: "application/vnd.github.raw+json", Authorization: `Bearer ${this.token}` } },
@@ -82,12 +95,40 @@ const GH = {
   },
 
   async findRun(workflow, sinceMs) {
-    const d = await this.api(`/repos/${this.repo}/actions/runs?event=repository_dispatch&per_page=10`);
+    const d = await this.api(`/repos/${this.repo}/actions/runs?per_page=10`);
     return (d?.workflow_runs || []).find(
-      (r) => r.path?.endsWith(`/${workflow}.yml`) && Date.parse(r.created_at) >= sinceMs - 15000,
+      (r) => r.path?.endsWith(`/${workflow}.yml`) && Date.parse(r.created_at) >= sinceMs - 20000,
     ) || null;
   },
 };
+
+/* The exact command that triggers a workflow from any terminal with gh —
+   base64 sidesteps every shell-quoting hazard in client-typed text. This is
+   the tokenless trigger path: the page holds no secret, the terminal already
+   does, and the page live-follows whatever the trigger starts. */
+function b64(s) { return btoa(String.fromCharCode(...new TextEncoder().encode(s))); }
+function triggerCommand(workflow, field, payload) {
+  return `gh workflow run ${workflow} --repo ${GH.repo} --ref main -f ${field}="$(echo ${b64(JSON.stringify(payload))} | base64 -d)"`;
+}
+
+function commandBubble(intro, cmd) {
+  const li = addMsg("agent", intro);
+  const box = el("div", "cmd");
+  const pre = el("pre", "mono", cmd);
+  const copy = el("button", "ghost sm", "Copy");
+  copy.type = "button";
+  copy.onclick = async () => {
+    try { await navigator.clipboard.writeText(cmd); copy.textContent = "Copied ✓"; }
+    catch { copy.textContent = "Select + copy manually"; }
+    setTimeout(() => { copy.textContent = "Copy"; }, 2500);
+  };
+  box.append(pre, copy);
+  li.append(box);
+  const meta = el("div", "meta", "tokenless trigger · the page holds no secret");
+  li.append(meta);
+  $("chat-log").scrollTop = $("chat-log").scrollHeight;
+  return li;
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    The brief — one state object behind both the chat and the form.
@@ -266,7 +307,9 @@ function renderAssumptions() {
 
 const NUM_WORDS = {
   a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+  seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
   ein: 1, eine: 1, einem: 1, zwei: 2, drei: 3, vier: 4, "fünf": 5, fuenf: 5, sechs: 6,
+  sieben: 7, acht: 8, neun: 9, zehn: 10, "zwölf": 12, zwoelf: 12,
 };
 const CAT_WORDS = [
   [/bed\s?rooms?|schlafzimmer|kinderzimmer|kids?['’]?\s?rooms?|children'?s rooms?|guest\s?rooms?|g[äa]stezimmer/, "bedroom"],
@@ -341,8 +384,10 @@ function parseUtterance(text) {
     got.push(["plot", `${plot[1]} × ${plot[2]} m`]);
   }
 
-  // occupants: "family of four", "zu fünft", "5 people", "team of 12", "desks for 9"
-  const occ = t.match(new RegExp(`(?:family|team) of ${numPat}|${numPat}\\s+(?:people|persons?|personen|employees?|mitarbeiter|desks?|seats?|arbeitspl[äa]tze)|zu\\s+(dritt|viert|fünft|sechst)`));
+  // occupants: "family of four", "zu fünft", "5 people", "team of ten", "desks for 9".
+  // Deliberately no bare articles here — "a desk for everyone" is not headcount 1.
+  const occNum = "(\\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|zwei|drei|vier|fünf|fuenf|sechs|sieben|acht|neun|zehn|zwölf|zwoelf)";
+  const occ = t.match(new RegExp(`(?:family|team) of ${occNum}|${occNum}\\s+(?:people|persons?|personen|employees?|mitarbeiter|desks?|seats?|arbeitspl[äa]tze)|zu\\s+(dritt|viert|fünft|sechst)`));
   if (occ) {
     const zu = { dritt: 3, viert: 4, "fünft": 5, sechst: 6 };
     patch.occupants = occ[3] ? zu[occ[3]] : wordNum(occ[1] || occ[2]);
@@ -550,39 +595,49 @@ async function submitUtterance(text) {
 /* --- the live agent: one round = one workflow run = one Devin turn ------ */
 
 async function devinRound() {
-  if (!GH.on) {
-    openPop();
-    agentSay("Live Devin needs a GitHub connection — the session runs in this repository's Actions so no key ever reaches this page. Connect, or switch back to instant.");
-    return;
-  }
   Chat.id = Chat.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())).replace(/[^a-zA-Z0-9-]/g, "").slice(0, 40);
   Chat.round += 1;
   Chat.waiting = true;
   $("chat-send").dataset.state = "busy";
   $("chat-engine").disabled = true;
 
-  const wait = addMsg("agent", "Devin is reading the conversation… the session runs in CI, so the first reply usually takes 2–4 minutes.", { wait: true });
+  const payload = {
+    id: Chat.id, round: Chat.round, session_id: Chat.session,
+    messages: Chat.transcript.slice(-30).map((m) => ({ role: m.role, text: m.text.slice(0, 2000) })),
+    known: Brief.f,
+  };
+
+  const t0 = Date.now();
+  if (!GH.on) {
+    // Tokenless: the page cannot start a workflow, so it hands over the exact
+    // trigger and live-follows the result — no secret ever enters this page.
+    commandBubble(
+      "This page holds no secret, so it can't start the session itself. Run this one command in any terminal with gh (repo access required) — I'm already watching for Devin's reply:",
+      triggerCommand("interview.yml", "payload", payload),
+    );
+  } else {
+    try {
+      await GH.dispatch("interview", payload);
+    } catch (e) {
+      endWait();
+      agentSay(`Could not start the round: ${e.message}. Check the token's permissions (Contents read & write on ${GH.repo}).`);
+      return;
+    }
+  }
+
+  const wait = addMsg("agent",
+    GH.on
+      ? "Devin is reading the conversation… the session runs in CI, so the first reply usually takes 2–4 minutes."
+      : "Waiting for the round to be triggered… once it runs, Devin's reply lands here (tokenless reads lag up to a minute behind the CDN).",
+    { wait: true });
   const meta = el("div", "meta");
   wait.append(meta);
-  const t0 = Date.now();
   const tick = setInterval(() => {
     meta.textContent = `waiting ${Math.round((Date.now() - t0) / 1000)}s · relayed through Actions`;
   }, 1000);
   setChips([{ label: "Stop waiting", send: "__cancel__" }]);
   const cancel = { hit: false };
   $("chat-chips").firstChild.onclick = () => { cancel.hit = true; };
-
-  try {
-    await GH.dispatch("interview", {
-      id: Chat.id, round: Chat.round, session_id: Chat.session,
-      messages: Chat.transcript.slice(-30).map((m) => ({ role: m.role, text: m.text.slice(0, 2000) })),
-      known: Brief.f,
-    });
-  } catch (e) {
-    clearInterval(tick); wait.remove(); endWait();
-    agentSay(`Could not start the round: ${e.message}. Check the token's permissions (Contents read & write on ${GH.repo}).`);
-    return;
-  }
 
   // surface the run link as soon as Actions picks it up
   GH.findRun("interview", t0).then((r) => {
@@ -595,11 +650,12 @@ async function devinRound() {
 
   const path = `interviews/${Chat.id}/reply-${Chat.round}.json`;
   let reply = null;
-  const deadline = t0 + 12 * 60 * 1000;
+  const deadline = t0 + 15 * 60 * 1000;
   while (Date.now() < deadline && !cancel.hit) {
-    await sleep(6000);
+    await sleep(GH.pollMs);
     reply = await GH.raw(path, "studio-interviews").catch(() => null);
-    if (reply) break;
+    if (reply && reply.round === Chat.round) break;
+    reply = null;
   }
   clearInterval(tick);
   wait.remove();
@@ -608,7 +664,7 @@ async function devinRound() {
   if (!reply) {
     agentSay(cancel.hit
       ? "Stopped waiting. The round may still finish — ask again to pick it up, or continue with the instant agent."
-      : "No reply arrived within 12 minutes. The workflow log will say why — ask again to retry.",
+      : "No reply arrived within 15 minutes. If the trigger never ran, run it and ask again; otherwise the workflow log will say why.",
       { chips: [{ label: "Ask Devin again", send: "__retry__" }] });
     $("chat-chips").firstChild.onclick = () => { Chat.round -= 1; devinRound(); };
     return;
@@ -747,40 +803,74 @@ async function designIt() {
   const sealed = Brief.seal();
   if (!sealed) return;
   const engine = $("run-engine").value;
+  if (!GH.on) {
+    show("working");
+    $("working-extra").innerHTML = "";
+    $("run-links").innerHTML = "";
+    $("working-note").textContent = "";
+    return handoff(sealed, engine);
+  }
+  await launchRun(sealed, engine, {});
+}
+
+/* One runner for every live run — a fresh brief or a revision, token or not.
+   Every step it shows is a real event: the dispatch, the actual CI job steps,
+   the merge, the Pages deploy landing the artifacts this page then loads. */
+async function launchRun(sealed, engine, opts) {
   show("working");
   $("working-extra").innerHTML = "";
   $("run-links").innerHTML = "";
   $("working-note").textContent = "";
 
-  if (!GH.on) return handoff(sealed, engine);
-
-  $("working-title").textContent = engine === "devin" ? "Devin is designing" : "Designing";
-  $("working-sub").textContent = engine === "devin"
-    ? "Three Devin sessions plan three structurally different layouts in parallel; deterministic code builds and verifies each."
-    : "One brief, three layouts, each checked on its own. Nobody touches the run.";
-  renderStepList([{ label: "Dispatching the brief", rt: "repository_dispatch", state: "run" }]);
+  $("working-title").textContent = opts.reviseChanges ? "Rebuilding with your change"
+    : engine === "devin" ? "Devin is designing" : "Designing";
+  $("working-sub").textContent = opts.reviseChanges
+    ? `Applied: ${opts.reviseChanges.join(" · ")} — three layouts, rebuilt and re-verified from scratch.`
+    : engine === "devin"
+      ? "Three Devin sessions plan three structurally different layouts in parallel; deterministic code builds and verifies each."
+      : "One brief, three layouts, each checked on its own. Nobody touches the run.";
 
   const t0 = Date.now();
-  try {
-    await GH.dispatch("design-request", { brief_json: sealed, engine });
-  } catch (e) {
-    renderStepList([{ label: "Dispatching the brief", rt: e.message.slice(0, 60), state: "fail" }]);
-    $("working-note").textContent = "The dispatch failed — check the token's permissions, or run it locally: uv run recognition autopilot <brief>";
-    backRow();
-    return;
+  if (GH.on) {
+    renderStepList([{ label: "Dispatching the brief", rt: "repository_dispatch", state: "run" }]);
+    try {
+      await GH.dispatch("design-request", { brief_json: sealed, engine });
+    } catch (e) {
+      renderStepList([{ label: "Dispatching the brief", rt: e.message.slice(0, 60), state: "fail" }]);
+      $("working-note").textContent = "The dispatch failed — check the token's permissions, or run it locally: uv run recognition autopilot <brief>";
+      backRow();
+      return;
+    }
+    renderStepList([
+      { label: "Dispatching the brief", rt: "sent", state: "done" },
+      { label: "Waiting for Actions to pick it up", state: "run" },
+    ]);
+  } else {
+    // Tokenless: hand over the exact trigger, then live-follow it.
+    renderStepList([{ label: "Trigger from any terminal with gh", rt: "waiting for the run", state: "run" }]);
+    const cmd = `gh workflow run autopilot.yml --repo ${GH.repo} --ref main -f engine=${engine} -f brief_json="$(echo ${b64(JSON.stringify(sealed))} | base64 -d)"`;
+    const box = el("div", "cmd");
+    const pre = el("pre", "mono", cmd);
+    const copy = el("button", "ghost sm", "Copy");
+    copy.type = "button";
+    copy.onclick = async () => {
+      try { await navigator.clipboard.writeText(cmd); copy.textContent = "Copied ✓"; }
+      catch { copy.textContent = "Select + copy manually"; }
+      setTimeout(() => { copy.textContent = "Copy"; }, 2500);
+    };
+    box.append(pre, copy);
+    $("working-extra").append(box);
+    $("working-note").textContent = "This page holds no secret, so it cannot start the run itself — it will pick the run up and follow it live the moment the command runs.";
   }
 
-  // find the run
-  renderStepList([
-    { label: "Dispatching the brief", rt: "sent", state: "done" },
-    { label: "Waiting for Actions to pick it up", state: "run" },
-  ]);
+  const findTries = GH.on ? 20 : 60;
+  const findGap = GH.on ? 4000 : 10000;
   let run = null;
-  for (let i = 0; i < 20 && !run; i++) { await sleep(4000); run = await GH.findRun("autopilot", t0).catch(() => null); }
+  for (let i = 0; i < findTries && !run; i++) { await sleep(findGap); run = await GH.findRun("autopilot", t0).catch(() => null); }
   if (!run) {
-    renderStepList([{ label: "Dispatching the brief", rt: "sent", state: "done" },
-                    { label: "Waiting for Actions to pick it up", rt: "no run appeared in 80 s", state: "fail" }]);
-    $("working-note").textContent = "Check the repository's Actions tab.";
+    $("working-note").textContent = GH.on
+      ? "No run appeared — check the repository's Actions tab."
+      : "No run appeared within 10 minutes. Run the command above, then press Rebuild again.";
     backRow();
     return;
   }
@@ -792,7 +882,7 @@ async function designIt() {
   const before = await fetch(`data/${slug}/run.json`, { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null);
   let conclusion = null;
   while (!conclusion) {
-    await sleep(6000);
+    await sleep(GH.pollMs);
     const jobs = await GH.api(`/repos/${GH.repo}/actions/runs/${run.id}/jobs`).catch(() => null);
     const steps = jobs?.jobs?.[0]?.steps || [];
     const items = steps.filter((s) => !/^Set up|^Complete|Post /.test(s.name)).map((s) => ({
@@ -1118,6 +1208,7 @@ async function showCandidate(name) {
   const p = State.project, dir = base(p, name);
 
   const verdict = await fetch(`${dir}/verdict.json`).then((r) => r.json()).catch(() => null);
+  State.verdict = verdict;
   renderStamp(verdict);
   renderFindings(verdict);
   renderRooms(verdict);
@@ -1172,12 +1263,83 @@ const TIERS = [
   ["house", "Practice", "advisory only"],
 ];
 
+/* What to do about a failing rule, in plain words. Deterministic, keyed by
+   rule id, and always shown beside the cited finding — never instead of it. */
+const ADVICE = {
+  "CORRIDOR-WIDTH": "Barrier-free circulation needs 1.20 m clear. Give the hall more area — try “make the hall at least 20 m²” below — or widen the plot.",
+  "ROOM-DAYLIGHT": "Glazing must reach 1/8 of the room's floor area and this room's exterior walls can't carry enough glass. More exterior run for that room (a wider plot, fewer rooms on its side) or a smaller room fixes it.",
+  "DOOR-MIN-WIDTH": "Doors under DIN 18040-2 need 0.80 m clear inside, 0.90 m at the entrance.",
+  "DOOR-MIN-HEIGHT": "Doors under DIN 18040-2 need 2.05 m clear height.",
+  "ROOM-MIN-AREA": "A guidance Richtwert, not law — it warns and never blocks. More area for the named room silences it.",
+  "ROOM-MIN-WIDTH": "A guidance Richtwert for usable proportions — more area, or fewer rooms sharing that band.",
+  "DWELLING-FACILITIES": "Every dwelling needs a kitchen and a bathroom (BayBO Art. 46) — add the missing room, e.g. “add a bathroom”.",
+  "MOVEMENT-AREA": "Approximated by the room's narrowest side — more area or a squarer room clears it.",
+  "ROOM-HAS-DOOR": "A room came out unreachable — a practice check, advisory only; more area or a different strategy usually clears it.",
+  "ROOM-CLEAR-HEIGHT": "Habitable rooms need 2.40 m clear (BayBO Art. 45 (1)) — raise the ceiling in the brief.",
+};
+
+/* Before/after strip shown when a revision lands: which findings the change
+   fixed, which appeared, which remain. Compare.verdict is the run you revised
+   away from; `v` is what you are looking at now. */
+const Compare = { expect: "", fromLabel: "", verdict: null, changes: [] };
+
+function failedIds(v) {
+  return new Set((v?.findings || []).filter((f) => f.status === "failed").map((f) => f.rule_id));
+}
+
+function renderDelta(box, v) {
+  const prev = Compare.verdict;
+  const strip = el("div", "delta");
+  strip.append(el("div", "delta-h", `After your change (${Compare.changes.join(" · ")}) — vs ${Compare.fromLabel}`));
+  const line = el("div", "delta-line mono");
+  line.textContent =
+    `${prev.checked} checked · ${prev.failed} failed  →  ${v.checked} checked · ${v.failed} failed`;
+  strip.append(line);
+  const was = failedIds(prev), now = failedIds(v);
+  const fixed = [...was].filter((r) => !now.has(r));
+  const fresh = [...now].filter((r) => !was.has(r));
+  const still = [...now].filter((r) => was.has(r));
+  const row = (cls, label, ids) => {
+    if (!ids.length) return;
+    const d = el("div", `delta-row ${cls}`);
+    d.append(el("b", null, label + " "), el("span", "mono", ids.join(" · ")));
+    strip.append(d);
+  };
+  row("good", "fixed:", fixed);
+  row("bad", "new:", fresh);
+  row("meh", "still failing:", still);
+  const du = (v.metrics?.usable_ratio ?? 0) - (prev.metrics?.usable_ratio ?? 0);
+  if (Math.abs(du) > 0.001) {
+    strip.append(el("div", "delta-row", `usable floor ${du > 0 ? "+" : ""}${(du * 100).toFixed(1)} pp`));
+  }
+  box.append(strip);
+}
+
 function renderFindings(v) {
   const box = $("tab-findings");
   box.innerHTML = "";
   if (!v) { box.append(el("p", "hint", "No compliance result.")); return; }
 
+  if (Compare.verdict && State.project === Compare.expect) renderDelta(box, v);
+
   const notable = (v.findings || []).filter((f) => f.status !== "passed");
+  const failures = notable.filter((f) => f.status === "failed");
+  if (failures.length) {
+    // the agent's plain-words read of the verdict, blocking findings first
+    const adv = el("div", "advice");
+    adv.append(el("div", "advice-h", "What's wrong, in plain words"));
+    const seen = new Set();
+    [...failures].sort((a, b) => (b.blocking === true) - (a.blocking === true)).forEach((f) => {
+      if (seen.has(f.rule_id)) return;
+      seen.add(f.rule_id);
+      const p = el("p", "advice-p");
+      p.append(el("b", null, f.message + " "));
+      if (ADVICE[f.rule_id]) p.append(document.createTextNode(ADVICE[f.rule_id]));
+      adv.append(p);
+    });
+    adv.append(el("p", "hint", "Ask for the change below — the whole building is rebuilt and re-verified; nothing is patched by hand."));
+    box.append(adv);
+  }
   if (!notable.length) {
     box.append(el("p", "hint", "Every rule that could be evaluated passed."));
   }
@@ -1262,6 +1424,105 @@ function renderOptions() {
     ? "Each layout was planned by its own Devin session, running in parallel; the winner was chosen by the deterministic scorer from the compliance result — not by a person, and not by a model."
     : "The winner was chosen by the scorer from the compliance result — not by a person and not by a model. Picking another here is a new view, not an approval.";
   box.append(el("p", "chosen-note", note));
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Revise — say the change in words; the whole building is rebuilt and
+   re-verified, and the verdicts are compared side by side. Deterministic
+   parsing (what it can't map, it says so), never a silent patch.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const REV_CATS = [[/hall|corridor|flur|spine|gang/, "hall"], ...CAT_WORDS];
+
+function reviseName(project) {
+  const m = String(project).match(/^(.*?)(?:\s+rev\s+(\d+))?$/i);
+  const base = (m?.[1] || String(project)).trim();
+  const n = m?.[2] ? parseInt(m[2], 10) + 1 : 2;
+  return `${base} rev ${n}`;
+}
+
+function catIn(text) {
+  for (const [pat, cat] of REV_CATS) if (pat.test(text)) return cat;
+  return null;
+}
+
+function parseRevise(text, brief) {
+  const t = " " + text.toLowerCase() + " ";
+  const b = JSON.parse(JSON.stringify(brief));
+  b.rooms = b.rooms || [];
+  const changes = [];
+  const ensure = (cat) => {
+    let r = b.rooms.find((x) => x.category === cat);
+    if (!r) { r = { category: cat, count: 1, min_area_m2: null, label: null }; b.rooms.push(r); }
+    return r;
+  };
+
+  const plot = t.match(/(\d{1,3})\s*(?:x|×|by|mal)\s*(\d{1,3})\s*m/);
+  if (plot) { b.plot_width_m = +plot[1]; b.plot_depth_m = +plot[2]; changes.push(`plot ${plot[1]} × ${plot[2]} m`); }
+
+  const area = t.match(/([a-zäöüß'’ -]{3,32}?)\s*(?:of |to |at least |mindestens |min\.? |≥ )*(\d+(?:\.\d+)?)\s*(?:m2|m²|sqm|square met|quadratmet)/);
+  if (area) {
+    const cat = catIn(area[1]);
+    if (cat) { ensure(cat).min_area_m2 = +area[2]; changes.push(`${cat} ≥ ${area[2]} m²`); }
+  }
+
+  if (!area && /(wider|bigger|larger|more room|breiter|größer|grösser)/.test(t) && /(hall|corridor|flur)/.test(t)) {
+    const hall = ensure("hall");
+    hall.min_area_m2 = Math.max(16, (hall.min_area_m2 || 0) + 6);
+    changes.push(`hall ≥ ${hall.min_area_m2} m²`);
+  }
+
+  const add = t.match(/(?:add|plus|another|noch)\s+(?:a |an |one |1 |eine? |einen )?([a-zäöüß -]{3,24})/);
+  if (add) {
+    const cat = catIn(add[1]);
+    if (cat) {
+      const existing = b.rooms.find((x) => x.category === cat);
+      if (existing) existing.count = (existing.count || 1) + 1; else ensure(cat);
+      changes.push(`+1 ${cat}`);
+    }
+  }
+  const rm = t.match(/(?:remove|drop|without|ohne|no more)\s+(?:the |a |an )?([a-zäöüß -]{3,24})/);
+  if (rm) {
+    const cat = catIn(rm[1]);
+    const existing = cat && b.rooms.find((x) => x.category === cat);
+    if (existing) {
+      existing.count = (existing.count || 1) - 1;
+      if (existing.count <= 0) b.rooms = b.rooms.filter((x) => x !== existing);
+      changes.push(`−1 ${cat}`);
+    }
+  }
+
+  if (/wheelchair|rollstuhl/.test(t)) { b.accessibility_tier = "din18040_2_R"; changes.push("barrier-free (R)"); }
+  else if (/barrier.?free|barrierefrei|accessible|altersgerecht/.test(t)) { b.accessibility_tier = "din18040_2"; changes.push("barrier-free DIN 18040-2"); }
+
+  const ceil = t.match(/(?:ceiling|decke|storey height|raumh[öo]he)\D{0,12}(\d(?:\.\d+)?)\s*m/);
+  if (ceil) { b.storey_height_m = +ceil[1]; changes.push(`ceiling ${ceil[1]} m`); }
+
+  if (changes.length) {
+    b.project = reviseName(brief.project);
+    b.notes = ((b.notes || "") + ` | revision: ${text}`).slice(0, 2000);
+    b.assumptions = [];   // the run re-registers what it assumes
+  }
+  return { brief: b, changes };
+}
+
+async function reviseGo(text) {
+  text = text.trim();
+  if (!text || !State.project) return;
+  const brief = await fetch(`data/${State.project}/brief.json`, { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (!brief) { toast("This project has no published brief.json — revising needs the original intent."); return; }
+  const { brief: revised, changes } = parseRevise(text, brief);
+  if (!changes.length) {
+    toast("Couldn't map that to a change — name a thing and a size: “make the hall at least 20 m²”, “plot 20 × 30 m”, “add a bathroom”.");
+    return;
+  }
+  Compare.expect = slugify(revised.project);
+  Compare.fromLabel = `${State.run?.project || State.project} · ${State.candidate}`;
+  Compare.verdict = State.verdict;
+  Compare.changes = changes;
+  $("revise-input").value = "";
+  await launchRun(revised, "local", { reviseChanges: changes });
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1393,6 +1654,7 @@ async function boot() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitUtterance($("chat-input").value); }
   });
   $("go").addEventListener("click", designIt);
+  $("revise").addEventListener("submit", (e) => { e.preventDefault(); reviseGo($("revise-input").value); });
   $("show-spaces").addEventListener("change", applySpaceVisibility);
   $("restart").addEventListener("click", () => {
     show("brief");
@@ -1424,3 +1686,8 @@ async function boot() {
 }
 
 boot().catch((e) => toast("Could not start the Studio: " + e.message));
+
+// dev hook, localhost only — lets the visual-test skill assert on internals
+if (["localhost", "127.0.0.1"].includes(location.hostname)) {
+  window.__studio = { parseRevise, parseUtterance, Brief, GH, Compare };
+}
