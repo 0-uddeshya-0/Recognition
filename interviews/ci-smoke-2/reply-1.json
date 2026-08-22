@@ -1,0 +1,130 @@
+{
+  "message": "Got it: a barrier-free single-storey practice for six on a 14 × 18 m plot, with an open studio, meeting room, washroom and kitchenette. A couple of quick things — what ceiling height should we plan for, is one storey right, and do you need any storage or technical space? Anything else worth knowing?",
+  "brief": {
+    "notes": "Client asked for barrier-free access throughout.",
+    "rooms": [
+      {
+        "count": 1,
+        "label": "open studio",
+        "category": "office",
+        "min_area_m2": 60
+      },
+      {
+        "count": 1,
+        "label": "meeting room",
+        "category": "meeting",
+        "min_area_m2": 18
+      },
+      {
+        "count": 1,
+        "label": "washroom",
+        "category": "bathroom",
+        "min_area_m2": 6
+      },
+      {
+        "count": 1,
+        "label": "kitchenette",
+        "category": "kitchen",
+        "min_area_m2": 8
+      }
+    ],
+    "project": "Small architecture practice for a team of six",
+    "occupants": 6,
+    "plot_depth_m": 18,
+    "plot_width_m": 14,
+    "storey_count": 1,
+    "building_class": "architecture_practice",
+    "dwelling_count": 1,
+    "storey_height_m": null,
+    "accessibility_tier": "din18040_2"
+  },
+  "questions": [
+    {
+      "id": "storey_height_m",
+      "kind": "number",
+      "unit": "m",
+      "blocking": true,
+      "question": "What floor-to-floor height would you like for the studio?"
+    },
+    {
+      "id": "storey_count",
+      "kind": "single",
+      "options": [
+        "Yes, one storey",
+        "No, more than one"
+      ],
+      "blocking": true,
+      "question": "Is a single-storey building right for you?"
+    },
+    {
+      "id": "extra_rooms",
+      "kind": "multi",
+      "options": [
+        "utility (storage/technical)",
+        "hall (reception/entrance)",
+        "lab (workshop/model-making)",
+        "other",
+        "none"
+      ],
+      "blocking": false,
+      "question": "Any additional spaces we should include?"
+    },
+    {
+      "id": "anything_else",
+      "kind": "free",
+      "blocking": false,
+      "question": "Anything else we should know about how you work?"
+    }
+  ],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "non-residential — treated as one unit; v1's cited ruleset is Bayern residential",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "v1 of the autopilot builds single-storey only; confirming with the client",
+      "value": 1,
+      "confidence": "medium"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "client asked for barrier-free",
+      "value": "din18040_2",
+      "confidence": "high"
+    },
+    {
+      "slot": "rooms[office].min_area_m2",
+      "basis": "open studio sized at roughly 10 m² per person for six people",
+      "value": 60,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[meeting].min_area_m2",
+      "basis": "meeting room seating six to eight around a table",
+      "value": 18,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[bathroom].min_area_m2",
+      "basis": "single barrier-free washroom needs turning space",
+      "value": 6,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[kitchen].min_area_m2",
+      "basis": "kitchenette with a small standing/eating area",
+      "value": 8,
+      "confidence": "medium"
+    }
+  ],
+  "done": false,
+  "sealed_brief": null,
+  "contract_error": "",
+  "session_id": "devin-444324da8ccc4242afe063c4dd4e7687",
+  "session_url": "https://app.devin.ai/sessions/444324da8ccc4242afe063c4dd4e7687",
+  "round": 1,
+  "engine": "devin"
+}
