@@ -1,0 +1,52 @@
+# Recognition ruleset — residential baseline (DEMO VALUES)
+#
+# These thresholds are illustrative, loosely based on common European
+# residential requirements. They are NOT a substitute for the applicable
+# jurisdiction's code. Devin: edit values here, never hard-code them in Python.
+name: Residential baseline (demo)
+version: 0.1
+
+rules:
+  - id: ROOM-MIN-AREA
+    title: Minimum floor area for habitable rooms
+    severity: error
+    params:
+      bedroom: 9.0
+      living: 12.0
+      kitchen: 5.0
+      bathroom: 2.5
+      office: 7.0
+
+  - id: ROOM-MIN-WIDTH
+    title: Minimum clear width of habitable rooms
+    severity: warning
+    params:
+      bedroom: 2.4
+      living: 3.0
+      kitchen: 1.8
+
+  - id: DOOR-MIN-WIDTH
+    title: Minimum door leaf width
+    severity: error
+    params:
+      interior: 0.80
+      external: 0.90
+
+  - id: DOOR-MIN-HEIGHT
+    title: Minimum door leaf height
+    severity: error
+    params:
+      min: 2.0
+
+  - id: ROOM-DAYLIGHT
+    title: Glazing area as a share of floor area in habitable rooms
+    severity: warning
+    params:
+      min_ratio: 0.10
+      applies_to: [bedroom, living, kitchen, office]
+
+  - id: ROOM-HAS-DOOR
+    title: Every room must be reachable through a door
+    severity: error
+    params:
+      exempt: [roof, stair, hall]
