@@ -1,0 +1,92 @@
+{
+  "project": "Dreifamilienhaus rev 2",
+  "engine": "local",
+  "winner": "compact",
+  "critic": "",
+  "candidates": [
+    {
+      "name": "compact",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 42,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 115.0,
+        "room_area_m2": 97.15,
+        "usable_ratio": 0.6837,
+        "circulation_m2": 18.53,
+        "openings": 10,
+        "rooms": 6
+      },
+      "label": "Compact core",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    },
+    {
+      "name": "linear",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 42,
+      "failed": 1,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 112.0,
+        "room_area_m2": 94.37,
+        "usable_ratio": 0.6751,
+        "circulation_m2": 18.76,
+        "openings": 10,
+        "rooms": 6
+      },
+      "label": "Linear frontage",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    },
+    {
+      "name": "open",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 42,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 130.0,
+        "room_area_m2": 111.32,
+        "usable_ratio": 0.6723,
+        "circulation_m2": 23.92,
+        "openings": 10,
+        "rooms": 6
+      },
+      "label": "Open plan",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    }
+  ]
+}

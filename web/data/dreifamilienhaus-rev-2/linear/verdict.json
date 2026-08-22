@@ -1,0 +1,54 @@
+{
+  "candidate": "linear",
+  "ok": true,
+  "checked": 42,
+  "passed": 41,
+  "failed": 1,
+  "not_evaluated": 2,
+  "blocking_failures": 0,
+  "advisory_failures": 1,
+  "findings": [
+    {
+      "rule_id": "ROOM-MIN-WIDTH",
+      "tier": "guidance",
+      "severity": "warning",
+      "status": "failed",
+      "element": "R-01 Wohnen",
+      "message": "Wohnen: clear width 2.85 m < 3.0 m for living",
+      "citation": "Richtwerte fuer Raumgroessen",
+      "url": "https://www.fertighaus.de/ratgeber/hausbau/grundriss-planen-richtwerte-fuer-raumgroessen/",
+      "blocking": false
+    },
+    {
+      "rule_id": "SMOKE-DETECTOR",
+      "tier": "law",
+      "severity": "error",
+      "status": "not_evaluated",
+      "element": "-",
+      "message": "The model carries no smoke-detector data. Reported as NOT EVALUATED rather than passed. Resolve by enriching the model or by collecting a declaration in the brief.",
+      "citation": "BayBO Art. 46 (4)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-46",
+      "blocking": false
+    },
+    {
+      "rule_id": "THRESHOLD",
+      "tier": "standard",
+      "severity": "error",
+      "status": "not_evaluated",
+      "element": "-",
+      "message": "Threshold heights are not represented in the model. Reported as NOT EVALUATED.",
+      "citation": "DIN 18040-2",
+      "url": "https://nullbarriere.de/din18040-2-tueren.htm",
+      "blocking": false
+    }
+  ],
+  "metrics": {
+    "envelope_m2": 112.0,
+    "room_area_m2": 94.37,
+    "usable_ratio": 0.6751,
+    "circulation_m2": 18.76,
+    "openings": 10,
+    "rooms": 6
+  },
+  "error": ""
+}

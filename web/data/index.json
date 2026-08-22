@@ -23,6 +23,17 @@
       "failed": 0
     },
     {
+      "key": "dreifamilienhaus-rev-2",
+      "project": "Dreifamilienhaus rev 2",
+      "winner": "compact",
+      "engine": "local",
+      "candidates": 3,
+      "ok": true,
+      "checked": 42,
+      "not_evaluated": 2,
+      "failed": 0
+    },
+    {
       "key": "familienhaus",
       "project": "Familienhaus",
       "winner": "linear",

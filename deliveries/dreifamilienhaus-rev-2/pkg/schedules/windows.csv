@@ -1,0 +1,5 @@
+tag,storey,name,type,width_m,height_m,glazing_m2,room
+W-01,Erdgeschoss,F-01,,2.7,1.4,3.78,R-02
+W-02,Erdgeschoss,F-02,,1.25,1.4,1.75,R-01
+W-03,Erdgeschoss,F-03,,1.55,1.4,2.17,R-04
+W-04,Erdgeschoss,F-04,,1.55,1.4,2.17,R-05
