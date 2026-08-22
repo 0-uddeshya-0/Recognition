@@ -86,8 +86,15 @@ def strategy_by_name(name: str) -> Strategy:
 
 DEFAULT_AREAS = {          # Richtwerte, guidance tier -- never presented as law
     "living": 26.0, "kitchen": 12.0, "bedroom": 14.0, "bathroom": 8.0,
-    "office": 12.0, "hall": 10.0, "utility": 6.0, "other": 10.0,
+    "office": 12.0, "meeting": 18.0, "lab": 24.0,
+    "hall": 10.0, "utility": 6.0, "other": 10.0,
 }
+
+# Recognition designs buildings, not only homes. Anything outside these
+# classes is treated as a workplace: rooms scale with the people working in
+# them, and the interview asks for headcount instead of dwellings.
+RESIDENTIAL_CLASSES = ("detached_house", "semi_detached", "apartment_block")
+WORKSPACE_M2_PER_PERSON = 5.0     # Richtwert for open workspace, guidance only
 
 
 def plan_from_brief(brief: DesignBrief, strat: Strategy) -> ArchitectPlan:
@@ -97,12 +104,17 @@ def plan_from_brief(brief: DesignBrief, strat: Strategy) -> ArchitectPlan:
     them and from published Richtwerte otherwise -- and because those are
     guidance, not law, the compliance gate will never block on them.
     """
+    workspace = brief.building_class not in RESIDENTIAL_CLASSES
     rooms: list[RoomSpec] = []
     n = 0
     for req in brief.rooms:
         for i in range(req.count):
             n += 1
             base = req.min_area_m2 or DEFAULT_AREAS.get(req.category, 12.0)
+            if workspace and req.category == "office" and not req.min_area_m2:
+                # "a studio big enough for a desk each" -- size the shared
+                # workspace from headcount, never from a house Richtwert.
+                base = max(base, brief.occupants * WORKSPACE_M2_PER_PERSON / max(req.count, 1))
             label = req.label or _german(req.category)
             if req.count > 1:
                 label = f"{label} {i + 1}"
@@ -150,7 +162,8 @@ def _adjacencies(rooms: list[RoomSpec], hall_id: str | None) -> list[Adjacency]:
 
 def _german(category: str) -> str:
     return {"living": "Wohnen", "kitchen": "Küche", "bedroom": "Schlafzimmer",
-            "bathroom": "Bad", "office": "Büro", "hall": "Flur",
+            "bathroom": "Bad", "office": "Büro", "meeting": "Besprechung",
+            "lab": "Werkstatt", "hall": "Flur",
             "utility": "HWR", "other": "Raum"}.get(category, category.title())
 
 
@@ -385,8 +398,11 @@ THE SHAPE YOU MUST RETURN — ArchitectPlan
 HARD CONSTRAINTS — a plan breaking any of these is rejected automatically
 1. NO COORDINATES. Give areas and adjacencies only. Wall positions are computed
    downstream by deterministic code; anything you invent there is discarded.
-2. category must be one of: bedroom, living, kitchen, bathroom, office, hall,
-   utility, other.
+2. category must be one of: bedroom, living, kitchen, bathroom, office,
+   meeting, lab, hall, utility, other. Map the client's vocabulary yourself
+   (conference room → meeting, studio/open workspace → office, washroom →
+   bathroom, workshop → lab, reception → hall) and keep their words as the
+   label. Not every building is a home.
 3. Every room must be reachable: the adjacency graph must be connected. A
    bathroom is never reached through a bedroom.
 4. Sum of target_area_m2 must fit the envelope with ~22% left for walls and
@@ -563,11 +579,20 @@ _VIA_SYNONYMS = {"opening": "open", "open_plan": "open", "openplan": "open",
                  "direct": "open", "doorway": "door", "passage": "open"}
 _CATEGORY_SYNONYMS = {
     "bath": "bathroom", "wc": "bathroom", "toilet": "bathroom", "shower": "bathroom",
+    "washroom": "bathroom", "restroom": "bathroom", "sanitary": "bathroom",
     "bed": "bedroom", "bedrooms": "bedroom", "sleeping": "bedroom",
     "livingroom": "living", "living_room": "living", "lounge": "living", "dining": "living",
     "corridor": "hall", "hallway": "hall", "flur": "hall", "circulation": "hall",
-    "study": "office", "workroom": "office",
+    "reception": "hall", "lobby": "hall", "foyer": "hall", "empfang": "hall",
+    "study": "office", "workroom": "office", "studio": "office",
+    "workspace": "office", "coworking": "office", "open_office": "office",
+    "conference": "meeting", "conference_room": "meeting", "boardroom": "meeting",
+    "meeting_room": "meeting", "besprechung": "meeting", "besprechungsraum": "meeting",
+    "workshop": "lab", "werkstatt": "lab", "maker_space": "lab",
     "storage": "utility", "technical": "utility", "laundry": "utility", "hwr": "utility",
+    "server_room": "utility", "abstellraum": "utility",
+    "cafeteria": "kitchen", "canteen": "kitchen", "kitchenette": "kitchen",
+    "break_room": "kitchen", "teekueche": "kitchen",
 }
 
 

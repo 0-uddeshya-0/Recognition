@@ -253,3 +253,88 @@ def test_candidates_are_structurally_different(tmp_path):
     built = [c for c in res.candidates if c.out_dir and (c.out_dir / "design.py").exists()]
     sources = {(c.out_dir / "design.py").read_text() for c in built}
     assert len(sources) == len(built), "candidates must differ structurally"
+
+
+# --- openings: a door punched through a window is never acceptable ---------
+
+import re as _re
+
+
+def _openings_by_wall(src: str) -> dict[str, list[tuple[float, float, str]]]:
+    out: dict[str, list[tuple[float, float, str]]] = {}
+    pat = _re.compile(r"eg\.(door|window)\('([^']+)', on='([^']+)', at=([\d.]+), width=([\d.]+)")
+    for kind, tag, wall, at, width in pat.findall(src):
+        a, w = float(at), float(width)
+        out.setdefault(wall, []).append((a - w / 2, a + w / 2, f"{kind} {tag}"))
+    return out
+
+
+def _assert_no_overlaps(src: str) -> None:
+    for wall, spans in _openings_by_wall(src).items():
+        spans.sort()
+        for (lo1, hi1, id1), (lo2, hi2, id2) in zip(spans, spans[1:]):
+            assert hi1 <= lo2 + 1e-6, (
+                f"{id1} [{lo1:.2f},{hi1:.2f}] overlaps {id2} [{lo2:.2f},{hi2:.2f}] on {wall}"
+            )
+
+
+def test_openings_never_overlap_across_all_strategies():
+    from recognition.autopilot import STRATEGIES, plan_from_brief
+    from recognition.contracts import DesignBrief, RoomRequest
+    brief = DesignBrief(project="Overlap", rooms=[
+        RoomRequest("living"), RoomRequest("kitchen"),
+        RoomRequest("bedroom", 3), RoomRequest("bathroom"), RoomRequest("office")])
+    for strat in STRATEGIES:
+        src = translate(plan_from_brief(brief, strat))
+        _assert_no_overlaps(src)
+
+
+def test_south_window_routes_around_the_entrance_door():
+    """The classic collision: a room filling the whole south band centres its
+    glazing on the same wall midpoint where the entrance door always goes.
+    The spine layout below forces exactly that — the living room's longest
+    exterior run is the shared south wall."""
+    p = _plan(
+        rooms=[RoomSpec("R-01", "living", "Wohnen", 30.0),
+               RoomSpec("R-02", "bedroom", "Schlafzimmer", 15.0),
+               RoomSpec("R-03", "kitchen", "Küche", 12.0),
+               RoomSpec("R-04", "hall", "Flur", 8.0)],
+        adjacency=[Adjacency("R-04", "R-01"), Adjacency("R-04", "R-02"),
+                   Adjacency("R-04", "R-03")],
+        circulation_id="R-04",
+        envelope=Envelope(12.0, 8.0),
+    )
+    src = translate(p)
+    _assert_no_overlaps(src)
+    south = _openings_by_wall(src).get("EXT-S", [])
+    kinds = {s[2].split()[0] for s in south}
+    assert "door" in kinds, "the entrance always exists"
+    assert "window" in kinds, "the south room keeps glazing on its longest run, shifted clear"
+
+
+# --- not every building is a home ------------------------------------------
+
+def test_workspace_brief_sizes_the_studio_from_headcount():
+    from recognition.autopilot import plan_from_brief, strategy_by_name
+    from recognition.contracts import DesignBrief, RoomRequest
+    brief = DesignBrief(
+        project="Coworking", building_class="coworking_space", occupants=10,
+        rooms=[RoomRequest("office", label="Studio"), RoomRequest("meeting"),
+               RoomRequest("bathroom"), RoomRequest("kitchen")])
+    plan = plan_from_brief(brief, strategy_by_name("compact"))
+    studio = next(r for r in plan.rooms if r.category == "office")
+    assert studio.target_area_m2 >= 50.0, "10 people need ~5 m² per desk, not a house Richtwert"
+    assert any(r.category == "meeting" for r in plan.rooms)
+
+
+def test_commercial_vocabulary_normalises_to_the_contract():
+    from recognition.autopilot import normalise_agent_plan
+    payload, notes = normalise_agent_plan({"rooms": [
+        {"id": "R-01", "category": "conference room"},
+        {"id": "R-02", "category": "washroom"},
+        {"id": "R-03", "category": "Studio"},
+        {"id": "R-04", "category": "reception"},
+    ]})
+    cats = [r["category"] for r in payload["rooms"]]
+    assert cats == ["meeting", "bathroom", "office", "hall"]
+    assert notes, "normalisation is logged, never silent"

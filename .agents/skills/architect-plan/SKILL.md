@@ -27,7 +27,10 @@ you as a repair instruction — fix exactly what it names, nothing else.
 ## Hard constraints (violations are rejected automatically)
 
 1. **No coordinates, ever.** No x/y, no wall positions, no room rectangles.
-2. `category` ∈ bedroom · living · kitchen · bathroom · office · hall · utility · other.
+2. `category` ∈ bedroom · living · kitchen · bathroom · office · meeting ·
+   lab · hall · utility · other — map the client's words (conference →
+   meeting, studio/open workspace → office, washroom → bathroom, workshop →
+   lab) and keep their words as the label.
 3. The adjacency graph must be **connected**; every room reachable.
 4. Σ `target_area_m2` ≤ envelope area with **~22% left over** for walls and circulation.
 5. Every habitable room (bedroom, living, kitchen, office) needs `exterior_wall: true` —
@@ -44,7 +47,14 @@ you as a repair instruction — fix exactly what it names, nothing else.
 | Kinderzimmer | 10–12 m² | 14 m² | 9 m² |
 | Bad | 6–9 m² | 10 m² | 4 m² |
 | Büro | 9–12 m² | 14 m² | 8 m² |
+| Open workspace / studio | 5–7 m² **per person** | 8 m²/person | headcount × 4 m² |
+| Besprechung (meeting) | 15–20 m² (8 seats) | 24 m² | 10 m² |
+| Werkstatt (lab) | 20–28 m² | 36 m² | 15 m² |
 | Flur (hall) | 8–12 % of programme | — | 1.35 m wide equivalent |
+
+For a workplace brief, size shared workspaces from **headcount**, put the
+meeting room off the hall (not through the workspace), and keep the kitchen
+and washroom reachable without crossing the studio.
 
 ## Adjacency conventions (Bayern residential practice)
 

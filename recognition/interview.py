@@ -53,9 +53,14 @@ INTERVIEW_SCHEMA: dict = {
         "brief": {
             "type": "object",
             "description": "Every DesignBrief field you can already fill from the "
-                           "conversation: project, building_class, dwelling_count, "
-                           "plot_width_m, plot_depth_m, rooms[{category,count,"
-                           "min_area_m2,label}], accessibility_tier, notes.",
+                           "conversation: project, building_class (free-form; not "
+                           "every building is a home — offices, studios, practices "
+                           "are welcome), dwelling_count (1 for any non-residential "
+                           "building, registered as an assumption), occupants (the "
+                           "people living or working there — it sizes workspaces), "
+                           "plot_width_m, plot_depth_m, storey_height_m, "
+                           "rooms[{category,count,min_area_m2,label}], "
+                           "accessibility_tier, notes.",
         },
         "questions": {
             "type": "array",
@@ -238,6 +243,18 @@ def shape_reply(payload: dict, *, session_id: str = "", session_url: str = "",
     if reply.done and brief:
         try:
             candidate = DesignBrief.from_dict({**brief, "project": brief.get("project") or "Neubau"})
+            # The interviewer's registered assumptions belong on the sealed
+            # brief itself -- the register travels with the intent, or it is
+            # not an honesty surface.
+            from .contracts import Assumption
+            have = {a.slot for a in candidate.assumptions}
+            for a in assumptions:
+                if a.get("slot") and a["slot"] not in have:
+                    candidate.assumptions.append(Assumption(
+                        slot=str(a["slot"]), value=a.get("value"),
+                        basis=str(a.get("basis", "")),
+                        confidence=str(a.get("confidence", "medium")),
+                    ))
             candidate.resolve_accessibility()
             reply.sealed_brief = candidate.validate().to_dict()
         except (ContractError, TypeError) as e:

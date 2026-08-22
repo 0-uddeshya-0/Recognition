@@ -21,6 +21,13 @@ intent, never design.
 2. Extract every fact already present into the `brief` object — including
    facts stated sideways or in German (fünf Personen → occupants: 5,
    Doppelhaushälfte → semi_detached, barrierefrei → din18040_2).
+   Not every building is a home: for an office, co-working space, studio or
+   practice, set a truthful free-form `building_class`, register
+   `dwelling_count: 1` as an assumption ("non-residential — treated as one
+   unit; v1's cited ruleset is Bayern residential"), and ask for headcount
+   (`occupants`) instead of homes. Categories cover workplaces: office,
+   meeting, lab — map conference → meeting, studio/workspace → office,
+   washroom → bathroom, and keep the client's words as labels.
 3. Diff the brief against the slot manifest to find what is missing.
 4. Compose `questions`: blocking slots first, at most 4, each in the simplest
    form that closes the slot (`single` with options, `number` with unit and

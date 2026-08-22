@@ -96,12 +96,18 @@ const GH = {
 
 const ROOM_LABELS = {
   bedroom: "Bedroom", living: "Living room", kitchen: "Kitchen",
-  bathroom: "Bathroom", office: "Study", utility: "Utility", hall: "Hall", other: "Room",
+  bathroom: "Bathroom", office: "Workspace", meeting: "Meeting room",
+  lab: "Workshop", utility: "Utility", hall: "Hall", other: "Room",
 };
 const CLASS_LABELS = {
   detached_house: "A detached house", semi_detached: "A semi-detached house",
-  apartment_block: "An apartment building",
+  apartment_block: "An apartment building", workplace: "A workplace",
+  coworking_space: "A co-working space", office_building: "An office building",
+  practice: "A practice", studio_building: "A studio",
 };
+const RESIDENTIAL = ["detached_house", "semi_detached", "apartment_block"];
+const isWorkspace = () => !RESIDENTIAL.includes(Brief.f.building_class);
+const classLabel = (c) => CLASS_LABELS[c] || ("A " + String(c).replaceAll("_", " "));
 
 const Brief = {
   f: {},          // fields
@@ -154,6 +160,14 @@ const Brief = {
     ]) {
       if (!this.src[slot]) assumptions.push({ slot, value, basis, confidence: "high", confirmed: false });
     }
+    if (this.src.dwelling_count === "assumed") {
+      assumptions.push({ slot: "dwelling_count", value: 1, basis: "non-residential building treated as one unit — v1's cited ruleset is Bayern residential", confidence: "high", confirmed: false });
+    }
+    const work = isWorkspace();
+    const occupants = this.f.occupants || (work ? 8 : 4);
+    if (this.f.occupants == null) {
+      assumptions.push({ slot: "occupants", value: occupants, basis: work ? "typical small team; correct it to size the workspace" : "typical family household", confidence: "low", confirmed: false });
+    }
     if (!this.src.plot_width_m) {
       assumptions.push({ slot: "plot", value: `${this.f.plot_width_m} × ${this.f.plot_depth_m} m`, basis: "default plot; correct it if yours differs", confidence: "low", confirmed: false });
     }
@@ -161,7 +175,7 @@ const Brief = {
       project: this.f.project, bundesland: "BY", building_class: this.f.building_class,
       plot_width_m: this.f.plot_width_m, plot_depth_m: this.f.plot_depth_m,
       dwelling_count: this.f.dwelling_count, storey_count: 1,
-      storey_height_m: this.f.storey_height_m, occupants: this.f.occupants || 4,
+      storey_height_m: this.f.storey_height_m, occupants,
       rooms: Object.entries(rooms).map(([category, count]) => ({ category, count, min_area_m2: null, label: null })),
       accessibility_tier: this.f.accessibility_tier, assumptions,
       notes: this.f.notes.trim(), schema: "designbrief/v1",
@@ -180,12 +194,13 @@ function renderSheet() {
   const dl = $("sheet-fields");
   dl.innerHTML = "";
   const f = Brief.f;
-  const roomsTxt = Object.entries(f.rooms).map(([c, n]) => `${n}× ${ROOM_LABELS[c] || c}`).join(" · ");
+  const work = isWorkspace();
   const rows = [
     ["project", f.project, Brief.src.project],
-    ["building", CLASS_LABELS[f.building_class], Brief.src.building_class],
-    ["homes", f.dwelling_count == null ? "" : String(f.dwelling_count), Brief.src.dwelling_count],
-    ["rooms", roomsTxt, Brief.src.rooms],
+    ["building", classLabel(f.building_class), Brief.src.building_class],
+    [work ? "units" : "homes", f.dwelling_count == null ? "" : String(f.dwelling_count), Brief.src.dwelling_count],
+    ["people", f.occupants == null ? "" : String(f.occupants), Brief.src.occupants],
+    ["rooms", Object.keys(f.rooms).length ? "rooms" : "", Brief.src.rooms],
     ["plot", `${f.plot_width_m} × ${f.plot_depth_m} m`, Brief.src.plot_width_m],
     ["ceiling", `${f.storey_height_m.toFixed(2)} m`, Brief.src.storey_height_m],
     ["barrier-free", f.accessibility_tier === "none" ? "not requested" : "DIN 18040-2" + (f.accessibility_tier.endsWith("_R") ? " (R)" : ""), Brief.src.accessibility_tier],
@@ -194,7 +209,19 @@ function renderSheet() {
   for (const [k, v, by] of rows) {
     const row = el("div");
     row.append(el("dt", null, k));
-    const dd = el("dd", v ? "" : "empty", v || "—");
+    const dd = el("dd", v ? "" : "empty");
+    if (k === "rooms" && v) {
+      // rooms read better as counted chips than as a run of text
+      const wrap = el("span", "dd-rooms");
+      Object.entries(f.rooms).forEach(([c, n]) => {
+        const chip = el("span", "rchip");
+        chip.append(el("b", null, `${n}×`), el("span", null, " " + (ROOM_LABELS[c] || c)));
+        wrap.append(chip);
+      });
+      dd.append(wrap);
+    } else {
+      dd.append(v || "—");
+    }
     const tag = srcTag(v ? by : null);
     if (tag) dd.append(tag);
     row.append(dd);
@@ -204,7 +231,7 @@ function renderSheet() {
   const go = $("go");
   go.disabled = Brief.blockingOpen;
   $("go-hint").textContent = Brief.blockingOpen
-    ? "Still needed: " + [Brief.f.dwelling_count == null && "how many homes", !Object.keys(Brief.f.rooms).length && "which rooms"].filter(Boolean).join(" · ")
+    ? "Still needed: " + [Brief.f.dwelling_count == null && (work ? "confirm the building" : "how many homes"), !Object.keys(Brief.f.rooms).length && "which rooms"].filter(Boolean).join(" · ")
     : "Nobody touches the run once it starts.";
 }
 
@@ -212,7 +239,11 @@ function renderAssumptions() {
   const box = $("assumed-chips");
   box.innerHTML = "";
   const f = Brief.f;
+  const work = isWorkspace();
   const chips = [];
+  if (work) chips.push(["ruleset", "Bayern residential v1", "the report says exactly what it could and couldn't check"]);
+  if (Brief.src.dwelling_count === "assumed") chips.push(["treated as", "1 unit", "non-residential building"]);
+  if (work && f.occupants == null) chips.push(["people", "8", "typical small team — sizes the workspace"]);
   if (!Brief.src.storey_height_m) chips.push(["ceiling", "2.50 m", "BayBO Art. 45 (1) min 2.40 m + build-up"]);
   chips.push(["storeys", "1", "v1 designs a single storey"]);
   chips.push(["glazing", "1/8 of floor area", "BayBO Art. 45 (2)"]);
@@ -239,12 +270,25 @@ const NUM_WORDS = {
 };
 const CAT_WORDS = [
   [/bed\s?rooms?|schlafzimmer|kinderzimmer|kids?['’]?\s?rooms?|children'?s rooms?|guest\s?rooms?|g[äa]stezimmer/, "bedroom"],
-  [/bath\s?rooms?|bäder|b[äa]dezimmer|\bbad\b|\bwc\b|toilets?|shower rooms?|duschbad/, "bathroom"],
-  [/kitchens?|küchen?|kueche/, "kitchen"],
+  [/bath\s?rooms?|wash\s?rooms?|rest\s?rooms?|bäder|b[äa]dezimmer|\bbad\b|\bwc\b|toilets?|shower rooms?|duschbad/, "bathroom"],
+  [/kitchens?|kitchenettes?|küchen?|kueche|teek[üu]che|break rooms?|canteen|cafeteria/, "kitchen"],
   [/living\s?rooms?|lounge|wohnzimmer|wohnbereich/, "living"],
-  [/stud(?:y|ies)|offices?|home\s?office|büros?|buero|arbeitszimmer/, "office"],
-  [/utilit(?:y|ies)|laundry|hwr|hauswirtschaftsraum|storage room|abstellraum/, "utility"],
+  [/conference rooms?|meeting rooms?|boardrooms?|besprechungsr[äa]ume?|konferenzr[äa]ume?/, "meeting"],
+  [/workshops?|werkst[äa]tt(?:en)?|maker\s?space|labs?\b|labor/, "lab"],
+  [/stud(?:y|ies)|studios?|offices?|open.?space|workspaces?|home\s?office|büros?|buero|arbeitszimmer/, "office"],
+  [/receptions?|lobb(?:y|ies)|foyer|empfang/, "hall"],
+  [/utilit(?:y|ies)|laundry|hwr|hauswirtschaftsraum|storage rooms?|abstellraum|server rooms?/, "utility"],
 ];
+/* Building-type signals. Recognition designs buildings, not only homes — a
+   co-working brief must never be asked how many homes it holds. */
+const WORK_CLASSES = [
+  [/co.?working/, "coworking_space"],
+  [/office building|offices for|our office\b|büro(?:geb[äa]ude|fl[äa]che)/, "office_building"],
+  [/practice|praxis|kanzlei|clinic|klinik/, "practice"],
+  [/agency|agentur|studio for|design studio|startup|firma|company space/, "studio_building"],
+  [/workshop building|werkstattgeb[äa]ude|atelier/, "studio_building"],
+];
+const HOME_PAT = /house|home\b|haus\b|familie|family|apartment|wohnung|flat\b|dwelling/;
 
 function wordNum(s) {
   const n = parseInt(s, 10);
@@ -281,11 +325,14 @@ function parseUtterance(text) {
   else if (/einfamilien|single.?family|just (us|our family)|nur wir/.test(t)) patch.dwelling_count = 1;
   if (patch.dwelling_count) got.push(["homes", String(patch.dwelling_count)]);
 
-  // building class
-  if (/apartment (building|block)|mehrfamilienhaus|wohnblock/.test(t)) patch.building_class = "apartment_block";
+  // building class — a workplace signal wins over the residential default
+  let workClass = null;
+  for (const [pat, cls] of WORK_CLASSES) { if (pat.test(t)) { workClass = cls; break; } }
+  if (workClass) patch.building_class = workClass;
+  else if (/apartment (building|block)|mehrfamilienhaus|wohnblock/.test(t)) patch.building_class = "apartment_block";
   else if (/semi.?detached|doppelhaush[äa]lfte/.test(t)) patch.building_class = "semi_detached";
   else if (/detached|einfamilienhaus|freistehend/.test(t)) patch.building_class = "detached_house";
-  if (patch.building_class) got.push(["building", CLASS_LABELS[patch.building_class].toLowerCase()]);
+  if (patch.building_class) got.push(["building", classLabel(patch.building_class).toLowerCase()]);
 
   // plot: "18 x 24", "18 by 24 m", "18×24m"
   const plot = t.match(/(\d{1,3})\s*(?:x|×|by|mal)\s*(\d{1,3})\s*(?:m\b|met)/);
@@ -294,12 +341,12 @@ function parseUtterance(text) {
     got.push(["plot", `${plot[1]} × ${plot[2]} m`]);
   }
 
-  // occupants: "family of four", "zu fünft", "5 people"
-  const occ = t.match(new RegExp(`family of ${numPat}|${numPat}\\s+(?:people|persons?|personen)|zu\\s+(dritt|viert|fünft|sechst)`));
+  // occupants: "family of four", "zu fünft", "5 people", "team of 12", "desks for 9"
+  const occ = t.match(new RegExp(`(?:family|team) of ${numPat}|${numPat}\\s+(?:people|persons?|personen|employees?|mitarbeiter|desks?|seats?|arbeitspl[äa]tze)|zu\\s+(dritt|viert|fünft|sechst)`));
   if (occ) {
     const zu = { dritt: 3, viert: 4, "fünft": 5, sechst: 6 };
     patch.occupants = occ[3] ? zu[occ[3]] : wordNum(occ[1] || occ[2]);
-    if (patch.occupants) got.push(["household", `${patch.occupants} people`]);
+    if (patch.occupants) got.push(["people", `${patch.occupants}`]);
   }
 
   // accessibility
@@ -330,7 +377,8 @@ function parseUtterance(text) {
 const Chat = {
   transcript: [],                 // {role: client|interviewer, text}
   id: null, round: 0, session: "", waiting: false,
-  askedDwelling: false, askedRooms: false, askedPlot: false, askedFinal: false,
+  askedDwelling: false, askedPeople: false, askedRooms: false,
+  askedPlot: false, askedFinal: false,
 };
 
 function addMsg(who, text, { meta, got, wait } = {}) {
@@ -372,24 +420,43 @@ function agentSay(text, { chips = [], devin = false, sessionUrl = "" } = {}) {
 function setChips(chips) {
   const row = $("chat-chips");
   row.innerHTML = "";
-  chips.forEach(({ label, send }) => {
+  chips.forEach(({ label, send, action }) => {
     const b = el("button", "qchip", label);
     b.type = "button";
-    b.onclick = () => { if (!Chat.waiting) submitUtterance(send ?? label); };
+    b.onclick = () => {
+      if (Chat.waiting) return;
+      if (action) action(); else submitUtterance(send ?? label);
+    };
     row.append(b);
   });
 }
 
-/* What the instant agent says next — ordered by what the rules still need. */
+/* What the instant agent says next — ordered by what the rules still need.
+   A workplace is never asked how many homes it holds; it is asked how many
+   people work there, because headcount is what sizes a studio. */
 function instantNext(parsed) {
   const f = Brief.f;
+  const work = isWorkspace();
   if (parsed?.storeysAsked > 1) {
     agentSay(
       `Noted — you'd like ${parsed.storeysAsked} storeys. v1 of this pipeline designs a single storey, so I'll plan the ground floor and keep the wish in the notes.`,
     );
     Brief.set("notes", (f.notes + ` Client asked for ${parsed.storeysAsked} storeys (v1 designs one).`).trim(), "you");
   }
-  if (f.dwelling_count == null) {
+  if (work && f.dwelling_count == null) {
+    // Registered, never silent: the residential ruleset needs a dwelling
+    // count, and a workplace is one unit by definition.
+    Brief.set("dwelling_count", 1, "assumed");
+  }
+  if (work && f.occupants == null && !Chat.askedPeople) {
+    Chat.askedPeople = true;
+    agentSay(
+      "How many people will work there? That's what sizes the workspace — figure 5–7 m² per desk. And fair warning: v1's cited ruleset is Bayern residential, so the compliance report will say exactly what it could and couldn't check for a workplace.",
+      { chips: [{ label: "6 of us", send: "6 people" }, { label: "10", send: "10 people" }, { label: "About 15", send: "15 people" }] },
+    );
+    return;
+  }
+  if (!work && f.dwelling_count == null) {
     if (!Chat.askedDwelling) {
       Chat.askedDwelling = true;
       agentSay(
@@ -403,8 +470,10 @@ function instantNext(parsed) {
     if (!Chat.askedRooms) {
       Chat.askedRooms = true;
       agentSay(
-        "Which rooms, and how many? Say it in your own words — \"three bedrooms, a study, an open kitchen\" works.",
-        { chips: [{ label: "3 bed family home", send: "Three bedrooms, a living room, an open kitchen, one bathroom and a study" }] },
+        work
+          ? "Which rooms does the space need? Say it in your own words — \"a studio with desks for everyone, a conference room, a washroom, a small kitchen\" works."
+          : "Which rooms, and how many? Say it in your own words — \"three bedrooms, a study, an open kitchen\" works.",
+        { chips: work ? [] : [{ label: "3 bed family home", send: "Three bedrooms, a living room, an open kitchen, one bathroom and a study" }] },
       );
       return;
     }
@@ -421,7 +490,9 @@ function instantNext(parsed) {
   if (!Chat.askedFinal) {
     Chat.askedFinal = true;
     agentSay(
-      "Anything else I should know — orientation, a view to keep, how you live? Otherwise the brief on the right is ready: press Design it.",
+      work
+        ? "Anything else I should know — light, quiet corners, how the team works? Otherwise the brief on the right is ready: press Design it."
+        : "Anything else I should know — orientation, a view to keep, how you live? Otherwise the brief on the right is ready: press Design it.",
       { chips: [{ label: "That's everything — design it", send: "That's everything" }] },
     );
     return;
@@ -461,6 +532,17 @@ async function submitUtterance(text) {
       row.append(c);
     });
     li.append(row);
+  } else if (text.split(/\s+/).length > 6 && !/that'?s everything|default plot/i.test(text)) {
+    // The honest limit of the deterministic tier: when it reads nothing out
+    // of a real sentence, it says so and offers the agent that actually reads.
+    agentSay(
+      "I'm the instant rules engine, and I couldn't pull any rooms or facts out of that — my vocabulary is narrower than my colleague's. Rephrase with room words, or hand the conversation to Devin, which genuinely reads.",
+      { chips: [
+        { label: "Hand it to Devin", action: () => { $("chat-engine").value = "devin"; devinRound(); } },
+        { label: "I'll rephrase", action: () => { setChips([]); $("chat-input").focus(); } },
+      ] },
+    );
+    return;
   }
   instantNext(parsed);
 }
@@ -1327,9 +1409,10 @@ async function boot() {
   });
 
   agentSay(
-    "Tell me about the house — who it's for, which rooms, anything that matters to you. I'll only ask what the building code actually needs.",
+    "Tell me about the building — a home, a studio, an office, a practice. Who it's for, which rooms, anything that matters. I'll only ask what the rules actually need.",
     { chips: [
-      { label: "Try an example", send: "A house for our family of four — three bedrooms, a study, an open kitchen, and the living room facing the garden. Plot is 18 by 24 m." },
+      { label: "A family home", send: "A house for our family of four — three bedrooms, a study, an open kitchen, and the living room facing the garden. Plot is 18 by 24 m." },
+      { label: "A co-working space", send: "A co-working space for a team of ten — a studio with a desk for everyone, a conference room, a washroom and a small kitchen. Plot is 15 by 20 m." },
     ] },
   );
 
