@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NVHT634W8F2MS7GWKTB621",
+  "strategy": "manual-commit",
+  "branch": "feat/glass-architect",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".agents/skills/interview-brief/SKILL.md",
+    ".github/workflows/draft.yml",
+    "README.md",
+    "docs/architecture/studio.md",
+    "docs/pitch.md",
+    "playbooks/interview.devin.md",
+    "recognition/autopilot.py",
+    "recognition/bundle.py",
+    "recognition/cli.py",
+    "recognition/model.py",
+    "tests/test_bundle.py",
+    "web/app.js",
+    "web/glass.css",
+    "web/index.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 90,
+    "cache_creation_tokens": 92646,
+    "cache_read_tokens": 34674225,
+    "output_tokens": 80912,
+    "api_call_count": 45
+  }
+}
