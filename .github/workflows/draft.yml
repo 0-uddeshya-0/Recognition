@@ -88,11 +88,14 @@ jobs:
           PATH_IN_REPO="drafts/${ID}/round-${ROUND}.json"
           SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}?ref=studio-interviews" --jq .sha 2>/dev/null) || SHA=""
           case "$SHA" in (*[!0-9a-f]*) SHA="";; esac
-          EXTRA=()
-          [ -n "$SHA" ] && EXTRA=(-f "sha=$SHA")
-          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}" \
-            -f branch=studio-interviews \
-            -f message="draft ${ID} - round ${ROUND}" \
-            -f content="$(base64 -w0 /tmp/bundle.json)" \
-            "${EXTRA[@]}" >/dev/null
-          echo "bundle published to ${PATH_IN_REPO}"
+          # A bundle is ~1 MB of base64 — far past the exec arg limit, so the
+          # request body travels as a file, never as an argument.
+          base64 -w0 /tmp/bundle.json > /tmp/bundle.b64
+          jq -n --arg branch studio-interviews \
+                --arg msg "draft ${ID} - round ${ROUND}" \
+                --arg sha "$SHA" \
+                --rawfile c /tmp/bundle.b64 \
+                '{branch: $branch, message: $msg, content: $c} + (if $sha == "" then {} else {sha: $sha} end)' \
+                > /tmp/put.json
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}" --input /tmp/put.json >/dev/null
+          echo "bundle published to ${PATH_IN_REPO} ($(wc -c < /tmp/bundle.json) bytes)"

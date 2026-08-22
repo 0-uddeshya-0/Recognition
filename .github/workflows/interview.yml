@@ -78,11 +78,14 @@ jobs:
           # JSON blob here word-splits into bogus extra arguments under bash.
           SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}?ref=studio-interviews" --jq .sha 2>/dev/null) || SHA=""
           case "$SHA" in (*[!0-9a-f]*) SHA="";; esac
-          EXTRA=()
-          [ -n "$SHA" ] && EXTRA=(-f "sha=$SHA")
-          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}" \
-            -f branch=studio-interviews \
-            -f message="interview ${ID} - round ${ROUND}" \
-            -f content="$(base64 -w0 /tmp/reply.json)" \
-            "${EXTRA[@]}" >/dev/null
+          # body via file, never as an argument — large payloads blow the
+          # exec arg limit (learned from the draft bundles)
+          base64 -w0 /tmp/reply.json > /tmp/reply.b64
+          jq -n --arg branch studio-interviews \
+                --arg msg "interview ${ID} - round ${ROUND}" \
+                --arg sha "$SHA" \
+                --rawfile c /tmp/reply.b64 \
+                '{branch: $branch, message: $msg, content: $c} + (if $sha == "" then {} else {sha: $sha} end)' \
+                > /tmp/put.json
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${PATH_IN_REPO}" --input /tmp/put.json >/dev/null
           echo "reply published to ${PATH_IN_REPO} on studio-interviews"
