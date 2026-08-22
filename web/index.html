@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Recognition — Studio</title>
-<meta name="description" content="Describe a house in plain words. Get a compliant building back — 3D model, dimensioned drawings, and a compliance report that cites the statute behind every finding.">
+<meta name="description" content="Describe a house in plain words. Devin plans it, deterministic code draws it, a cited rule engine verifies it — 3D model, dimensioned drawings, compliance report.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='2.5' y='2.5' width='19' height='19' rx='2' fill='none' stroke='%2315191D' stroke-width='1.8'/><rect x='7' y='7' width='10' height='10' fill='%232A62D8'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +28,22 @@
   <div class="title"><h1 id="doc-title">A house, described</h1></div>
   <span class="spacer"></span>
   <div id="top-stamp" class="hide"></div>
+  <div class="connect-wrap">
+    <button id="connect" class="ghost sm" type="button" aria-haspopup="dialog" aria-expanded="false">Connect</button>
+    <div id="connect-pop" class="pop hide" role="dialog" aria-label="Connect GitHub">
+      <h3>Live runs, from this page</h3>
+      <p class="hint">A GitHub token lets the Studio start real runs and talk to Devin
+        through this repository's Actions. It is stored only in this browser and sent
+        only to <code>api.github.com</code> — never to this site or anywhere else.</p>
+      <label class="pop-label" for="gh-token">Fine-grained token · Contents read&nbsp;&amp;&nbsp;write on this repo</label>
+      <input id="gh-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+      <div class="pop-row">
+        <button id="gh-save" class="primary sm" type="button">Connect</button>
+        <button id="gh-clear" class="ghost sm" type="button">Forget</button>
+        <span id="gh-state" class="hint" role="status"></span>
+      </div>
+    </div>
+  </div>
   <button id="restart" class="ghost hide" type="button">New design</button>
 </header>
 
@@ -36,29 +52,77 @@
   <div class="brief-wrap">
     <div class="brief-intro">
       <p class="kicker">Give architecture an engineer</p>
-      <h2>Describe the house. We'll draw it, check it against the code, and show our working.</h2>
-      <p class="sub">Five questions — only the ones the building code actually needs. Everything else we assume, and show you exactly what we assumed.</p>
+      <h2>Tell us the house. We'll draw it, check it against the code, and show our working.</h2>
+      <p class="sub">Describe it the way you'd tell a friend. <b>Devin</b> — the AI software
+        engineer — reads your words and plans the layouts; deterministic code draws and
+        verifies every one. Nothing is assumed silently.</p>
     </div>
 
-    <form id="interview" novalidate>
+    <div class="mode-row" role="tablist" aria-label="How to brief">
+      <button id="mode-chat" class="mode on" role="tab" aria-selected="true">Describe it</button>
+      <button id="mode-form" class="mode" role="tab" aria-selected="false">Use the form</button>
+    </div>
+
+    <div class="brief-grid">
+      <!-- chat -->
+      <section id="chat" class="chat-pane" aria-label="Interview">
+        <div class="chat-head">
+          <span class="agent-dot" aria-hidden="true"></span>
+          <strong>Interview</strong>
+          <span class="hint">the agent asks only what the rules need</span>
+          <span class="spacer"></span>
+          <label class="engine-pick hint" for="chat-engine">agent</label>
+          <select id="chat-engine" aria-label="Interview agent">
+            <option value="instant" selected>Instant · rules engine</option>
+            <option value="devin">Devin · live session</option>
+          </select>
+        </div>
+        <ol id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Conversation"></ol>
+        <div id="chat-chips" class="chat-chips" role="group" aria-label="Quick replies"></div>
+        <form id="composer" class="composer">
+          <label class="visually-hidden" for="chat-input">Describe your house</label>
+          <textarea id="chat-input" rows="1" placeholder="e.g. A house for our family of four — three bedrooms, a study, the living room facing the garden…"></textarea>
+          <button id="chat-send" class="primary" type="submit">Send</button>
+        </form>
+      </section>
+
+      <!-- the brief sheet — fills in like a title block -->
+      <aside class="brief-sheet" aria-label="Brief so far">
+        <div class="sheet-title">
+          <strong>DesignBrief</strong>
+          <span class="mono hint" id="sheet-schema">designbrief/v1</span>
+        </div>
+        <dl id="sheet-fields" class="sheet-fields"></dl>
+        <div class="assumed">
+          <h3>What we'll assume</h3>
+          <p class="hint">Every inferred value, with its reason. Correct any of them in the chat.</p>
+          <div class="chips" id="assumed-chips"></div>
+        </div>
+        <div class="brief-actions">
+          <button class="primary" id="go" type="button" disabled>Design it</button>
+          <select id="run-engine" aria-label="Run engine">
+            <option value="local" selected>local · deterministic, ~30 s</option>
+            <option value="devin">devin · 3 parallel sessions</option>
+          </select>
+        </div>
+        <p class="hint" id="go-hint">Nobody touches the run once it starts.</p>
+      </aside>
+    </div>
+
+    <!-- the classic form, same brief state -->
+    <form id="interview" class="hide" novalidate>
       <ol class="qlist" id="qlist"></ol>
-
-      <div class="assumed" id="assumed-box">
-        <h3>What we'll assume</h3>
-        <p class="hint">Each of these has a reason. Change any of them before or after the run.</p>
-        <div class="chips" id="assumed-chips"></div>
-      </div>
-
-      <div class="brief-actions">
-        <button class="primary" id="go" type="submit">Design it</button>
-        <span class="hint" id="go-hint">Nobody touches the run once it starts.</span>
-      </div>
     </form>
 
     <section class="existing" id="existing">
       <h3>Already built</h3>
       <div class="proj-grid" id="proj-grid"></div>
     </section>
+
+    <p class="colophon">The model plans; the code draws. Layouts by
+      <a href="https://devin.ai" target="_blank" rel="noopener">Devin</a> ·
+      geometry, drawings and the compliance verdict by deterministic code —
+      <a href="https://github.com/0-uddeshya-0/Recognition" target="_blank" rel="noopener">source</a>.</p>
   </div>
 </main>
 
@@ -68,7 +132,9 @@
     <h2 id="working-title">Designing</h2>
     <p class="sub" id="working-sub">One brief, three layouts, each checked on its own.</p>
     <ol class="steps" id="steps"></ol>
+    <div id="run-links" class="run-links"></div>
     <p class="hint mono" id="working-note"></p>
+    <div id="working-extra"></div>
   </div>
 </main>
 
@@ -79,6 +145,12 @@
       <strong>3D</strong>
       <span class="hint">drag to orbit · wheel to zoom · hover a room</span>
       <span class="spacer"></span>
+      <span class="legend" aria-hidden="true">
+        <span class="lg"><i class="sw sw-wall"></i>wall</span>
+        <span class="lg"><i class="sw sw-door"></i>door</span>
+        <span class="lg"><i class="sw sw-window"></i>window</span>
+        <span class="lg"><i class="sw sw-room"></i>room</span>
+      </span>
       <label class="v3-opts"><input type="checkbox" id="show-spaces" checked> rooms</label>
     </div>
     <div class="v3-host" id="v3-host">
@@ -92,9 +164,15 @@
       <strong>2D</strong>
       <span class="hint" id="sheet-name">floor plan</span>
       <span class="spacer"></span>
+      <span class="zoom-ctl" role="group" aria-label="Sheet zoom">
+        <button id="z-out" class="ghost sm" type="button" aria-label="Zoom out">−</button>
+        <span id="z-val" class="mono" aria-live="off">100%</span>
+        <button id="z-in" class="ghost sm" type="button" aria-label="Zoom in">+</button>
+        <button id="z-fit" class="ghost sm" type="button">fit</button>
+      </span>
       <a id="pdf-link" class="ghost sm" href="#" target="_blank" rel="noopener">PDF ↗</a>
     </div>
-    <div class="sheet-host" id="sheet-host"></div>
+    <div class="sheet-host" id="sheet-host"><div class="sheet-zoom" id="sheet-zoom"></div></div>
   </section>
 
   <aside class="pane pane-side">

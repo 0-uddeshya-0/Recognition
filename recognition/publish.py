@@ -90,6 +90,10 @@ def publish_run(run_dir: Path, *, project: str, web_data: Path = WEB_DATA,
         meta = next((c for c in run.get("candidates", []) if c.get("name") == cand.name), {})
         entry["label"] = meta.get("label", cand.name)
         entry["error"] = meta.get("error", "")
+        # Provenance the Studio can link to: which Devin session planned this
+        # candidate. Empty on local-engine runs, and that absence is honest.
+        entry["devin_session"] = meta.get("devin_session", "")
+        entry["pull_request"] = meta.get("pull_request", "")
         cands.append(entry)
         log(f"  · {cand.name}: {', '.join(entry['files']) or 'nothing to publish'}")
 
