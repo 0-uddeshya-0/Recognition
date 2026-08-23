@@ -52,7 +52,9 @@ because the artifacts it is judged on are produced downstream by code it never r
 **In the browser — [recognition, live](https://0-uddeshya-0.github.io/Recognition/):**
 
 1. **Say it.** "An office for my small startup — 8 of us, an open studio, a
-   meeting room, a small kitchen." The agent understands buildings, not forms;
+   meeting room, a small kitchen." Or "a two-storey house, three bedrooms" —
+   the engine stacks bedrooms over living around one aligned stair core and
+   draws a sheet per floor. The agent understands buildings, not forms;
    switch it to *Devin · live* for the session that genuinely reads.
 2. **Choose.** Four takes arrive as dimensioned blueprints — compact, linear,
    open, generous. Tap a sheet to inspect it; keep talking to redraft.

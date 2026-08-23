@@ -280,14 +280,14 @@ const Brief = {
     }
     for (const [slot, value, basis] of [
       ["storey_height_m", 2.5, "standard ceiling: legal minimum 2.40 m plus build-up"],
-      ["storey_count", 1, "v1 designs a single storey"],
+      ["storey_count", 1, "a single storey unless you ask for two"],
     ]) {
       if (!this.src[slot]) assumptions.push({ slot, value, basis, confidence: "high", confirmed: false });
     }
     return {
       project: f.project, bundesland: "BY", building_class: f.building_class,
       plot_width_m: f.plot_width_m, plot_depth_m: f.plot_depth_m,
-      dwelling_count: f.dwelling_count ?? 1, storey_count: 1,
+      dwelling_count: f.dwelling_count ?? 1, storey_count: f.storey_count || 1,
       storey_height_m: f.storey_height_m, occupants,
       rooms: Object.entries(rooms).map(([category, count]) => ({
         category, count, min_area_m2: f.roomAreas[category] ?? null, label: null,
@@ -360,14 +360,21 @@ function parseUtterance(text) {
 
   const numPat = "(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|a|an|ein|eine|zwei|drei|vier|fünf|fuenf|sechs)";
   for (const [pat, cat] of CAT_WORDS) {
-    const re = new RegExp(`${numPat}\\s+(?:${pat.source})|(?:${pat.source})`, "gi");
-    let m, count = 0, seen = false;
+    const re = new RegExp(`${numPat}[\\s-]+(?:${pat.source})|(?:${pat.source})`, "gi");
+    let m, seen = false;
+    const numbered = [];
     while ((m = re.exec(t)) !== null) {
       seen = true;
-      count += m[1] ? (wordNum(m[1]) ?? 1) : 1;
-      if (!m[1]) count = Math.max(count, 1);
+      if (m[1]) numbered.push(wordNum(m[1]) ?? 1);
     }
-    if (seen) rooms[cat] = Math.min(Math.max(rooms[cat] || 0, count), 6);
+    // People restate rather than add: "a 3-bedroom house … three bedrooms"
+    // is three bedrooms, not six. Take the largest number actually said, and
+    // fall back to one for a bare mention. Summing was the bug that turned
+    // three bedrooms into four.
+    if (seen) {
+      const count = numbered.length ? Math.max(...numbered) : 1;
+      rooms[cat] = Math.min(Math.max(rooms[cat] || 0, count), 8);
+    }
   }
   for (const [cat, n] of Object.entries(rooms)) {
     if (!bhk || !["bedroom", "living", "kitchen"].includes(cat) || rooms[cat] > (cat === "bedroom" ? +bhk[1] : 1)) {
@@ -423,8 +430,12 @@ function parseUtterance(text) {
   else if (/barrier.?free|barrierefrei|accessible|step.?free|altersgerecht/.test(t)) patch.accessibility_tier = "din18040_2";
   if (patch.accessibility_tier) got.push(["barrier-free", "yes"]);
 
-  const st = t.match(new RegExp(`${numPat}\\s+(?:store(?:y|ys|ies)|floors?|geschoss(?:e|ig)?|stockwerke?|etagen)`));
-  const storeysAsked = st ? wordNum(st[1]) : (/zweigeschossig|two.?stor(?:e?y|ies)/.test(t) ? 2 : null);
+  // "2-storey", "two storey", "single-story", "3 floors" — hyphens and the
+  // American spelling are how people actually write this.
+  const st = t.match(new RegExp(`${numPat}[\\s-]+(?:stor(?:e?y|e?ys|ies)|floors?|geschoss(?:e|ig)?|stockwerke?|etagen)`));
+  let storeysAsked = st ? wordNum(st[1]) : null;
+  if (storeysAsked == null && /zweigeschossig|two[\\s-]?stor(?:e?y|ies)|duplex level/.test(t)) storeysAsked = 2;
+  if (storeysAsked == null && /single[\\s-]?stor(?:e?y|ey|y)|one[\\s-]?stor(?:e?y|y)|eingeschossig|bungalow/.test(t)) storeysAsked = 1;
 
   const name = text.match(/(?:for the|für(?: die)?(?: Familie)?|for)\s+([A-ZÄÖÜ][a-zA-Zäöüß]+)(?:\s+family|\s+familie)?/);
   if (name && /family|familie|Familie/.test(text)) {
@@ -445,7 +456,7 @@ const Chat = {
   askedRooms: false, askedPeople: false, askedDwelling: false, askedFloor: false,
   awaitingFloor: false, proposed: false, multiHint: false,
 };
-const Draft = { round: 0, id: null, bundle: null, sealed: null, selected: null, busy: false };
+const Draft = { round: 0, id: null, bundle: null, sealed: null, selected: null, busy: false, fingerprint: "" };
 
 function addMsg(who, text, { meta, wait } = {}) {
   const li = el("li", `msg ${who}${wait ? " wait" : ""}`);
@@ -506,6 +517,29 @@ function commandBubble(intro, cmd) {
   return li;
 }
 
+/* Did the client just ask for the drawings? Deliberately narrow: "make the
+   hall bigger" is a change, not a draft request. */
+function wantsDraft(text) {
+  const t = text.toLowerCase().trim();
+  if (/\b(draft|generate|create|produce|redraft|render|design)\b[^.!?]{0,40}\b(blueprint|plan|layout|option|take|design|drawing)s?\b/.test(t)) return true;
+  if (/\b(show|give)\b[^.!?]{0,30}\b(blueprint|plan|layout|option|take|drawing)s?\b/.test(t)) return true;
+  if (/^(go|go ahead|do it|yes please|yes|yep|yeah|ok|okay|sure|proceed|start|begin|let'?s go|draft it|design it|build it|make it)\b[.! ]*$/.test(t)) return true;
+  return false;
+}
+
+/* What the pipeline would actually receive. Two briefs with the same
+   fingerprint produce the same four buildings — deterministically. */
+function briefFingerprint() {
+  const b = Brief.seal();
+  if (!b) return "";
+  return JSON.stringify([
+    b.building_class, b.dwelling_count, b.storey_count, b.storey_height_m,
+    b.occupants, b.plot_width_m, b.plot_depth_m, b.accessibility_tier,
+    [...b.rooms].sort((x, y) => x.category.localeCompare(y.category))
+      .map((r) => [r.category, r.count, r.min_area_m2]),
+  ]);
+}
+
 function applyParsed(parsed, by) {
   Brief.addRooms(parsed.rooms, by);
   for (const [cat, a] of Object.entries(parsed.roomAreas)) Brief.f.roomAreas[cat] = a;
@@ -519,9 +553,11 @@ function instantNext(parsed) {
   const work = isWorkspace();
   const wh = f.building_class === "warehouse";
 
-  if (parsed?.storeysAsked > 1) {
-    agentSay(`Noted — ${parsed.storeysAsked} storeys. I design a single storey for now, so I'll plan the ground floor beautifully and keep the wish on file.`);
-    Brief.set("notes", (f.notes + ` Client wants ${parsed.storeysAsked} storeys (v1 designs one).`).trim(), "you");
+  if (parsed?.storeysAsked > 1 && f.storey_count !== 2) {
+    Brief.set("storey_count", 2, "you");
+    agentSay(parsed.storeysAsked > 2
+      ? `${parsed.storeysAsked} storeys is beyond what I stack today — I'll design it over two, with living below and bedrooms above around one stair core.`
+      : "Two storeys — living below, bedrooms above, one stair core lining up on both floors.");
   }
 
   if (Chat.multiHint && f.dwelling_count == null && !Chat.askedDwelling) {
@@ -592,6 +628,20 @@ async function submitUtterance(text) {
 
   if ($("chat-engine").value === "devin") return devinRound();
 
+  // Saying it must work exactly like clicking it. A chip is a shortcut, never
+  // the only way in.
+  if (wantsDraft(text)) {
+    if (!Brief.ready) {
+      agentSay("Happy to — I just need to know which rooms it should have first.");
+      return;
+    }
+    const changed = parsed.got.length;
+    agentSay(Draft.bundle
+      ? (changed ? "Applying that and redrafting the four takes." : "Redrafting the four takes.")
+      : "On it — four takes, dimensioned and checked. About two minutes.");
+    return draftRound();
+  }
+
   if (parsed.got.length) {
     const li = $("chat-log").lastElementChild;
     const row = el("div", "got");
@@ -602,7 +652,7 @@ async function submitUtterance(text) {
     });
     li.append(row);
     li.scrollIntoView({ block: "end" });
-  } else if (text.split(/\s+/).length > 6) {
+  } else if (!Draft.bundle && text.split(/\s+/).length > 6) {
     agentSay(
       "I read that, but I couldn't pull anything concrete from it — I'm the instant engine and my vocabulary is rooms and sizes. Rephrase, or hand the conversation to Devin, which genuinely reads.",
       { chips: [
@@ -613,10 +663,28 @@ async function submitUtterance(text) {
     return;
   }
 
-  // refining after options exist → redraft with the change
-  if (Draft.bundle && parsed.got.length) {
-    agentSay(`Changing that — I'll redraft the four takes. Two minutes.`);
-    return draftRound();
+  // Refining after options exist. Redraft only when the brief genuinely
+  // moved — rerunning an identical brief returns identical buildings, which
+  // is what made "improve this" feel like being ignored.
+  if (Draft.bundle) {
+    const now = briefFingerprint();
+    if (now !== Draft.fingerprint) {
+      agentSay("Changing that — redrafting the four takes. About two minutes.");
+      return draftRound();
+    }
+    agentSay(
+      "I hear you, but nothing in that changed the brief — and the same brief draws "
+      + "the same buildings, so redrafting would hand you these four again. Tell me a "
+      + "concrete change and I'll rebuild it: a size (\u201cthe living room at least "
+      + "30 m\u00b2\u201d), a room (\u201cadd a utility room\u201d), the plot, or the "
+      + "number of storeys. Devin can also read a freer description.",
+      { chips: [
+        { label: "Bigger living room", send: "Make the living room at least 30 m²" },
+        { label: "One more bedroom", send: "Add a bedroom" },
+        { label: "Let Devin read it", action: () => { $("chat-engine").value = "devin"; devinRound(); } },
+      ] },
+    );
+    return;
   }
   instantNext(parsed);
 }
@@ -751,6 +819,7 @@ async function draftRound() {
   Draft.id = Draft.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())).replace(/[^a-zA-Z0-9-]/g, "").slice(0, 40);
   Draft.round += 1;
   Draft.sealed = Brief.seal();
+  Draft.fingerprint = briefFingerprint();
   setChips([]);
   stage("drafting");
   $("draft-title").textContent = Draft.round === 1 ? "Drafting four takes" : "Redrafting with your changes";
@@ -886,6 +955,21 @@ function codePill(c, { expanded = false } = {}) {
   return pill;
 }
 
+/* The engine's own error, translated. Never invent a cause: unknown text is
+   passed through so the real reason is still visible. */
+function explainFailure(err) {
+  const e = String(err || "");
+  if (/narrow side is below|MIN_SIDE|1\.2/.test(e))
+    return "The rooms came out too narrow to use at this shape. A bigger plot, fewer rooms, or a different take usually fixes it.";
+  if (/could not fit the programme/.test(e))
+    return "This shape cannot hold the programme even after enlarging. Ask for a bigger plot or fewer rooms.";
+  if (/overlap/.test(e))
+    return "The packing overlapped rooms at this aspect ratio — the other takes avoided it.";
+  if (/envelope only offers/.test(e))
+    return "The rooms need more floor than this envelope offers. Try a larger plot.";
+  return e.replace(/^[A-Za-z]+Error:\s*/, "").slice(0, 160);
+}
+
 function renderOptions(bundle) {
   $("options-h").textContent = `${bundle.candidates.length} takes on ${bundle.project === "Neubau" ? "your brief" : bundle.project}`;
   const grid = $("options-grid");
@@ -894,13 +978,32 @@ function renderOptions(bundle) {
     const card = el("article", "opt glass");
     card.style.setProperty("--i", i);
     if (c.error) {
-      card.append(el("h3", "opt-name", c.label));
-      card.append(el("p", "opt-desc", "This take couldn't be built: " + c.error.slice(0, 120)));
+      // An unbuildable take is a real outcome of exploring, not a blank tile.
+      // Say what happened in words a client can act on, and keep the card the
+      // same shape as its siblings so the grid does not look broken.
+      card.classList.add("opt-dead");
+      const box = el("div", "opt-sheet dead");
+      box.append(el("span", "dead-mark", "—"));
+      box.append(el("p", "mini", "no drawing: this strategy could not be built"));
+      card.append(box);
+      const meta = el("div", "opt-meta");
+      meta.append(el("h3", "opt-name", c.label));
+      meta.append(el("p", "opt-desc", explainFailure(c.error)));
+      const alt = el("button", "pill sm", "Try a change instead");
+      alt.type = "button";
+      alt.onclick = () => { stage("options"); $("chat-input").focus(); };
+      meta.append(alt);
+      card.append(meta);
       grid.append(card);
       return;
     }
     const sheet = el("div", "opt-sheet");
-    if (c.sheet_svg) sheet.innerHTML = c.sheet_svg; else sheet.append(el("p", "mini", "no sheet"));
+    const pages = (c.sheets && c.sheets.length) ? c.sheets
+                : (c.sheet_svg ? [{ label: "", svg: c.sheet_svg }] : []);
+    if (pages.length) {
+      sheet.innerHTML = pages[0].svg;
+      if (pages.length > 1) sheet.append(el("span", "sheet-count mono", `${pages.length} floors`));
+    } else sheet.append(el("p", "mini", "no sheet"));
     card.append(sheet);
     const meta = el("div", "opt-meta");
     const head = el("div", "opt-head");
@@ -970,12 +1073,35 @@ function selectCandidate(c, { fromPortfolio = false, stripCands = null, onPick =
 
   // the chosen 2D stays in view right below the model
   const sheet = $("sheet-inline");
+  const tabs = $("sheet-tabs");
   sheet.innerHTML = "";
+  tabs.innerHTML = "";
   const putSvg = (svg) => { sheet.innerHTML = svg || '<p class="mini">no sheet for this take</p>'; };
-  if (c.sheet_svg) putSvg(c.sheet_svg);
-  else if (c.sheet_url) fetch(c.sheet_url).then((r) => (r.ok ? r.text() : "")).then(putSvg).catch(() => putSvg(""));
-  else putSvg("");
-  sheet.onclick = () => openSheetModal(c);
+  const pages = (c.sheets && c.sheets.length) ? c.sheets
+              : (c.sheet_svg ? [{ label: "", svg: c.sheet_svg }] : []);
+  if (pages.length) {
+    putSvg(pages[0].svg);
+    if (pages.length > 1) {
+      // one tab per storey — a two-storey house has two drawings and both matter
+      pages.forEach((pg, i) => {
+        const b = el("button", "sheet-tab" + (i === 0 ? " on" : ""), pg.label || `Floor ${i + 1}`);
+        b.type = "button";
+        b.onclick = (ev) => {
+          ev.stopPropagation();
+          [...tabs.children].forEach((x) => x.classList.remove("on"));
+          b.classList.add("on");
+          putSvg(pg.svg);
+        };
+        tabs.append(b);
+      });
+    }
+  } else if (c.sheet_url) {
+    fetch(c.sheet_url).then((r) => (r.ok ? r.text() : "")).then(putSvg).catch(() => putSvg(""));
+  } else putSvg("");
+  sheet.onclick = () => {
+    const on = [...tabs.children].findIndex((x) => x.classList.contains("on"));
+    openSheetModal(c, Math.max(0, on));
+  };
 
   const pdf = $("pdf-link");
   if (c.pdf_url) { pdf.href = c.pdf_url; pdf.classList.remove("hide"); } else pdf.classList.add("hide");
@@ -1004,6 +1130,7 @@ function selectCandidate(c, { fromPortfolio = false, stripCands = null, onPick =
 function archiveSelected() {
   const c = Draft.selected;
   if (!c || !Draft.sealed) return;
+  rememberMine(slugify(Draft.sealed.project));
   if (GH.canDispatch) {
     GH.workflowDispatch("autopilot.yml", { engine: "local", brief_json: JSON.stringify(Draft.sealed) })
       .then(() => agentSay("Archiving. The run re-verifies everything, merges itself on green, and the design lands in the portfolio in about three minutes."))
@@ -1057,6 +1184,23 @@ async function openPortfolioProject(key, candName) {
   $("detail-name").textContent = c.label;
 }
 
+/* Designs this browser archived, so "yours" means yours. The portfolio is a
+   shared repository — everything anyone archives lands in it — and showing
+   one undifferentiated list made other people's buildings look like yours. */
+/* Must mirror recognition/publish.py:slug — the archive key is derived there,
+   and Python's isalnum keeps unicode letters, so "Häuser" stays "häuser". */
+function slugify(name) {
+  return String(name).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "") || "project";
+}
+
+const MINE_KEY = "recognition.mine";
+const mine = () => { try { return JSON.parse(localStorage.getItem(MINE_KEY) || "[]"); } catch { return []; } };
+function rememberMine(key) {
+  const all = mine();
+  if (!all.includes(key)) localStorage.setItem(MINE_KEY, JSON.stringify([...all, key].slice(-40)));
+}
+
 async function renderPortfolio() {
   const list = $("portfolio-list");
   list.innerHTML = "";
@@ -1065,7 +1209,16 @@ async function renderPortfolio() {
     list.append(el("p", "mini", "Nothing archived yet — design something and archive it."));
     return;
   }
-  index.projects.forEach((p) => {
+  const own = new Set(mine());
+  const ours = index.projects.filter((p) => own.has(p.key));
+  const theirs = index.projects.filter((p) => !own.has(p.key));
+  const section = (title, note, items) => {
+    if (!items.length) return;
+    list.append(el("h3", "drawer-h", title));
+    if (note) list.append(el("p", "mini", note));
+    items.forEach(card);
+  };
+  const card = (p) => {
     const b = el("button", "port-item");
     b.type = "button";
     const head = el("div", "port-head");
@@ -1075,7 +1228,10 @@ async function renderPortfolio() {
     b.append(el("span", "mini mono", `${p.candidates} takes · ${p.checked} checks · ${p.failed} failed${p.engine === "devin" ? " · planned by Devin" : ""}`));
     b.onclick = () => openPortfolioProject(p.key);
     list.append(b);
-  });
+  };
+  section("Yours", "Archived from this browser.", ours);
+  section(ours.length ? "Also in the gallery" : "Gallery",
+          "Designs other people archived into this shared repository.", theirs);
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1179,11 +1335,13 @@ function renderSpecs() {
    3D — the model floats on the glass
    ══════════════════════════════════════════════════════════════════════ */
 
-const COLOR = { wall: 0x9aa5ae, space: 0xdfe6ec, door: 0xd07a2a, window: 0x3b5bdb, edge: 0x2a3138 };
+// The model wears the brand: navy structure, gold doors, blue glazing. Room
+// tints stay pale so the verdict colours keep their meaning elsewhere.
+const COLOR = { wall: 0x9fb0c4, space: 0xdfe7f1, door: 0xffc300, window: 0x003566, edge: 0x001d3d };
 const SPACE_TINT = {
-  living: 0xe9dfc8, kitchen: 0xdde5e9, bedroom: 0xd9e2ef, bathroom: 0xcfe0ea,
-  office: 0xe4deef, meeting: 0xe7e0d3, lab: 0xe2e6df, hall: 0xe7e9eb,
-  utility: 0xe3e6e0, other: 0xe6e4df,
+  living: 0xfaeec8, kitchen: 0xdde8f3, bedroom: 0xd7e2f0, bathroom: 0xcfe0ec,
+  office: 0xe2e9f4, meeting: 0xf3e8cf, lab: 0xe2e8ea, hall: 0xeaeef4,
+  utility: 0xe4e9ee, stair: 0xf7e6b0, other: 0xe6eaef,
 };
 const kindOf = (cls) => cls === "IfcSpace" ? "space" : cls === "IfcDoor" ? "door" : cls === "IfcWindow" ? "window" : "wall";
 
@@ -1350,13 +1508,31 @@ function sheetZoom(f2, cx, cy) {
   applySheet();
 }
 
-function openSheetModal(c) {
+function openSheetModal(c, startIndex = 0) {
   const host = $("sheet-big");
   host.innerHTML = "";
   const put = (svg) => { host.innerHTML = `<div class="sheet-zoom" id="sheet-zoom">${svg}</div>`; sheetReset(); };
-  if (c.sheet_svg) put(c.sheet_svg);
+  const pages = (c.sheets && c.sheets.length) ? c.sheets
+              : (c.sheet_svg ? [{ label: "", svg: c.sheet_svg }] : []);
+  const title = $("sheet-title");
+  title.textContent = c.label || c.name;
+  // floor switcher inside the lightbox, mirroring the inline tabs
+  const bar = title.parentElement;
+  bar.querySelectorAll(".sheet-tab").forEach((b) => b.remove());
+  if (pages.length > 1) {
+    pages.forEach((pg, i) => {
+      const b = el("button", "sheet-tab" + (i === startIndex ? " on" : ""), pg.label || `Floor ${i + 1}`);
+      b.type = "button";
+      b.onclick = () => {
+        bar.querySelectorAll(".sheet-tab").forEach((x) => x.classList.remove("on"));
+        b.classList.add("on");
+        put(pages[i].svg);
+      };
+      title.after(b);
+    });
+  }
+  if (pages.length) put(pages[Math.min(startIndex, pages.length - 1)].svg);
   else if (c.sheet_url) fetch(c.sheet_url).then((r) => r.text()).then(put);
-  $("sheet-title").textContent = c.label || c.name;
   $("sheet-modal").classList.remove("hide");
 }
 
