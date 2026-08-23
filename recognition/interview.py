@@ -40,6 +40,11 @@ SKILL = REPO_ROOT / ".agents" / "skills" / "interview-brief" / "SKILL.md"
 MAX_ROUNDS = 3          # the architecture's stopping rule: cap at 3 rounds
 MAX_QUESTIONS = 4       # ... of at most 4 questions each
 
+# A ceiling per interview session. An interview is a handful of short
+# structured turns, so this is generous for the work -- and it bounds the cost
+# when the trigger is reachable from a public page.
+MAX_INTERVIEW_ACU = 3
+
 # What one interview round hands back. `message` is what the client reads;
 # everything else is structure the Studio renders as chips and fields.
 INTERVIEW_SCHEMA: dict = {
@@ -307,6 +312,7 @@ def conduct(messages: list[dict], *, session_id: str = "", round_no: int = 1,
                 prompt,
                 title="Recognition · interview",
                 tags=["recognition", "interview"],
+                max_acu=MAX_INTERVIEW_ACU,
                 structured_output=INTERVIEW_SCHEMA,
             )
             prev_fp = ""

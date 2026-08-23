@@ -1,0 +1,17 @@
+# Cloudflare Worker that holds the GitHub trigger token server-side, so the
+# public Studio URL needs no key of its own.
+#
+# Deploy (needs a Cloudflare API token with the "Edit Cloudflare Workers"
+# template — nothing else):
+#
+#   export CLOUDFLARE_API_TOKEN=…
+#   cd infra && ./deploy.sh <github_pat_…>
+#
+# The script publishes the worker, stores the GitHub token and repo as Worker
+# secrets (never in this repository), and prints the URL to paste into
+# web/config.js as `triggerUrl`.
+
+name = "recognition-trigger"
+main = "trigger-worker.js"
+compatibility_date = "2026-01-01"
+workers_dev = true
