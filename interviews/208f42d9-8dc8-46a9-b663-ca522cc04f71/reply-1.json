@@ -1,0 +1,317 @@
+{
+  "message": "Got it — a 12-person startup office with reception, two open workspaces, two meeting rooms, a kitchen, two bathrooms, storage and a connecting stair. I've filled the rest myself (2.50 m ceilings, room sizes, barrier-free standard, and the building treated as one unit since it isn't housing), and this version draws a single level, so both floors' rooms come through as one plan with the stair included. Everything I inferred is listed as an assumption you can correct — otherwise your brief is sealed and ready.",
+  "brief": {
+    "notes": "Design a small two-story startup office for 12 people.\n\nThe ground floor should have a reception area near the entrance, a meeting room for 6 people, a small kitchen, one accessible bathroom, and an open workspace for 6 people.\n\nThe upper floor should have a private office for the founder, a meeting room for 4 people, an open workspace for 6 people, a small storage room, and one bathroom.\n\nThe main entrance should lead directly into the reception area. The open workspaces should receive natural light from exterior windows. Put the kitchen close to the meeting spaces but separated from the work areas. The bathrooms should be easy to access without walking through private offices.\n\nInclude a staircase connecting both floors. Keep circulation practical and avoid unnecessarily large corridors.\n\nThe building should have a simple rectangular footprint and a modern, functional layout. Generate a complete architectural layout with clearly separated rooms, doors, windows, and circulation spaces.",
+    "rooms": [
+      {
+        "count": 1,
+        "label": "reception",
+        "category": "hall",
+        "min_area_m2": 14
+      },
+      {
+        "count": 2,
+        "label": "open workspace (6 people)",
+        "category": "office",
+        "min_area_m2": 30
+      },
+      {
+        "count": 1,
+        "label": "founder's private office",
+        "category": "office",
+        "min_area_m2": 12
+      },
+      {
+        "count": 1,
+        "label": "meeting room (6 people)",
+        "category": "meeting",
+        "min_area_m2": 15
+      },
+      {
+        "count": 1,
+        "label": "meeting room (4 people)",
+        "category": "meeting",
+        "min_area_m2": 10
+      },
+      {
+        "count": 1,
+        "label": "small kitchen",
+        "category": "kitchen",
+        "min_area_m2": 8
+      },
+      {
+        "count": 1,
+        "label": "accessible bathroom",
+        "category": "bathroom",
+        "min_area_m2": 4.5
+      },
+      {
+        "count": 1,
+        "label": "bathroom (upper floor)",
+        "category": "bathroom",
+        "min_area_m2": 3
+      },
+      {
+        "count": 1,
+        "label": "small storage room",
+        "category": "utility",
+        "min_area_m2": 4
+      },
+      {
+        "count": 1,
+        "label": "staircase connecting both floors",
+        "category": "stair",
+        "min_area_m2": 9
+      }
+    ],
+    "project": "Neubau",
+    "occupants": 12,
+    "bundesland": "BY",
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 1,
+    "building_class": "startup_office",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "din18040_2"
+  },
+  "questions": [],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "Non-residential building — treated as one unit; v1's cited ruleset is Bayern residential.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "Client described two floors, but v1 draws a single level; both floors' rooms are folded into one plan and the connecting stair is kept.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Standard clear ceiling height for offices — minimum 2.40 m plus floor build-up.",
+      "value": 2.5,
+      "confidence": "medium"
+    },
+    {
+      "slot": "building_class",
+      "basis": "Client said \"small two-story startup office\".",
+      "value": "startup_office",
+      "confidence": "high"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "Client asked for one accessible bathroom, so barrier-free standard applied throughout.",
+      "value": "din18040_2",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms.kitchen.count",
+      "basis": "Client named one small kitchen (ground floor) only.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "rooms.bathroom.count",
+      "basis": "One accessible bathroom on the ground floor plus one on the upper floor, as described.",
+      "value": 2,
+      "confidence": "high"
+    },
+    {
+      "slot": "rooms.hall.count",
+      "basis": "Reception area mapped to hall; only one reception was described.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "rooms.stair.count",
+      "basis": "Client asked for a staircase connecting both floors.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "roomAreas",
+      "basis": "Typical minimum office areas: ~5 m² per desk for open workspaces, ~2 m² per seat for meeting rooms, barrier-free WC ~4.5 m²; kept compact per the request to avoid oversized circulation.",
+      "value": {
+        "kitchen": 8,
+        "storage": 4,
+        "bathroom": 3,
+        "reception": 14,
+        "staircase": 9,
+        "meeting (4)": 10,
+        "meeting (6)": 15,
+        "open workspace": 30,
+        "founder's office": 12,
+        "accessible bathroom": 4.5
+      },
+      "confidence": "medium"
+    }
+  ],
+  "done": true,
+  "sealed_brief": {
+    "project": "Neubau",
+    "bundesland": "BY",
+    "building_class": "startup_office",
+    "plot_width_m": 18,
+    "plot_depth_m": 24,
+    "dwelling_count": 1,
+    "storey_count": 1,
+    "storey_height_m": 2.5,
+    "occupants": 12,
+    "rooms": [
+      {
+        "category": "hall",
+        "count": 1,
+        "min_area_m2": 14,
+        "label": "reception"
+      },
+      {
+        "category": "office",
+        "count": 2,
+        "min_area_m2": 30,
+        "label": "open workspace (6 people)"
+      },
+      {
+        "category": "office",
+        "count": 1,
+        "min_area_m2": 12,
+        "label": "founder's private office"
+      },
+      {
+        "category": "meeting",
+        "count": 1,
+        "min_area_m2": 15,
+        "label": "meeting room (6 people)"
+      },
+      {
+        "category": "meeting",
+        "count": 1,
+        "min_area_m2": 10,
+        "label": "meeting room (4 people)"
+      },
+      {
+        "category": "kitchen",
+        "count": 1,
+        "min_area_m2": 8,
+        "label": "small kitchen"
+      },
+      {
+        "category": "bathroom",
+        "count": 1,
+        "min_area_m2": 4.5,
+        "label": "accessible bathroom"
+      },
+      {
+        "category": "bathroom",
+        "count": 1,
+        "min_area_m2": 3,
+        "label": "bathroom (upper floor)"
+      },
+      {
+        "category": "utility",
+        "count": 1,
+        "min_area_m2": 4,
+        "label": "small storage room"
+      },
+      {
+        "category": "stair",
+        "count": 1,
+        "min_area_m2": 9,
+        "label": "staircase connecting both floors"
+      }
+    ],
+    "accessibility_tier": "din18040_2",
+    "assumptions": [
+      {
+        "slot": "dwelling_count",
+        "value": 1,
+        "basis": "Non-residential building — treated as one unit; v1's cited ruleset is Bayern residential.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_count",
+        "value": 1,
+        "basis": "Client described two floors, but v1 draws a single level; both floors' rooms are folded into one plan and the connecting stair is kept.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_height_m",
+        "value": 2.5,
+        "basis": "Standard clear ceiling height for offices — minimum 2.40 m plus floor build-up.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "building_class",
+        "value": "startup_office",
+        "basis": "Client said \"small two-story startup office\".",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "accessibility_tier",
+        "value": "din18040_2",
+        "basis": "Client asked for one accessible bathroom, so barrier-free standard applied throughout.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.kitchen.count",
+        "value": 1,
+        "basis": "Client named one small kitchen (ground floor) only.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.bathroom.count",
+        "value": 2,
+        "basis": "One accessible bathroom on the ground floor plus one on the upper floor, as described.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.hall.count",
+        "value": 1,
+        "basis": "Reception area mapped to hall; only one reception was described.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.stair.count",
+        "value": 1,
+        "basis": "Client asked for a staircase connecting both floors.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "roomAreas",
+        "value": {
+          "kitchen": 8,
+          "storage": 4,
+          "bathroom": 3,
+          "reception": 14,
+          "staircase": 9,
+          "meeting (4)": 10,
+          "meeting (6)": 15,
+          "open workspace": 30,
+          "founder's office": 12,
+          "accessible bathroom": 4.5
+        },
+        "basis": "Typical minimum office areas: ~5 m² per desk for open workspaces, ~2 m² per seat for meeting rooms, barrier-free WC ~4.5 m²; kept compact per the request to avoid oversized circulation.",
+        "confidence": "medium",
+        "confirmed": false
+      }
+    ],
+    "notes": "Design a small two-story startup office for 12 people.\n\nThe ground floor should have a reception area near the entrance, a meeting room for 6 people, a small kitchen, one accessible bathroom, and an open workspace for 6 people.\n\nThe upper floor should have a private office for the founder, a meeting room for 4 people, an open workspace for 6 people, a small storage room, and one bathroom.\n\nThe main entrance should lead directly into the reception area. The open workspaces should receive natural light from exterior windows. Put the kitchen close to the meeting spaces but separated from the work areas. The bathrooms should be easy to access without walking through private offices.\n\nInclude a staircase connecting both floors. Keep circulation practical and avoid unnecessarily large corridors.\n\nThe building should have a simple rectangular footprint and a modern, functional layout. Generate a complete architectural layout with clearly separated rooms, doors, windows, and circulation spaces.",
+    "schema": "designbrief/v1"
+  },
+  "contract_error": "",
+  "session_id": "devin-fd6adcf27085446f8de4b56db96b5194",
+  "session_url": "https://app.devin.ai/sessions/fd6adcf27085446f8de4b56db96b5194",
+  "round": 1,
+  "engine": "devin"
+}
