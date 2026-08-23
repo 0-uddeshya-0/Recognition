@@ -28,14 +28,24 @@ def _read_json(p: Path) -> dict | None:
         return None
 
 
+def _sheets(cand_dir: Path) -> list[dict]:
+    """Every storey's sheet, in order -- a two-storey house has two drawings."""
+    found = sorted((cand_dir / "pkg" / "sheets").glob("*.svg")) if (cand_dir / "pkg").is_dir() else []
+    if not found:
+        found = sorted(cand_dir.glob("**/*.svg"))
+    out = []
+    for f in found:
+        text = f.read_text(encoding="utf-8")
+        if len(text.encode("utf-8")) > MAX_SVG_BYTES:
+            continue          # an oversized sheet is a bug, not a payload
+        label = f.stem.split("_", 1)[-1].replace("-", " ")
+        out.append({"label": label, "svg": text})
+    return out
+
+
 def _sheet_svg(cand_dir: Path) -> str:
-    sheets = sorted((cand_dir / "pkg" / "sheets").glob("*.svg")) if (cand_dir / "pkg").is_dir() else []
-    if not sheets:
-        sheets = sorted(cand_dir.glob("**/*.svg"))
-    if not sheets:
-        return ""
-    text = sheets[0].read_text(encoding="utf-8")
-    return text if len(text.encode("utf-8")) <= MAX_SVG_BYTES else ""
+    sheets = _sheets(cand_dir)
+    return sheets[0]["svg"] if sheets else ""
 
 
 def _compact_findings(verdict: dict | None) -> list[dict]:
@@ -75,6 +85,7 @@ def build(run_dir: str | Path, brief_path: str | Path | None = None) -> dict[str
             "rationale": (_read_json(cand_dir / "plan.json") or {}).get("rationale", ""),
             "mesh": _read_json(cand_dir / "mesh.json"),
             "sheet_svg": _sheet_svg(cand_dir),
+            "sheets": _sheets(cand_dir),
             "devin_session": meta.get("devin_session", ""),
         })
 

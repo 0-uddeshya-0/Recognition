@@ -63,7 +63,7 @@ def test_done_brief_is_validated_and_sealed():
 
 
 def test_done_is_withdrawn_when_the_brief_fails_the_contract():
-    bad = _good_brief() | {"storey_count": 2}          # v1 is single-storey
+    bad = _good_brief() | {"storey_count": 5}          # one or two storeys only
     r = shape_reply({"message": "ready", "done": True, "brief": bad})
     assert not r.done
     assert "storey_count" in r.contract_error

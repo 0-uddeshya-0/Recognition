@@ -127,29 +127,115 @@ def plan_from_brief(brief: DesignBrief, strat: Strategy) -> ArchitectPlan:
                 target_area_m2=round(base * strat.generosity, 1),
             ))
 
-    hall_id: str | None = None
-    if strat.circulation and not any(r.category == "hall" for r in rooms):
-        n += 1
-        hall_id = f"R-{n:02d}"
-        rooms.append(RoomSpec(hall_id, "hall", "Flur",
-                              round(DEFAULT_AREAS["hall"] * strat.generosity, 1)))
-    elif strat.circulation:
-        hall_id = next(r.id for r in rooms if r.category == "hall")
+    storeys = 2 if brief.storey_count == 2 else 1
+    if storeys == 2:
+        _stack(rooms)
 
-    # Envelope sized from the programme plus a circulation and wall allowance,
-    # then shaped by the strategy's aspect ratio.
-    need = sum(r.target_area_m2 for r in rooms) * 1.22
+    hall_id: str | None = None
+    halls: dict[int, str] = {}
+    if strat.circulation or storeys == 2:
+        # Every storey needs its own circulation; without it the upper floor
+        # has no way to distribute rooms off the stair.
+        for level in range(storeys):
+            existing = next((r for r in rooms if r.storey == level and r.category == "hall"), None)
+            if existing is None:
+                n += 1
+                existing = RoomSpec(f"R-{n:02d}", "hall", "Flur" if level == 0 else "Flur OG",
+                                    round(DEFAULT_AREAS["hall"] * strat.generosity, 1),
+                                    storey=level)
+                rooms.append(existing)
+            halls[level] = existing.id
+        # The spine geometry is a function of the hall's area, so both storeys
+        # get the same one -- that is what stacks the stair.
+        if storeys == 2:
+            area = max(rooms[i].target_area_m2 for i in range(len(rooms))
+                       if rooms[i].id in halls.values())
+            for r in rooms:
+                if r.id in halls.values():
+                    r.target_area_m2 = area
+        hall_id = halls.get(0)
+
+    if storeys == 2:
+        # One stair core, the same size and place on both floors.
+        stair_area = round(max(4.5, 5.0 * strat.generosity), 1)
+        for level in range(2):
+            n += 1
+            rooms.append(RoomSpec(f"R-{n:02d}", "stair",
+                                  "Treppe" if level == 0 else "Treppe OG",
+                                  stair_area, storey=level, exterior_wall=False))
+
+    # Envelope sized from the *largest storey's* programme plus a circulation
+    # and wall allowance, then shaped by the strategy's aspect ratio. Two
+    # storeys therefore need roughly half the footprint of one.
+    per_level = [sum(r.target_area_m2 for r in rooms if r.storey == lv) for lv in range(storeys)]
+    biggest = max(per_level)
+    need = biggest * 1.22
     depth = (need / strat.aspect) ** 0.5
     width = need / depth
     env = Envelope(width_m=round(width * 2) / 2, depth_m=round(depth * 2) / 2)
+    # Rounding to the half-metre and the wall allowance can leave the busiest
+    # storey a few m2 short, which the contract would (correctly) reject before
+    # geometry ever runs. Grow the envelope until it genuinely holds the floor
+    # it has to hold -- deterministic, and it converges in a step or two.
+    busiest = max(len([r for r in rooms if r.storey == lv]) for lv in range(storeys))
+    probe = ArchitectPlan(project=brief.project, envelope=env,
+                          rooms=[r for r in rooms if r.storey == 0] or rooms)
+    for _ in range(12):
+        if probe.usable_area_m2(busiest) >= biggest * 1.03:
+            break
+        env.width_m = round(env.width_m * 1.03 * 2) / 2
+        env.depth_m = round(env.depth_m * 1.03 * 2) / 2
 
-    adjacency = _adjacencies(rooms, hall_id)
+    adjacency = _adjacencies_by_level(rooms, halls, storeys)
     return ArchitectPlan(
         project=brief.project, envelope=env, rooms=rooms, adjacency=adjacency,
+        storey_count=storeys,
         storey_height_m=brief.storey_height_m, circulation_id=hall_id,
         accessibility_tier=brief.accessibility_tier,
-        rationale=f"{strat.label}: {strat.description}",
+        rationale=f"{strat.label}: {strat.description}"
+                  + (" Sleeping quarters upstairs, living below, one stair core."
+                     if storeys == 2 else ""),
     )
+
+
+# Which rooms belong on which floor of a two-storey house. The convention is
+# the ordinary one: living, cooking and working stay at ground level with a
+# guest WC; bedrooms and their bathrooms go up.
+UPSTAIRS = ("bedroom",)
+DOWNSTAIRS = ("living", "kitchen", "meeting", "lab", "utility", "office")
+
+
+def _stack(rooms: list[RoomSpec]) -> None:
+    """Assign each room a storey, keeping one bathroom on each floor."""
+    for r in rooms:
+        if r.category in UPSTAIRS:
+            r.storey = 1
+        elif r.category in DOWNSTAIRS:
+            r.storey = 0
+    baths = [r for r in rooms if r.category == "bathroom"]
+    for i, r in enumerate(baths):
+        # first bath serves the living floor, the rest serve the bedrooms
+        r.storey = 0 if i == 0 else 1
+    if len(baths) == 1 and any(r.storey == 1 for r in rooms):
+        # a single bathroom belongs with the bedrooms
+        baths[0].storey = 1
+    if not any(r.storey == 1 for r in rooms):
+        # nothing wanted to go up: send the largest non-living room instead of
+        # producing an empty floor
+        movable = [r for r in rooms if r.category not in ("kitchen", "living")]
+        if movable:
+            max(movable, key=lambda r: r.target_area_m2).storey = 1
+
+
+def _adjacencies_by_level(rooms: list[RoomSpec], halls: dict[int, str],
+                          storeys: int) -> list[Adjacency]:
+    """Per-storey adjacency. The stair opens off that storey's hall, which is
+    also how the two floors read as one circulation route."""
+    out: list[Adjacency] = []
+    for level in range(storeys):
+        on_level = [r for r in rooms if r.storey == level]
+        out.extend(_adjacencies(on_level, halls.get(level)))
+    return out
 
 
 def _adjacencies(rooms: list[RoomSpec], hall_id: str | None) -> list[Adjacency]:
@@ -271,10 +357,12 @@ def _exec_dsl(dsl_path: Path, ifc_path: Path) -> None:
 def _metrics(plan: ArchitectPlan, model) -> dict[str, Any]:
     """Ranking inputs. Cheap, geometric, and free of judgement."""
     room_area = sum(s.area for s in model.spaces)
-    circ = sum(s.area for s in model.spaces if s.category == "hall")
-    env = plan.envelope.area_m2
+    circ = sum(s.area for s in model.spaces if s.category in ("hall", "stair"))
+    # Floor area, not footprint: a two-storey house has twice the floor to use.
+    env = plan.envelope.area_m2 * max(plan.storey_count, 1)
     return {
         "envelope_m2": round(env, 2),
+        "storeys": plan.storey_count,
         "room_area_m2": round(room_area, 2),
         "usable_ratio": round((room_area - circ) / env, 4) if env else 0.0,
         "circulation_m2": round(circ, 2),

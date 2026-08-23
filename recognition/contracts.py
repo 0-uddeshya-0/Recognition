@@ -130,10 +130,12 @@ class DesignBrief:
             )
         if self.dwelling_count < 1:
             raise ContractError(f"{w}: dwelling_count must be >= 1, got {self.dwelling_count}")
-        if self.storey_count != 1:
-            # v1 constraint, stated loudly rather than failing mysteriously later.
+        if self.storey_count not in (1, 2):
+            # Two storeys are designed by stacking the programme over a shared
+            # stair core; three would need a different circulation strategy, so
+            # the limit is stated loudly rather than failing later in geometry.
             raise ContractError(
-                f"{w}: storey_count must be 1 in v1 (multi-storey is not implemented); got {self.storey_count}"
+                f"{w}: storey_count must be 1 or 2; got {self.storey_count}"
             )
         if self.storey_height_m < 2.40:
             raise ContractError(
@@ -183,6 +185,7 @@ class RoomSpec:
     label: str
     target_area_m2: float
     exterior_wall: bool = True
+    storey: int = 0          # 0 = ground floor, 1 = the floor above it
 
     def validate(self, where: str) -> None:
         if not self.id.strip():
@@ -239,6 +242,7 @@ class ArchitectPlan:
     rooms: list[RoomSpec]
     adjacency: list[Adjacency] = field(default_factory=list)
     storey_name: str = "Erdgeschoss"
+    storey_count: int = 1
     storey_height_m: float = 2.50
     circulation_id: str | None = None
     glazing_ratio: float = 0.125          # BayBO Art. 45 (2) = 1/8
@@ -268,15 +272,30 @@ class ArchitectPlan:
         # Areas must physically fit, allowing for walls. Checked *before* geometry
         # exists, so an impossible plan costs one cheap call instead of a full
         # geometry round-trip.
-        wanted = sum(r.target_area_m2 for r in self.rooms)
-        usable = self.usable_area_m2()
-        if wanted > usable + 1e-6:
-            raise ContractError(
-                f"{w}: rooms need {wanted:.1f} m2 but the envelope only offers "
-                f"{usable:.1f} m2 of usable floor after wall thickness. "
-                f"Reduce room areas or enlarge the envelope "
-                f"({self.envelope.width_m} x {self.envelope.depth_m} m)."
-            )
+        for level in range(self.storey_count):
+            on_level = [r for r in self.rooms if r.storey == level]
+            usable = self.usable_area_m2(len(on_level))
+            wanted = sum(r.target_area_m2 for r in on_level)
+            if wanted > usable + 1e-6:
+                where = "" if self.storey_count == 1 else f" on storey {level}"
+                raise ContractError(
+                    f"{w}: rooms need {wanted:.1f} m2{where} but the envelope only offers "
+                    f"{usable:.1f} m2 of usable floor after wall thickness. "
+                    f"Reduce room areas or enlarge the envelope "
+                    f"({self.envelope.width_m} x {self.envelope.depth_m} m)."
+                )
+
+        if self.storey_count not in (1, 2):
+            raise ContractError(f"{w}: storey_count must be 1 or 2; got {self.storey_count}")
+        for i, r in enumerate(self.rooms):
+            if not 0 <= r.storey < self.storey_count:
+                raise ContractError(
+                    f"{w}.rooms[{i}]: storey {r.storey} is outside a {self.storey_count}-storey "
+                    f"building (use 0 for the ground floor, 1 for the floor above)"
+                )
+        for level in range(self.storey_count):
+            if not [r for r in self.rooms if r.storey == level]:
+                raise ContractError(f"{w}: storey {level} has no rooms")
 
         if self.circulation_id is not None and self.circulation_id not in ids:
             raise ContractError(f"{w}: circulation_id '{self.circulation_id}' is not a known room")
@@ -285,13 +304,19 @@ class ArchitectPlan:
             raise ContractError(f"{w}: glazing_ratio must be between 0 and 1, got {self.glazing_ratio}")
 
         if len(self.rooms) > 1 and self.adjacency:
-            self._assert_connected(ids)
+            for level in range(self.storey_count):
+                on_level = {r.id for r in self.rooms if r.storey == level}
+                if len(on_level) > 1:
+                    self._assert_connected(on_level)
         return self
 
     def _assert_connected(self, ids: set[str]) -> None:
         """Every room must be reachable. A disconnected plan is a bug, not a style."""
         graph: dict[str, set[str]] = {i: set() for i in ids}
         for a in self.adjacency:
+            # a pairing that leaves this set belongs to another storey
+            if a.a not in graph or a.b not in graph:
+                continue
             graph[a.a].add(a.b)
             graph[a.b].add(a.a)
         start = next(iter(ids))
@@ -310,14 +335,20 @@ class ArchitectPlan:
 
     # -- derived -----------------------------------------------------------
 
-    def usable_area_m2(self) -> float:
-        """Envelope area minus the external wall band and an allowance for partitions."""
+    def usable_area_m2(self, room_count: int | None = None) -> float:
+        """Envelope area minus the external wall band and a partition allowance.
+
+        `room_count` is the number of rooms sharing *one* floor. A two-storey
+        plan must not be charged for both floors' partitions at once, which is
+        why the count is a parameter rather than len(self.rooms).
+        """
         e = self.envelope
+        n = len(self.rooms) if room_count is None else room_count
         inner_w = e.width_m - e.external_wall_m
         inner_d = e.depth_m - e.external_wall_m
         gross = max(inner_w, 0.0) * max(inner_d, 0.0)
         # Partition allowance: roughly one internal wall per room boundary.
-        partitions = max(len(self.rooms) - 1, 0) * e.internal_wall_m * max(inner_w, inner_d)
+        partitions = max(n - 1, 0) * e.internal_wall_m * max(inner_w, inner_d)
         return max(gross - partitions, 0.0)
 
     def room(self, room_id: str) -> RoomSpec:

@@ -63,7 +63,9 @@ INTERVIEW_SCHEMA: dict = {
                            "are welcome), dwelling_count (1 for any non-residential "
                            "building, registered as an assumption), occupants (the "
                            "people living or working there — it sizes workspaces), "
-                           "plot_width_m, plot_depth_m, storey_height_m, "
+                           "plot_width_m, plot_depth_m, storey_count (1 or 2; "
+                           "bedrooms stack above living around one stair core), "
+                           "storey_height_m, "
                            "rooms[{category,count,min_area_m2,label}], "
                            "accessibility_tier, notes.",
         },

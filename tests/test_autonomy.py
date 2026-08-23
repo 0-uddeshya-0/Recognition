@@ -10,6 +10,7 @@ Everything here runs on the `local` engine: no API key, no network, no cost.
 from __future__ import annotations
 
 import json
+import re as _re
 from pathlib import Path
 
 import pytest
@@ -108,8 +109,9 @@ def test_fit_grows_the_envelope_rather_than_shipping_a_sliver():
                      RoomSpec("R-03", "hall", "F", 9.0),
                      RoomSpec("R-04", "utility", "H", 4.0)],
               adjacency=[Adjacency("R-03", x) for x in ("R-01", "R-02", "R-04")])
-    fitted, rects, grew = fit(p)
+    fitted, by_level, grew = fit(p)
     assert grew >= 0
+    rects = by_level[0]
     assert min(min(r.w, r.h) for r in rects.values()) >= 1.19
     assert fitted.envelope.width_m >= p.envelope.width_m
 
@@ -257,7 +259,6 @@ def test_candidates_are_structurally_different(tmp_path):
 
 # --- openings: a door punched through a window is never acceptable ---------
 
-import re as _re
 
 
 def _openings_by_wall(src: str) -> dict[str, list[tuple[float, float, str]]]:
@@ -338,3 +339,81 @@ def test_commercial_vocabulary_normalises_to_the_contract():
     cats = [r["category"] for r in payload["rooms"]]
     assert cats == ["meeting", "bathroom", "office", "hall"]
     assert notes, "normalisation is logged, never silent"
+
+
+
+# --- two storeys: stacked, not faked ---------------------------------------
+
+def test_two_storey_brief_splits_the_programme_and_stacks_the_stair():
+    """Bedrooms upstairs, living below, and one stair core in the same place
+    on both floors -- otherwise the second storey is a drawing, not a house."""
+    from recognition.autopilot import plan_from_brief, strategy_by_name
+    from recognition.contracts import DesignBrief, RoomRequest
+    from recognition.translate import fit as fit_plan
+
+    brief = DesignBrief(project="Stack", storey_count=2, occupants=4, rooms=[
+        RoomRequest("living"), RoomRequest("kitchen"),
+        RoomRequest("bedroom", 3), RoomRequest("bathroom", 2)])
+    brief.resolve_accessibility()
+    brief.validate()
+    plan = plan_from_brief(brief, strategy_by_name("compact")).validate()
+
+    assert plan.storey_count == 2
+    ground = {r.category for r in plan.rooms if r.storey == 0}
+    upper = {r.category for r in plan.rooms if r.storey == 1}
+    assert "bedroom" in upper and "bedroom" not in ground, "bedrooms belong upstairs"
+    assert {"living", "kitchen"} <= ground, "living and cooking stay at ground level"
+    assert "stair" in ground and "stair" in upper, "a stair on both floors, or no stack"
+
+    _fitted, by_level, _grew = fit_plan(plan)
+    assert len(by_level) == 2
+    stairs = []
+    for level in (0, 1):
+        sid = next(r.id for r in plan.rooms if r.storey == level and r.category == "stair")
+        r = by_level[level][sid]
+        stairs.append((round(r.x, 2), round(r.y, 2), round(r.w, 2), round(r.h, 2)))
+    assert stairs[0] == stairs[1], f"the flights must line up, got {stairs}"
+
+
+def test_two_storeys_emit_two_real_storeys():
+    from recognition.autopilot import plan_from_brief, strategy_by_name
+    from recognition.contracts import DesignBrief, RoomRequest
+    brief = DesignBrief(project="Stack2", storey_count=2, occupants=4, rooms=[
+        RoomRequest("living"), RoomRequest("kitchen"),
+        RoomRequest("bedroom", 2), RoomRequest("bathroom", 2)])
+    brief.resolve_accessibility()
+    brief.validate()
+    src = translate(plan_from_brief(brief, strategy_by_name("linear")))
+    assert "h.storey('Erdgeschoss', elevation=0.0" in src
+    assert "h.storey('Obergeschoss', elevation=2.5" in src
+    assert "og.room(" in src and "eg.room(" in src
+
+
+# --- windows a person would actually draw ----------------------------------
+
+def test_no_window_is_wider_than_a_window():
+    """A room needing lots of glass gets several windows, not one long slot."""
+    p = _plan(rooms=[RoomSpec("R-01", "living", "Wohnen", 90.0),
+                     RoomSpec("R-02", "kitchen", "Kueche", 12.0)],
+              adjacency=[Adjacency("R-01", "R-02")], circulation_id=None,
+              envelope=Envelope(16.0, 9.0))
+    src = translate(p)
+    widths = [float(w) for w in _re.findall(r"\.window\([^)]*width=([\d.]+)", src)]
+    assert widths, "the living room must be glazed"
+    assert max(widths) <= 2.45, f"a {max(widths)} m window is a curtain wall: {widths}"
+    assert len(widths) >= 2, "a big room needs several windows to reach its ratio"
+
+
+def test_every_room_is_reachable_from_the_entrance():
+    """No room may be an island, and none may be reachable only by walking
+    through a bedroom-sized dead end the plan never declared."""
+    from recognition.autopilot import STRATEGIES, plan_from_brief
+    from recognition.contracts import DesignBrief, RoomRequest
+    brief = DesignBrief(project="Reach", rooms=[
+        RoomRequest("living"), RoomRequest("kitchen"), RoomRequest("bedroom", 3),
+        RoomRequest("bathroom"), RoomRequest("office"), RoomRequest("utility")])
+    brief.resolve_accessibility()
+    brief.validate()
+    for strat in STRATEGIES:
+        src = translate(plan_from_brief(brief, strat))
+        assert "would be sealed" not in src, f"{strat.name}: a room ended up sealed"

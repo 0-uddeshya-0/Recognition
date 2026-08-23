@@ -19,6 +19,7 @@ you as a repair instruction — fix exactly what it names, nothing else.
   "adjacency": [{"a": "R-07", "b": "R-01", "via": "door"}],
   "circulation_id": "R-07",
   "storey_height_m": 2.5,
+  "storey_count": 1,
   "accessibility_tier": "none",
   "rationale": "one paragraph: the strategy and why this layout serves it"
 }
@@ -88,3 +89,16 @@ and washroom reachable without crossing the studio.
   not the same plan with ±10% areas.
 - `rationale` names the trade-off you made (e.g. "gave the hall 11 m² so both
   children's rooms reach the south wall").
+
+## Two storeys
+
+Set `storey_count: 2` and give every room a `"storey"` (0 = ground, 1 = upper).
+Rules the translator enforces — plan with them, not against them:
+
+- Bedrooms go upstairs; living, kitchen and work rooms stay on the ground floor.
+  The first bathroom serves the ground floor, the rest go up with the bedrooms.
+- Each storey needs its own hall (`Flur` / `Flur OG`) — the stair core is carved
+  from it and lands in the same position on both floors.
+- Adjacencies only connect rooms on the same storey; the stair is the vertical
+  connection and you never declare it.
+- The envelope is shared: size it for the busier floor, not the sum.

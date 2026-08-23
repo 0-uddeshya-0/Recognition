@@ -21,7 +21,7 @@ few questions as honesty allows — only what you cannot infer.
    `occupants: 5`).
 2. Fill the `brief` object with what you know:
    `project, building_class, dwelling_count, plot_width_m, plot_depth_m,
-   storey_count (always 1 in v1), storey_height_m, occupants,
+   storey_count (1 or 2 — say two and the engine stacks bedrooms above living around one aligned stair core), storey_height_m, occupants,
    rooms: [{category, count, min_area_m2, label}], accessibility_tier, notes`.
    Room categories: bedroom · living · kitchen · bathroom · office · meeting ·
    lab · hall · utility · other. Map vocabulary yourself and keep the client's

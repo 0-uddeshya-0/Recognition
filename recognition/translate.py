@@ -40,6 +40,7 @@ MIN_DOOR_WALL = 1.00  # a shared edge shorter than this cannot host a door
 # finished corridor measures ~1.10 m and fails the very rule it was sized for.
 CORRIDOR_CLEAR = 1.20
 CORRIDOR_MIN = CORRIDOR_CLEAR + 0.15
+MIN_STAIR_AREA = 4.0   # a straight flight plus its landing, at the low end
 
 
 def snap(v: float, grid: float = GRID) -> float:
@@ -158,11 +159,15 @@ def _shrink(free: Rect, row: list[float], scale: float) -> Rect:
 # Plan -> rectangles
 # --------------------------------------------------------------------------
 
-def layout(plan: ArchitectPlan) -> dict[str, Rect]:
-    """Assign every room an axis-aligned footprint inside the envelope.
+def layout(plan: ArchitectPlan, level: int = 0) -> dict[str, Rect]:
+    """Assign every room on one storey an axis-aligned footprint.
 
-    Circulation, if the plan names one, is laid out as a spine strip across the
-    interior so that every other room has a boundary to open a door onto.
+    Circulation, if that storey names one, is laid out as a spine strip across
+    the interior so every other room has a boundary to open a door onto. The
+    spine's position is a pure function of the envelope and the hall's area,
+    which is what lets a two-storey building stack: give both storeys a hall of
+    the same size and their spines -- and therefore the stair between them --
+    land in exactly the same place.
     """
     e = plan.envelope
     half = e.external_wall_m / 2.0
@@ -172,10 +177,15 @@ def layout(plan: ArchitectPlan) -> dict[str, Rect]:
             f"envelope {e.width_m} x {e.depth_m} m is smaller than its own external walls"
         )
 
-    rooms = list(plan.rooms)
+    rooms = [r for r in plan.rooms if r.storey == level]
+    if not rooms:
+        raise LayoutError(f"storey {level} has no rooms to lay out")
     rects: dict[str, Rect] = {}
 
-    spine = plan.circulation_id
+    on_level = {r.id for r in rooms}
+    spine = plan.circulation_id if plan.circulation_id in on_level else None
+    if spine is None:
+        spine = next((r.id for r in rooms if r.category == "hall"), None)
     if spine and len(rooms) > 1:
         hall = plan.room(spine)
         others = [r for r in rooms if r.id != spine]
@@ -195,6 +205,25 @@ def layout(plan: ArchitectPlan) -> dict[str, Rect]:
             rects[spine] = Rect(x, inner.y, depth, inner.h)
             bands = [Rect(inner.x, inner.y, x - inner.x, inner.h),
                      Rect(x + depth, inner.y, inner.x2 - (x + depth), inner.h)]
+
+        # The stair is carved out of one end of the spine rather than packed
+        # like a room. Both storeys compute it from the same envelope and the
+        # same hall area, so the two flights land exactly above each other --
+        # which is what makes the stack buildable instead of decorative.
+        stair = next((r for r in rooms if r.category == "stair"), None)
+        if stair is not None:
+            sp = rects[spine]
+            need = max(stair.target_area_m2, MIN_STAIR_AREA)
+            if sp.w >= sp.h:
+                w = min(max(need / sp.h, MIN_SIDE), sp.w * 0.45)
+                rects[stair.id] = Rect(sp.x2 - w, sp.y, w, sp.h)
+                rects[spine] = Rect(sp.x, sp.y, sp.w - w, sp.h)
+            else:
+                hh = min(max(need / sp.w, MIN_SIDE), sp.h * 0.45)
+                rects[stair.id] = Rect(sp.x, sp.y2 - hh, sp.w, hh)
+                rects[spine] = Rect(sp.x, sp.y, sp.w, sp.h - hh)
+            others = [r for r in others if r.id != stair.id]
+
         rects.update(_fill_bands(others, bands))
     else:
         for r, cell in zip(rooms, squarify([x.target_area_m2 for x in rooms], inner)):
@@ -203,6 +232,11 @@ def layout(plan: ArchitectPlan) -> dict[str, Rect]:
     out = {k: v.snapped() for k, v in rects.items()}
     _assert_sane(out, plan)
     return out
+
+
+def layout_all(plan: ArchitectPlan) -> list[dict[str, Rect]]:
+    """One footprint map per storey, ground floor first."""
+    return [layout(plan, level) for level in range(plan.storey_count)]
 
 
 def _fill_bands(rooms: list[RoomSpec], bands: list[Rect]) -> dict[str, Rect]:
@@ -348,8 +382,17 @@ not written by a language model. Change the plan, not this file.
 from recognition.design import House
 
 h = House({project!r})
-eg = h.storey({storey!r}, elevation=0.0, height={height})
 '''
+
+STOREY_NAMES = ("Erdgeschoss", "Obergeschoss")
+STOREY_VARS = ("eg", "og")
+
+# A window wider than this stops reading as a window and starts reading as a
+# curtain wall. Rooms that need more glazing get several windows instead of one
+# enormous one -- which is what a person would draw.
+MAX_WINDOW_W = 2.40
+MIN_WINDOW_W = 0.70
+WINDOW_GAP = 0.60
 
 
 def door_width(tier: str, external: bool) -> float:
@@ -361,37 +404,53 @@ def door_width(tier: str, external: bool) -> float:
     return 1.01 if external else 0.885
 
 
-def emit(plan: ArchitectPlan, rects: dict[str, Rect], walls: list[WallSeg]) -> str:
+def emit(plan: ArchitectPlan, rects_by_level: list[dict[str, Rect]],
+         walls_by_level: list[list[WallSeg]]) -> str:
     """Render the DSL source. Pure string building -- no model, no randomness."""
     slug = plan.project.lower().replace(" ", "-")
-    lines = [HEADER.format(project=plan.project, slug=slug,
-                           storey=plan.storey_name, height=plan.storey_height_m)]
+    lines = [HEADER.format(project=plan.project, slug=slug)]
+    e = plan.envelope
+    tier = plan.accessibility_tier
 
-    lines.append("\n# --- walls: external envelope, then partitions between rooms ---")
-    for w in walls:
+    for level in range(plan.storey_count):
+        var = STOREY_VARS[level]
+        name = STOREY_NAMES[level] if level < len(STOREY_NAMES) else f"Geschoss {level}"
+        rects = rects_by_level[level]
+        walls = walls_by_level[level]
+        rooms = [r for r in plan.rooms if r.storey == level]
+        elevation = round(level * plan.storey_height_m, 3)
+
+        lines.append(f"\n# ═══ {name} ═══")
         lines.append(
-            f"eg.wall({w.name!r}, ({snap(w.start[0])}, {snap(w.start[1])}), "
-            f"({snap(w.end[0])}, {snap(w.end[1])}), thickness={w.thickness}"
-            + (", external=True)" if w.external else ")")
+            f"{var} = h.storey({name!r}, elevation={elevation}, height={plan.storey_height_m})"
         )
 
-    lines.append("\n# --- rooms: floor outlines inset to the inside face of their walls ---")
-    e = plan.envelope
-    for r in plan.rooms:
-        rect = rects[r.id]
-        inset = _inset(rect, plan, e)
-        pts = ", ".join(f"({snap(x)}, {snap(y)})" for x, y in inset.polygon())
-        lines.append(f"eg.room({r.label!r}, [{pts}])   # {r.id} {rect.area:.1f} m2 target {r.target_area_m2:.1f}")
+        lines.append(f"\n# --- {name}: walls ---")
+        for w in walls:
+            lines.append(
+                f"{var}.wall({w.name!r}, ({snap(w.start[0])}, {snap(w.start[1])}), "
+                f"({snap(w.end[0])}, {snap(w.end[1])}), thickness={w.thickness}"
+                + (", external=True)" if w.external else ")")
+            )
 
-    tier = plan.accessibility_tier
-    # One ledger of occupied wall runs, shared by every opening: doors claim
-    # first (the entrance above all), windows route around what is taken.
-    occupied: dict[str, list[tuple[float, float]]] = {}
-    lines.append("\n# --- doors: one per adjacency declared in the plan ---")
-    lines.extend(_emit_doors(plan, rects, walls, tier, occupied))
+        lines.append(f"\n# --- {name}: rooms, inset to the inside face of their walls ---")
+        for r in rooms:
+            rect = rects[r.id]
+            inset = _inset(rect, plan, e)
+            pts = ", ".join(f"({snap(x)}, {snap(y)})" for x, y in inset.polygon())
+            lines.append(
+                f"{var}.room({r.label!r}, [{pts}])   # {r.id} {rect.area:.1f} m2 "
+                f"target {r.target_area_m2:.1f}"
+            )
 
-    lines.append("\n# --- windows: sized to the daylight rule, on exterior walls ---")
-    lines.extend(_emit_windows(plan, rects, walls, occupied))
+        # One ledger of occupied wall runs per storey: doors claim first (the
+        # entrance above all), windows route around whatever is taken.
+        occupied: dict[str, list[tuple[float, float]]] = {}
+        lines.append(f"\n# --- {name}: doors ---")
+        lines.extend(_emit_doors(plan, rects, walls, tier, occupied, level, var))
+
+        lines.append(f"\n# --- {name}: windows, sized to the daylight rule ---")
+        lines.extend(_emit_windows(plan, rects, walls, occupied, level, var))
 
     if plan.todo_agent:
         lines.append("\n# --- constructs the translator cannot express ---")
@@ -415,24 +474,17 @@ def _inset(rect: Rect, plan: ArchitectPlan, e) -> Rect:
                 rect.w - left - right, rect.h - bottom - top)
 
 
-def _nearest_neighbour(room_id: str, rects: dict[str, Rect], exclude: set[str]
-                       ) -> tuple[str, tuple | None]:
-    """The neighbour sharing the longest usable wall with `room_id`.
-
-    Longest wins because a wider shared boundary is the more natural place to
-    hang a door, and because it is a stable, deterministic choice.
-    """
-    best_id, best_edge, best_len = "", None, 0.0
-    for other in rects:
-        if other == room_id or other in exclude:
-            continue
-        edge = shared_edge(rects[other], rects[room_id])
-        if edge is None:
-            continue
-        _axis, _coord, lo, hi = edge
-        if hi - lo > best_len:
-            best_id, best_edge, best_len = other, edge, hi - lo
-    return best_id, best_edge
+def neighbours(rects: dict[str, Rect]) -> dict[str, dict[str, tuple]]:
+    """Which rooms share a wall long enough to hold a door, and where."""
+    out: dict[str, dict[str, tuple]] = {rid: {} for rid in rects}
+    ids = sorted(rects)
+    for i, a in enumerate(ids):
+        for b in ids[i + 1:]:
+            edge = shared_edge(rects[a], rects[b])
+            if edge:
+                out[a][b] = edge
+                out[b][a] = edge
+    return out
 
 
 def _place(occupied: dict[str, list[tuple[float, float]]], wall_name: str,
@@ -444,10 +496,7 @@ def _place(occupied: dict[str, list[tuple[float, float]]], wall_name: str,
 
     Openings must never overlap -- a door punched through a window is the kind
     of geometry a model can emit and a person would never draw, and exactly
-    what this deterministic layer exists to prevent. Every placed opening
-    reserves its interval (plus clearance); later openings on the same wall
-    shift along their room's segment to the nearest clear position, shrink if
-    they may (windows), or report failure (doors keep their normative width).
+    what this deterministic layer exists to prevent.
     """
     lo, hi = min(seg_lo, seg_hi) + margin, max(seg_lo, seg_hi) - margin
     if hi - lo < min_width:
@@ -477,8 +526,7 @@ def _place(occupied: dict[str, list[tuple[float, float]]], wall_name: str,
     if best is None and allow_shrink and gaps:
         g_lo, g_hi = max(gaps, key=lambda g: g[1] - g[0])
         if g_hi - g_lo >= min_width:
-            w = g_hi - g_lo
-            best = (0.0, (g_lo + g_hi) / 2, w)
+            best = (0.0, (g_lo + g_hi) / 2, g_hi - g_lo)
     if best is None:
         return None
     _score, at, width = best
@@ -486,48 +534,36 @@ def _place(occupied: dict[str, list[tuple[float, float]]], wall_name: str,
     return at, width
 
 
+def _door_line(var, tag, wall, at, width, note):
+    return (f"{var}.door({tag!r}, on={wall.name!r}, at={snap(at)}, "
+            f"width={width}, height=2.05)   # {note}")
+
+
 def _emit_doors(plan, rects, walls, tier,
-                occupied: dict[str, list[tuple[float, float]]]) -> list[str]:
+                occupied: dict[str, list[tuple[float, float]]],
+                level: int, var: str) -> list[str]:
+    """Doors for one storey, then a reachability repair pass.
+
+    The plan declares which rooms should connect, but the packer does not
+    guarantee those rooms actually touch. Emitting only the declared doors is
+    how a room ends up reachable solely through another room -- or not at all.
+    So after the declared doors are placed, the door graph is walked from the
+    way in, and anything stranded gets a door onto a room that is already
+    reachable. A building where you cannot get to a room is not a building.
+    """
     out: list[str] = []
-    # The entrance goes first so every later opening on the south wall routes
-    # around it -- it is the one opening whose position a person expects.
-    ext = next((w for w in walls if w.name == "EXT-S"), None)
-    if ext is not None:
-        w_ext = door_width(tier, external=True)
-        spot = _place(occupied, "EXT-S", 0.0, ext.length, ext.length / 2, w_ext,
-                      allow_shrink=False)
-        if spot is not None:
-            at, _w = spot
-            out.append(
-                f"eg.door('D-00', on='EXT-S', at={snap(at)}, "
-                f"width={w_ext}, height=2.10, "
-                f"external=True, type_name='Eingangstuer')"
-            )
+    nb = neighbours(rects)
+    linked: dict[str, set[str]] = {rid: set() for rid in rects}
     n = 0
-    served: set[str] = set()
-    for adj in plan.adjacency:
-        if adj.via != "door":
-            continue
-        edge = shared_edge(rects[adj.a], rects[adj.b])
-        partner = adj.a
-        if edge is None:
-            # The packer does not guarantee that a room touches the one the plan
-            # paired it with -- squarify can seat it behind a sibling. Rather
-            # than leave the room sealed, open it onto whichever neighbour it
-            # actually shares a wall with. The plan's intent (this room is
-            # reachable) is honoured even though its literal pairing is not.
-            partner, edge = _nearest_neighbour(adj.b, rects, exclude={adj.b})
-        if edge is None:
-            out.append(f"# TODO_AGENT: room {adj.b} shares no wall long enough for a door "
-                       f"with any neighbour; it would be sealed")
-            continue
-        served.add(adj.b)
-        served.add(partner)
+
+    def place_between(a: str, b: str, tag_no: int) -> bool:
+        edge = nb.get(a, {}).get(b)
+        if not edge:
+            return False
         axis, coord, lo, hi = edge
         wall = _wall_for(walls, axis, coord, lo, hi)
         if wall is None:
-            out.append(f"# TODO_AGENT: no wall found between {adj.a} and {adj.b}")
-            continue
+            return False
         p_lo = (coord, lo) if axis == "x" else (lo, coord)
         p_hi = (coord, hi) if axis == "x" else (hi, coord)
         seg_lo, seg_hi = _offset_along(wall, p_lo), _offset_along(wall, p_hi)
@@ -535,30 +571,112 @@ def _emit_doors(plan, rects, walls, tier,
         spot = _place(occupied, wall.name, seg_lo, seg_hi,
                       (seg_lo + seg_hi) / 2, w, allow_shrink=False)
         if spot is None:
-            out.append(f"# TODO_AGENT: no clear run for a door between {partner} and "
-                       f"{adj.b} on {wall.name}; the wall is already fully occupied")
-            continue
+            return False
         at, _w = spot
+        out.append(_door_line(var, f"D-{level}{tag_no:02d}", wall, at, w, f"{a} <-> {b}"))
+        linked[a].add(b)
+        linked[b].add(a)
+        return True
+
+    # The way in: an entrance on the south wall of the ground floor. It is
+    # placed first so every later opening on that wall routes around it.
+    entry_room = None
+    if level == 0:
+        ext = next((w for w in walls if w.name == "EXT-S"), None)
+        if ext is not None:
+            w_ext = door_width(tier, external=True)
+            spot = _place(occupied, "EXT-S", 0.0, ext.length, ext.length / 2, w_ext,
+                          allow_shrink=False)
+            if spot is not None:
+                at, _w = spot
+                out.append(
+                    f"{var}.door('D-000', on='EXT-S', at={snap(at)}, "
+                    f"width={w_ext}, height=2.10, "
+                    f"external=True, type_name='Eingangstuer')"
+                )
+                # whichever room the entrance actually opens into
+                half = plan.envelope.external_wall_m / 2.0
+                entry_room = next(
+                    (rid for rid, r in rects.items()
+                     if abs(r.y - half) < 0.05 and r.x - 0.05 <= at <= r.x2 + 0.05),
+                    None,
+                )
+    if entry_room is None:
+        # upper storeys start at the stair; a hall is the next best root
+        entry_room = next((r.id for r in plan.rooms
+                           if r.storey == level and r.category == "stair"), None)
+        if entry_room is None:
+            entry_room = next((r.id for r in plan.rooms
+                               if r.storey == level and r.category == "hall"), None)
+    if entry_room is None and rects:
+        entry_room = sorted(rects)[0]
+
+    # 1 · the doors the plan asked for
+    for adj in plan.adjacency:
+        if adj.via != "door":
+            continue
+        if adj.a not in rects or adj.b not in rects:
+            continue          # a pairing across storeys; the stair carries that
+        if adj.b in linked[adj.a]:
+            continue
         n += 1
-        tag = f"D-{n:02d}"
-        note = f"{partner} <-> {adj.b}"
-        if partner != adj.a:
-            note += f"  (plan asked for {adj.a}; rerouted to the neighbour it touches)"
-        out.append(
-            f"eg.door({tag!r}, on={wall.name!r}, at={snap(at)}, "
-            f"width={w}, height=2.05)   # {note}"
+        if not place_between(adj.a, adj.b, n):
+            n -= 1
+
+    # 2 · reachability repair — everything must be reachable from the way in
+    reachable = set()
+    stack = [entry_room] if entry_room else []
+    while stack:
+        cur = stack.pop()
+        if cur in reachable:
+            continue
+        reachable.add(cur)
+        stack.extend(linked[cur] - reachable)
+
+    stranded = [r for r in sorted(rects) if r not in reachable]
+    for rid in stranded:
+        # prefer a door onto circulation, then onto any already-reachable room
+        options = sorted(
+            (o for o in nb[rid] if o in reachable),
+            key=lambda o: (0 if _category(plan, o) in ("hall", "stair") else 1,
+                           -(nb[rid][o][3] - nb[rid][o][2])),
         )
+        placed = False
+        for other in options:
+            n += 1
+            if place_between(rid, other, n):
+                out.append(f"# reachability: {rid} had no way in; opened onto {other}")
+                placed = True
+                reachable.add(rid)
+                stack = [rid]
+                while stack:
+                    cur = stack.pop()
+                    for nxt in linked[cur] - reachable:
+                        reachable.add(nxt)
+                        stack.append(nxt)
+                break
+            n -= 1
+        if not placed:
+            out.append(f"# TODO_AGENT: room {rid} shares no wall long enough for a door "
+                       f"with any reachable room; it would be sealed")
     return out
 
 
+def _category(plan, room_id: str) -> str:
+    for r in plan.rooms:
+        if r.id == room_id:
+            return r.category
+    return "other"
+
+
 def _emit_windows(plan, rects, walls,
-                  occupied: dict[str, list[tuple[float, float]]]) -> list[str]:
-    """Size each habitable room's glazing to satisfy the daylight ratio.
+                  occupied: dict[str, list[tuple[float, float]]],
+                  level: int, var: str) -> list[str]:
+    """Glazing for one storey, sized to the daylight ratio and split sensibly.
 
     The ratio comes from the plan (BayBO Art. 45 (2) = 1/8), never from a
-    model. Placement routes around every opening already on the wall -- the
-    entrance door above all -- and falls back to the room's next exterior
-    side before giving up.
+    model. A room needing more glass than one sane window can carry gets
+    several evenly spaced windows rather than one twenty-metre slot.
     """
     from .contracts import HABITABLE
     out: list[str] = []
@@ -567,10 +685,10 @@ def _emit_windows(plan, rects, walls,
     tol = 0.02
     n = 0
     for r in plan.rooms:
-        if r.category not in HABITABLE:
+        if r.storey != level or r.category not in HABITABLE:
             continue
         rect = rects[r.id]
-        sides = []   # (name, run, edge endpoints in plane coords)
+        sides = []
         if abs(rect.y - half) < tol:
             sides.append(("EXT-S", rect.w, (rect.x, rect.y), (rect.x2, rect.y)))
         if abs(rect.y2 - (e.depth_m - half)) < tol:
@@ -583,50 +701,52 @@ def _emit_windows(plan, rects, walls,
             out.append(f"# TODO_AGENT: room {r.id} ({r.label}) has no exterior wall, "
                        f"so it cannot meet the daylight rule; move it to the perimeter")
             continue
+
         need = rect.area * plan.glazing_ratio          # m2 of opening required
-        # A window must fit inside its wall: sill 0.90 plus glass plus a lintel
-        # margin can never exceed the storey. (An 1.80 m pane over a 0.90 m
-        # sill in a 2.50 m storey pokes out of the building -- geometry a
-        # person would never draw.)
         sill = 0.90
         h_max = max(0.80, plan.storey_height_m - sill - 0.05)
-        placed = False
+        height = min(1.40, h_max)
+        got = 0.0
+        # widest wall first, then the next one if the first cannot carry it all
         for name, run, p_a, p_b in sorted(sides, key=lambda s: -s[1]):
+            if got >= need - 1e-6:
+                break
             wall = next((w for w in walls if w.name == name), None)
             if wall is None:
                 continue
-            height = min(1.40, h_max)
-            width = min(max(need / height, 0.60), run - 0.60)
-            if width <= 0.60:
-                height = h_max
-                width = min(max(need / height, 0.60), max(run - 0.60, 0.60))
             seg_lo, seg_hi = _offset_along(wall, p_a), _offset_along(wall, p_b)
-            spot = _place(occupied, name, seg_lo, seg_hi,
-                          (seg_lo + seg_hi) / 2, width, margin=0.30)
-            if spot is None:
-                continue
-            at, got_w = spot
-            if got_w < width - 1e-6:
-                # Narrowed to clear a neighbouring opening: buy the area back
-                # with height while the storey allows. If it still falls
-                # short, the verifier will say so -- never hide the deficit.
-                height = round(min(h_max, max(height, need / got_w)), 2)
-            n += 1
-            tag = f"F-{n:02d}"
-            note = f"{r.id} needs {need:.2f} m2"
-            if got_w * height < need - 1e-6:
-                note += f"  (short: {got_w * height:.2f} m2 is all this wall can carry)"
-            elif got_w < width - 1e-6:
-                note += f"  (narrowed to {got_w:.2f} m, height raised to {height} m to keep the area)"
-            out.append(
-                f"eg.window({tag!r}, on={name!r}, at={snap(at)}, "
-                f"width={snap(got_w)}, height={height}, sill={sill})   # {note}"
-            )
-            placed = True
-            break
-        if not placed:
+            lo, hi = min(seg_lo, seg_hi), max(seg_lo, seg_hi)
+            span = hi - lo
+            remaining = need - got
+            # how many windows this wall should carry, at a width a person
+            # would actually draw
+            count = max(1, math.ceil(remaining / (MAX_WINDOW_W * height)))
+            count = min(count, max(1, int((span - WINDOW_GAP) // (MIN_WINDOW_W + WINDOW_GAP))))
+            width = max(MIN_WINDOW_W, min(MAX_WINDOW_W, remaining / (count * height)))
+            slot = span / count
+            for k in range(count):
+                if got >= need - 1e-6:
+                    break
+                centre = lo + slot * (k + 0.5)
+                spot = _place(occupied, name, lo, hi, centre, width, margin=0.30)
+                if spot is None:
+                    continue
+                at, got_w = spot
+                if got_w < MIN_WINDOW_W - 1e-6:
+                    continue
+                n += 1
+                got += got_w * height
+                out.append(
+                    f"{var}.window({f'F-{level}{n:02d}'!r}, on={name!r}, at={snap(at)}, "
+                    f"width={snap(got_w)}, height={height}, sill={sill})   "
+                    f"# {r.id} needs {need:.2f} m2"
+                )
+        if got <= 0:
             out.append(f"# TODO_AGENT: no clear exterior run for a window in {r.id} "
                        f"({r.label}); every reachable wall is fully occupied")
+        elif got < need - 1e-6:
+            out.append(f"#   {r.id}: {got:.2f} m2 of {need:.2f} m2 placed — the verifier "
+                       f"will report the shortfall rather than hide it")
     return out
 
 
@@ -638,19 +758,17 @@ MAX_FIT_ATTEMPTS = 6
 FIT_STEP = 0.06          # grow the envelope 6% per attempt
 
 
-def fit(plan: ArchitectPlan) -> tuple[ArchitectPlan, dict[str, Rect], int]:
-    """Lay the plan out, growing the envelope until every room is habitable.
+def fit(plan: ArchitectPlan) -> tuple[ArchitectPlan, list[dict[str, Rect]], int]:
+    """Lay every storey out, growing the envelope until the rooms are habitable.
 
-    Room areas in an ArchitectPlan are *targets*, and the envelope is the
-    architect's estimate. When a small room packs into an unusable sliver the
-    honest response is a slightly larger building, not a 1.05 m wide utility
-    room -- so the envelope grows by a fixed step and the layout is retried.
-
-    Deterministic: same plan in, same envelope out. Returns the adjusted plan,
-    the footprints, and how many enlargements it took (0 means it fitted as
-    designed), so the run log can report that the building grew.
+    Room areas are targets and the envelope is an estimate. When a small room
+    packs into an unusable sliver the honest response is a slightly larger
+    building, not a 1.05 m wide utility room -- so the envelope grows by a
+    fixed step and the layout is retried. Deterministic: same plan in, same
+    envelope out.
     """
     import copy
+    last: Exception | None = None
     for attempt in range(MAX_FIT_ATTEMPTS):
         trial = plan if attempt == 0 else copy.deepcopy(plan)
         if attempt:
@@ -658,7 +776,7 @@ def fit(plan: ArchitectPlan) -> tuple[ArchitectPlan, dict[str, Rect], int]:
             trial.envelope.width_m = round(plan.envelope.width_m * grow, 2)
             trial.envelope.depth_m = round(plan.envelope.depth_m * grow, 2)
         try:
-            return trial, layout(trial), attempt
+            return trial, layout_all(trial), attempt
         except LayoutError as e:
             last = e
     raise LayoutError(
@@ -669,9 +787,9 @@ def fit(plan: ArchitectPlan) -> tuple[ArchitectPlan, dict[str, Rect], int]:
 def translate(plan: ArchitectPlan) -> str:
     """The whole L3 step: validated plan in, DSL source out. No tokens spent."""
     plan.validate()
-    fitted, rects, _ = fit(plan)
-    walls = build_walls(fitted, rects)
-    return emit(fitted, rects, walls)
+    fitted, rects_by_level, _ = fit(plan)
+    walls_by_level = [build_walls(fitted, rects) for rects in rects_by_level]
+    return emit(fitted, rects_by_level, walls_by_level)
 
 
 def translate_to_file(plan: ArchitectPlan, path: str | Path) -> Path:

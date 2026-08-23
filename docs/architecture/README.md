@@ -330,7 +330,7 @@ in the drawing.
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| **Floor-packing is the hard part** — adjacency graph → sensible rectangular layout is a real algorithmic problem | high | Constrain v1 to rectangular single-storey envelopes on an orthogonal grid. Let the Architect propose the bay structure rather than solving general packing. |
+| **Floor-packing is the hard part** — adjacency graph → sensible rectangular layout is a real algorithmic problem | high | Constrain v1 to rectangular envelopes (one or two storeys, laid out per floor) on an orthogonal grid. Let the Architect propose the bay structure rather than solving general packing. |
 | **Legal exposure** — anything resembling a compliance certificate invites reliance | high | Tiers, citations, declared blind spots, and a persistent line on every sheet: a design aid, not a *Prüfstatiker*. Never the word "certified". |
 | **Actions latency** — minutes per iteration is poor for a design conversation | medium | L3/L4/L5 are seconds locally; run them in-process for edits, reserve Actions for Devin work. |
 | **Ruleset drift** — a stale citation is worse than none | medium | `retrieved:` on every rule; scheduled job flags citations older than 12 months. |
@@ -339,8 +339,10 @@ in the drawing.
 
 ### Still open
 
-- **Multi-storey.** v1 is single-storey. Stairs, vertical circulation and floor alignment are
-  a genuine second problem, not an increment.
+- ~~**Multi-storey.**~~ Solved for two storeys: bedrooms stack above living around a stair
+  core carved from the hall at the same coordinates on both floors, each storey lays out
+  and validates independently, and a reachability pass guarantees every room has a door
+  path to the entrance. Three-plus storeys (lifts, fire staircases) remain open.
 - **Who is the client?** An architect wants DXF/IFC and control; a homeowner wants pictures
   and a price. The four UI states lean professional.
 - **Cost model.** The €1,400 / €2,100 / €600 estimates in the options view need a real rate

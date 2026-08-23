@@ -32,7 +32,7 @@ What the client wants, in typed slots. Produced by the interview; the only input
   "programme": {
     "building_class": "detached_house",   // enum
     "dwelling_count": 1,                  // BLOCKING — triggers BayBO Art. 48 above 2
-    "storey_count": 1,                    // BLOCKING
+    "storey_count": 1,                    // BLOCKING — 1 or 2; at 2 the engine stacks
     "occupants": 4,
     "rooms": [                            // categories from recognition/model.py
       { "category": "bedroom",  "count": 2, "min_area_m2": null },
