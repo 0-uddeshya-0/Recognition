@@ -1,0 +1,197 @@
+{
+  "message": "Four people, noted — two bedrooms, open kitchen-living and one bathroom on the 18 × 24 m plot, single storey at 2.50 m. That's everything I need; the brief is sealed and going to the design step. I've assumed one home, no barrier-free requirement, and standard minimum room sizes — say the word if any of that is off.",
+  "brief": {
+    "notes": "A small weekend house for four people — two bedrooms, an open kitchen with the living room, one bathroom.",
+    "rooms": [
+      {
+        "count": 2,
+        "label": "bedroom",
+        "category": "bedroom",
+        "min_area_m2": 12
+      },
+      {
+        "count": 1,
+        "label": "living room (open to kitchen)",
+        "category": "living",
+        "min_area_m2": 20
+      },
+      {
+        "count": 1,
+        "label": "open kitchen",
+        "category": "kitchen",
+        "min_area_m2": 8
+      },
+      {
+        "count": 1,
+        "label": "bathroom",
+        "category": "bathroom",
+        "min_area_m2": 6
+      }
+    ],
+    "project": "Neubau",
+    "occupants": 4,
+    "bundesland": "BY",
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 1,
+    "building_class": "detached_house",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "none"
+  },
+  "questions": [],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "A weekend house for one household — one home, in plain words.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "Single storey — the only option in this version.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Comfortable ceiling height with room for floor and ceiling build-up, above the Bavarian minimum of 2.40 m.",
+      "value": 2.5,
+      "confidence": "medium"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "One single-storey home with no barrier-free need mentioned.",
+      "value": "none",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[bedroom].min_area_m2",
+      "basis": "Typical comfortable double bedroom for four occupants across two rooms.",
+      "value": 12,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[living].min_area_m2",
+      "basis": "Open living area shared with the kitchen, sized for four people.",
+      "value": 20,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[kitchen].min_area_m2",
+      "basis": "Open kitchen zone within the living space.",
+      "value": 8,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[bathroom].min_area_m2",
+      "basis": "Single bathroom with shower, WC and basin.",
+      "value": 6,
+      "confidence": "medium"
+    }
+  ],
+  "done": true,
+  "sealed_brief": {
+    "project": "Neubau",
+    "bundesland": "BY",
+    "building_class": "detached_house",
+    "plot_width_m": 18,
+    "plot_depth_m": 24,
+    "dwelling_count": 1,
+    "storey_count": 1,
+    "storey_height_m": 2.5,
+    "occupants": 4,
+    "rooms": [
+      {
+        "category": "bedroom",
+        "count": 2,
+        "min_area_m2": 12,
+        "label": "bedroom"
+      },
+      {
+        "category": "living",
+        "count": 1,
+        "min_area_m2": 20,
+        "label": "living room (open to kitchen)"
+      },
+      {
+        "category": "kitchen",
+        "count": 1,
+        "min_area_m2": 8,
+        "label": "open kitchen"
+      },
+      {
+        "category": "bathroom",
+        "count": 1,
+        "min_area_m2": 6,
+        "label": "bathroom"
+      }
+    ],
+    "accessibility_tier": "none",
+    "assumptions": [
+      {
+        "slot": "dwelling_count",
+        "value": 1,
+        "basis": "A weekend house for one household — one home, in plain words.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_count",
+        "value": 1,
+        "basis": "Single storey — the only option in this version.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_height_m",
+        "value": 2.5,
+        "basis": "Comfortable ceiling height with room for floor and ceiling build-up, above the Bavarian minimum of 2.40 m.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "accessibility_tier",
+        "value": "none",
+        "basis": "One single-storey home with no barrier-free need mentioned.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[bedroom].min_area_m2",
+        "value": 12,
+        "basis": "Typical comfortable double bedroom for four occupants across two rooms.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[living].min_area_m2",
+        "value": 20,
+        "basis": "Open living area shared with the kitchen, sized for four people.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[kitchen].min_area_m2",
+        "value": 8,
+        "basis": "Open kitchen zone within the living space.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[bathroom].min_area_m2",
+        "value": 6,
+        "basis": "Single bathroom with shower, WC and basin.",
+        "confidence": "medium",
+        "confirmed": false
+      }
+    ],
+    "notes": "A small weekend house for four people — two bedrooms, an open kitchen with the living room, one bathroom.",
+    "schema": "designbrief/v1"
+  },
+  "contract_error": "",
+  "session_id": "devin-e3f8acb15265482a84a588a22a2e7b95",
+  "session_url": "https://app.devin.ai/sessions/e3f8acb15265482a84a588a22a2e7b95",
+  "round": 2,
+  "engine": "devin"
+}
