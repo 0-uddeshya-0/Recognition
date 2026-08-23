@@ -1,0 +1,184 @@
+{
+  "message": "Noted — I'll widen the window beside the door and keep the rest as drawn. Everything else I need for this weekend house is in hand, so I'll seal the brief and redraft with the larger window.",
+  "brief": {
+    "notes": "A small weekend house — two bedrooms, an open kitchen with the living room, one bathroom. Enlarge the window next to the entrance door. Linear frontage layout chosen.",
+    "rooms": [
+      {
+        "count": 2,
+        "label": "bedroom",
+        "category": "bedroom",
+        "min_area_m2": 10
+      },
+      {
+        "count": 1,
+        "label": "open living room with kitchen",
+        "category": "living",
+        "min_area_m2": 20
+      },
+      {
+        "count": 1,
+        "label": "open kitchen",
+        "category": "kitchen",
+        "min_area_m2": 8
+      },
+      {
+        "count": 1,
+        "label": "bathroom",
+        "category": "bathroom",
+        "min_area_m2": 5
+      }
+    ],
+    "project": "Neubau",
+    "occupants": 2,
+    "bundesland": "BY",
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 1,
+    "building_class": "detached_house",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "none"
+  },
+  "questions": [],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "A single detached weekend house — the client's words describe one home.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "occupants",
+      "basis": "Weekend house with two bedrooms and one bathroom — sized for a couple plus occasional guests; tell me if it's more.",
+      "value": 2,
+      "confidence": "low"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Standard clear ceiling height with floor build-up allowance.",
+      "value": 2.5,
+      "confidence": "medium"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "Single storey — the only option in this version.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "Single-home weekend house with no barrier-free request.",
+      "value": "none",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms.min_area_m2",
+      "basis": "Comfortable minimums for a small weekend house; easy to raise if you want more room.",
+      "value": "bedroom 10 m², living 20 m², kitchen 8 m², bathroom 5 m²",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms.living+kitchen",
+      "basis": "Client asked for an open kitchen with the living room.",
+      "value": "kitchen counted separately but placed open to the living room",
+      "confidence": "high"
+    }
+  ],
+  "done": true,
+  "sealed_brief": {
+    "project": "Neubau",
+    "bundesland": "BY",
+    "building_class": "detached_house",
+    "plot_width_m": 18,
+    "plot_depth_m": 24,
+    "dwelling_count": 1,
+    "storey_count": 1,
+    "storey_height_m": 2.5,
+    "occupants": 2,
+    "rooms": [
+      {
+        "category": "bedroom",
+        "count": 2,
+        "min_area_m2": 10,
+        "label": "bedroom"
+      },
+      {
+        "category": "living",
+        "count": 1,
+        "min_area_m2": 20,
+        "label": "open living room with kitchen"
+      },
+      {
+        "category": "kitchen",
+        "count": 1,
+        "min_area_m2": 8,
+        "label": "open kitchen"
+      },
+      {
+        "category": "bathroom",
+        "count": 1,
+        "min_area_m2": 5,
+        "label": "bathroom"
+      }
+    ],
+    "accessibility_tier": "none",
+    "assumptions": [
+      {
+        "slot": "dwelling_count",
+        "value": 1,
+        "basis": "A single detached weekend house — the client's words describe one home.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "occupants",
+        "value": 2,
+        "basis": "Weekend house with two bedrooms and one bathroom — sized for a couple plus occasional guests; tell me if it's more.",
+        "confidence": "low",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_height_m",
+        "value": 2.5,
+        "basis": "Standard clear ceiling height with floor build-up allowance.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_count",
+        "value": 1,
+        "basis": "Single storey — the only option in this version.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "accessibility_tier",
+        "value": "none",
+        "basis": "Single-home weekend house with no barrier-free request.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.min_area_m2",
+        "value": "bedroom 10 m², living 20 m², kitchen 8 m², bathroom 5 m²",
+        "basis": "Comfortable minimums for a small weekend house; easy to raise if you want more room.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.living+kitchen",
+        "value": "kitchen counted separately but placed open to the living room",
+        "basis": "Client asked for an open kitchen with the living room.",
+        "confidence": "high",
+        "confirmed": false
+      }
+    ],
+    "notes": "A small weekend house — two bedrooms, an open kitchen with the living room, one bathroom. Enlarge the window next to the entrance door. Linear frontage layout chosen.",
+    "schema": "designbrief/v1"
+  },
+  "contract_error": "",
+  "session_id": "devin-46d60b6a75974a568cc50ad4129b4314",
+  "session_url": "https://app.devin.ai/sessions/46d60b6a75974a568cc50ad4129b4314",
+  "round": 1,
+  "engine": "devin"
+}
