@@ -1378,9 +1378,20 @@ function closePop() { $("connect-pop").classList.add("hide"); $("connect").setAt
 
 async function refreshConnect() {
   const b = $("connect");
-  if (!GH.on) { b.textContent = "Connect"; b.dataset.on = ""; return; }
+  if (!GH.on) {
+    // a demo key (or a relay) means the page is live even with no personal
+    // token — say so, or the pill reads as "nothing works here"
+    const live = !!demoKey || !!TRIGGER_URL;
+    b.textContent = live ? "Live" : "Connect";
+    b.dataset.on = live ? "1" : "";
+    b.title = live
+      ? "A restricted key is active — it can only start this repository's workflows"
+      : "Add a token to start runs from this page";
+    return;
+  }
   b.dataset.on = "1";
   b.textContent = "Connected";
+  b.title = "Your own GitHub token is in use";
   try {
     const me = await GH.api("/user");
     if (me?.login) b.textContent = me.login;
