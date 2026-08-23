@@ -1,0 +1,27 @@
+deploy the cloudflare worker so the plain URL works
+
+---
+
+REDACTED
+
+---
+
+update the docs and readme with all this, then create a canva based pitch deck for me, which looks advanced, has all the information it should have and should be able to convey everything within 3 minutes. The pitch deck design should be impeccable, proper element placement, UI should be appropriate and high quality. And then write an advertisement video generation prompt for a video generation model to advertise our product with proper branding and the video needs to be high quality, no sloppyness, and should be able to show how DevinAI as an architect excels in such a industry, showcasing wide spectrum of capabilities and much more, i mean you know how an advertisement video should be.
+
+"Project Name *
+
+Short Description (max 300 chars)
+
+0/300
+Pitch Deck *
+Click to upload pitch deck
+Accepted formats: .pdf,.pptx
+GitHub Repository *
+Verify
+0-uddeshya-0/Recognition verified
+Entire session history detected.
+Your repository can be public or private. If private, invite "ehl-gg" as a collaborator on GitHub.
+Live Demo
+
+Tech Stack (comma-separated)
+" Answer these questions too for me.
