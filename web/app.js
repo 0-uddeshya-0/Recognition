@@ -41,19 +41,46 @@ function detectRepo() {
   return "0-uddeshya-0/Recognition";
 }
 
-/* The demo key: a deliberately public, Actions-only credential (it can start
-   workflow runs on this one repository and nothing else — no code, no
-   branches, no secrets, no reads). It is what makes the page seamless for
-   every visitor. A personal token from Connect takes precedence. */
-const DEMO_KEY = (typeof window !== "undefined" && window.RECOGNITION_CONFIG?.demoKey) || "";
+/* The demo key: a deliberately weak, Actions-only credential (it can start
+   workflow runs on this one repository and nothing else). It must NOT live
+   in the repository — GitHub auto-revokes its own tokens the moment they
+   appear in public code, which is exactly what killed the first one. It
+   arrives through the URL fragment instead (…/#k=github_pat_…): the fragment
+   never reaches any server and never enters git; the page stores it locally
+   and cleans the address bar. A personal token from Connect takes precedence,
+   and a configured relay (config.triggerUrl) needs no key here at all. */
+(() => {
+  const m = location.hash.match(/[#&]k=([A-Za-z0-9_]{20,})/);
+  if (m) {
+    localStorage.setItem("recognition.demo_key", m[1]);
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+})();
+let demoKey = localStorage.getItem("recognition.demo_key")
+  || (typeof window !== "undefined" && window.RECOGNITION_CONFIG?.demoKey) || "";
+const TRIGGER_URL = (typeof window !== "undefined" && window.RECOGNITION_CONFIG?.triggerUrl) || "";
+
+/* A 401 means a credential is revoked or wrong; keeping it would poison every
+   request (this page must degrade, never break). Drop it, say so, move on. */
+function dropDeadKey() {
+  if (GH.token) {
+    GH.token = "";
+    toast("Your saved GitHub token was rejected and has been forgotten.");
+  } else if (demoKey) {
+    demoKey = "";
+    localStorage.removeItem("recognition.demo_key");
+    toast("The demo key was rejected — continuing without it.");
+  }
+  try { refreshConnect(); } catch { /* pre-boot */ }
+}
 
 const GH = {
   repo: detectRepo(),
   get token() { return localStorage.getItem("recognition.gh_token") || ""; },
   set token(v) { v ? localStorage.setItem("recognition.gh_token", v) : localStorage.removeItem("recognition.gh_token"); },
   get on() { return !!this.token; },
-  get authToken() { return this.token || DEMO_KEY; },
-  get canDispatch() { return !!this.authToken; },
+  get authToken() { return this.token || demoKey; },
+  get canDispatch() { return !!this.authToken || !!TRIGGER_URL; },
   get pollMs() { return this.authToken ? 5000 : 12000; },
 
   async api(path, opts = {}) {
@@ -63,16 +90,32 @@ const GH = {
       ...(opts.headers || {}),
     };
     if (this.authToken) headers.Authorization = `Bearer ${this.authToken}`;
-    const r = await fetch(`https://api.github.com${path}`, { ...opts, headers });
+    let r = await fetch(`https://api.github.com${path}`, { ...opts, headers });
+    if (r.status === 401 && this.authToken) {
+      dropDeadKey();
+      delete headers.Authorization;
+      if (this.authToken) headers.Authorization = `Bearer ${this.authToken}`;
+      r = await fetch(`https://api.github.com${path}`, { ...opts, headers });
+    }
     if (r.status === 404) return null;
     if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 140)}`);
     return r.status === 204 ? true : r.json();
   },
 
   /* One trigger path for every credential: workflow_dispatch needs only
-     Actions:write — exactly all the demo key has. */
-  workflowDispatch(file, inputs) {
-    return fetch(`https://api.github.com/repos/${this.repo}/actions/workflows/${file}/dispatches`, {
+     Actions:write — exactly all the demo key has. A configured relay
+     (config.triggerUrl) holds the token server-side instead. */
+  async workflowDispatch(file, inputs) {
+    if (TRIGGER_URL && !this.token) {
+      const r = await fetch(TRIGGER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workflow: file, inputs }),
+      });
+      if (!r.ok) throw new Error(`relay ${r.status}: ${(await r.text()).slice(0, 140)}`);
+      return true;
+    }
+    const call = () => fetch(`https://api.github.com/repos/${this.repo}/actions/workflows/${file}/dispatches`, {
       method: "POST",
       headers: {
         Accept: "application/vnd.github+json",
@@ -80,10 +123,15 @@ const GH = {
         "X-GitHub-Api-Version": "2022-11-28",
       },
       body: JSON.stringify({ ref: "main", inputs }),
-    }).then(async (r) => {
-      if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 140)}`);
-      return true;
     });
+    let r = await call();
+    if (r.status === 401) {
+      dropDeadKey();
+      if (!this.authToken) throw new Error("the key was revoked — reopen the page from a link with a fresh #k=… key");
+      r = await call();
+    }
+    if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 140)}`);
+    return true;
   },
 
   /* Relay reads. The CDN mirror is free but can lag ~a minute; the API is
