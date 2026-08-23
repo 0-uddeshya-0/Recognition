@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0PXVPRKWXDYWZ501PEAMBY3",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".agents/skills/architect-plan/SKILL.md",
+    ".agents/skills/interview-brief/SKILL.md",
+    "docs/architecture/README.md",
+    "docs/architecture/contracts.md",
+    "recognition/autopilot.py",
+    "recognition/bundle.py",
+    "recognition/contracts.py",
+    "recognition/interview.py",
+    "recognition/translate.py",
+    "tests/test_autonomy.py",
+    "tests/test_interview.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1116,
+    "cache_creation_tokens": 3380937,
+    "cache_read_tokens": 338823272,
+    "output_tokens": 675859,
+    "api_call_count": 558
+  }
+}

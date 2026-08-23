@@ -1,0 +1,119 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0PXVPRKWXDYWZ501PEAMBY3",
+  "session_id": "e1963796-abea-4113-8ab7-5c3f547ef184",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-23T09:05:13.272953Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".agents/skills/architect-plan/SKILL.md",
+    ".agents/skills/interview-brief/SKILL.md",
+    "docs/architecture/README.md",
+    "docs/architecture/contracts.md",
+    "recognition/autopilot.py",
+    "recognition/bundle.py",
+    "recognition/contracts.py",
+    "recognition/interview.py",
+    "recognition/translate.py",
+    "tests/test_autonomy.py",
+    "tests/test_interview.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-fable-5",
+  "turn_id": "01db66523209",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 1116,
+    "cache_creation_tokens": 3380937,
+    "cache_read_tokens": 338823272,
+    "output_tokens": 675859,
+    "api_call_count": 558
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01MfhFNhXm82eWSm3ybosViV",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "hallmark"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "01db66523209",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 233,
+        "end": 234,
+        "entry_ids": [
+          "15ac593e-2fea-4772-8493-8c7ea0b7415c"
+        ],
+        "tool_use_id": "toolu_01MfhFNhXm82eWSm3ybosViV"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01MfhFNhXm82eWSm3ybosViV"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: hallmark",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_016ZmfFDdA3Sfd8fop8MHRgU",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "ui-ux-pro-max"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "01db66523209",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 240,
+        "end": 241,
+        "entry_ids": [
+          "97ce8889-57c1-4961-bd09-a6be0c39d22e"
+        ],
+        "tool_use_id": "toolu_016ZmfFDdA3Sfd8fop8MHRgU"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_016ZmfFDdA3Sfd8fop8MHRgU"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: ui-ux-pro-max",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "initial_attribution": {
+    "calculated_at": "2026-08-23T09:05:12.77174Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 345,
+    "human_modified": 201,
+    "human_removed": 0,
+    "total_committed": 345,
+    "total_lines_changed": 546,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
