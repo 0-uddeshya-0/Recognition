@@ -1,0 +1,98 @@
+{
+  "message": "A small weekend house with two bedrooms and an open kitchen-living — got it, and I've taken it as a single home on your 18 × 24 m plot. Two quick things: how many people should it comfortably sleep, and do you want any extras like a utility room, terrace or storage? Anything else I should know is welcome too.",
+  "brief": {
+    "notes": "A small weekend house — two bedrooms, an open kitchen with the living room, one bathroom.",
+    "rooms": [
+      {
+        "count": 2,
+        "label": "bedroom",
+        "category": "bedroom"
+      },
+      {
+        "count": 1,
+        "label": "open kitchen",
+        "category": "kitchen"
+      },
+      {
+        "count": 1,
+        "label": "living room",
+        "category": "living"
+      },
+      {
+        "count": 1,
+        "label": "bathroom",
+        "category": "bathroom"
+      }
+    ],
+    "project": "Neubau",
+    "occupants": null,
+    "bundesland": "BY",
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 1,
+    "building_class": "detached_house",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "none"
+  },
+  "questions": [
+    {
+      "id": "occupants",
+      "kind": "number",
+      "unit": "people",
+      "blocking": false,
+      "question": "How many people should the house comfortably sleep?"
+    },
+    {
+      "id": "extra_rooms",
+      "kind": "multi",
+      "options": [
+        "utility",
+        "office",
+        "hall",
+        "other"
+      ],
+      "blocking": false,
+      "question": "Any extras you'd like alongside the four rooms?"
+    },
+    {
+      "id": "anything_else",
+      "kind": "free",
+      "blocking": false,
+      "question": "Anything else we should know about how you'll use the house?"
+    }
+  ],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "A weekend house for one household — one home, in plain words.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "Single-storey single home, no barrier-free need mentioned.",
+      "value": "none",
+      "confidence": "medium"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "Single storey — the only option in this version.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Comfortable ceiling height with room for floor and ceiling build-up.",
+      "value": 2.5,
+      "confidence": "medium"
+    }
+  ],
+  "done": false,
+  "sealed_brief": null,
+  "contract_error": "",
+  "session_id": "devin-e3f8acb15265482a84a588a22a2e7b95",
+  "session_url": "https://app.devin.ai/sessions/e3f8acb15265482a84a588a22a2e7b95",
+  "round": 1,
+  "engine": "devin"
+}
