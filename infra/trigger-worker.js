@@ -62,6 +62,11 @@ export default {
         body: JSON.stringify({ ref: "main", inputs: inputs || {} }),
       },
     );
-    return new Response(r.ok ? "ok" : await r.text(), { status: r.status, headers });
+    // GitHub answers a successful dispatch with 204 No Content, and a 204
+    // Response MUST carry a null body — echoing its status with a body of
+    // "ok" throws inside the worker (and returns a 1101 to the page). Answer
+    // a plain 200 instead; failures pass their status and body straight on.
+    if (r.ok) return new Response("ok", { status: 200, headers });
+    return new Response(await r.text(), { status: r.status, headers });
   },
 };

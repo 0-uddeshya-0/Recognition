@@ -18,5 +18,9 @@
  */
 window.RECOGNITION_CONFIG = {
   demoKey: "",
-  triggerUrl: "",
+  // Live relay: infra/trigger-worker.js on Cloudflare. It holds the GitHub
+  // trigger token as a Worker secret, so this page carries no key at all and
+  // the plain URL is seamless for everyone. Only allow-listed workflows on
+  // the one configured repository can be started through it.
+  triggerUrl: "https://recognition-trigger.uddeshya.workers.dev",
 };
