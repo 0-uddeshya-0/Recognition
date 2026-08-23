@@ -82,6 +82,37 @@
         "label": "Skill: ui-ux-pro-max",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01NXU3QExutv8G4vLZuLeFjw",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "anthropic-skills:pptx"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "c69f04aab96d",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 3199,
+        "end": 3200,
+        "entry_ids": [
+          "67713abd-734e-4be4-bf3d-831722507e94"
+        ],
+        "tool_use_id": "toolu_01NXU3QExutv8G4vLZuLeFjw"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01NXU3QExutv8G4vLZuLeFjw"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: anthropic-skills:pptx",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
