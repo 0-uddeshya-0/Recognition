@@ -410,6 +410,24 @@ function parseUtterance(text) {
     got.push(["plot", `${plot[1]} × ${plot[2]} m`]);
   }
 
+  // "the living room at least 30 m²" / "a 20 m² kitchen" — a size pinned to
+  // a named room becomes that room's minimum, which is what makes feedback
+  // like "bigger living room" an actual change instead of a sentiment.
+  const AREA = "(\\d{1,4})\\s*(?:m2|m²|sqm|square met(?:er|re)s?|quadratmet\\w*)";
+  for (const [pat, cat] of CAT_WORDS) {
+    const after = new RegExp(`(?:${pat.source})\\D{0,28}?${AREA}`, "i");
+    const before = new RegExp(`${AREA}\\s*(?:of\\s+)?(?:${pat.source})`, "i");
+    const m = t.match(after) || t.match(before);
+    if (m) {
+      const a = Math.min(+m[1], 500);
+      if (a >= 4) {
+        roomAreas[cat] = a;
+        rooms[cat] = rooms[cat] || 1;
+        got.push([cat, `\u2265${a} m\u00b2`]);
+      }
+    }
+  }
+
   // a bare floor area — for warehouses and big rooms: "about 300 m² of floor"
   const floor = t.match(/(\d{2,5})\s*(?:m2|m²|sqm|square met|quadratmet)/);
   if (floor && (workClass === "warehouse" || Chat.awaitingFloor)) {
@@ -434,8 +452,8 @@ function parseUtterance(text) {
   // American spelling are how people actually write this.
   const st = t.match(new RegExp(`${numPat}[\\s-]+(?:stor(?:e?y|e?ys|ies)|floors?|geschoss(?:e|ig)?|stockwerke?|etagen)`));
   let storeysAsked = st ? wordNum(st[1]) : null;
-  if (storeysAsked == null && /zweigeschossig|two[\\s-]?stor(?:e?y|ies)|duplex level/.test(t)) storeysAsked = 2;
-  if (storeysAsked == null && /single[\\s-]?stor(?:e?y|ey|y)|one[\\s-]?stor(?:e?y|y)|eingeschossig|bungalow/.test(t)) storeysAsked = 1;
+  if (storeysAsked == null && /zweigeschossig|two[\s-]?stor(?:e?y|ies)|duplex level/.test(t)) storeysAsked = 2;
+  if (storeysAsked == null && /single[\s-]?stor(?:e?y|ey|y)|one[\s-]?stor(?:e?y|y)|eingeschossig|bungalow/.test(t)) storeysAsked = 1;
 
   const name = text.match(/(?:for the|für(?: die)?(?: Familie)?|for)\s+([A-ZÄÖÜ][a-zA-Zäöüß]+)(?:\s+family|\s+familie)?/);
   if (name && /family|familie|Familie/.test(text)) {
