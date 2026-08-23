@@ -1,0 +1,105 @@
+{
+  "recognition_version": "0.1.0",
+  "revision": "7bd2ddb",
+  "model": "model.ifc",
+  "schema": "IFC4",
+  "project": "Neubau",
+  "counts": {
+    "storeys": 1,
+    "walls": 15,
+    "spaces": 7,
+    "doors": 7,
+    "windows": 2
+  },
+  "compliance": {
+    "status": "PASS",
+    "checks": 33,
+    "passed": 33,
+    "errors": 0,
+    "warnings": 0,
+    "by_rule": {
+      "ROOM-CLEAR-HEIGHT": {
+        "checked": 2,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum clear height of habitable rooms"
+      },
+      "ROOM-DAYLIGHT": {
+        "checked": 2,
+        "failed": 0,
+        "severity": "error",
+        "title": "Glazing area as a share of net floor area"
+      },
+      "DWELLING-FACILITIES": {
+        "checked": 2,
+        "failed": 0,
+        "severity": "error",
+        "title": "Every dwelling has a kitchen, a bathroom and a WC"
+      },
+      "DOOR-MIN-WIDTH": {
+        "checked": 7,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum door leaf width"
+      },
+      "DOOR-MIN-HEIGHT": {
+        "checked": 7,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum door clear height"
+      },
+      "CORRIDOR-WIDTH": {
+        "checked": 1,
+        "failed": 0,
+        "severity": "error",
+        "title": "Clear corridor width with a turning area"
+      },
+      "MOVEMENT-AREA": {
+        "checked": 3,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Movement area within each room"
+      },
+      "ROOM-MIN-AREA": {
+        "checked": 3,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Typical floor areas for habitable rooms"
+      },
+      "ROOM-MIN-WIDTH": {
+        "checked": 1,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Typical clear width of habitable rooms"
+      },
+      "ROOM-HAS-DOOR": {
+        "checked": 5,
+        "failed": 0,
+        "severity": "error",
+        "title": "Every room must be reachable through a door"
+      }
+    }
+  },
+  "schedules": {
+    "rooms": 7,
+    "doors": 7,
+    "windows": 2
+  },
+  "sheets": [
+    {
+      "sheet": "A-101",
+      "storey": "Erdgeschoss",
+      "svg": "A-101_Erdgeschoss.svg",
+      "pdf": "A-101_Erdgeschoss.pdf",
+      "png": "A-101_Erdgeschoss.png",
+      "dxf": "A-101_Erdgeschoss.dxf"
+    }
+  ],
+  "files": {
+    "schedules": "schedules/",
+    "report_md": "report.md",
+    "report_json": "report.json",
+    "enriched_ifc": "model.detailed.ifc",
+    "sheets": "sheets/"
+  }
+}

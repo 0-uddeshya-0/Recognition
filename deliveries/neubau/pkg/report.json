@@ -1,0 +1,471 @@
+{
+  "ruleset": "Bayern residential",
+  "version": "1.0",
+  "model": "model.ifc",
+  "summary": {
+    "checks": 33,
+    "passed": 33,
+    "errors": 0,
+    "warnings": 0,
+    "by_rule": {
+      "ROOM-CLEAR-HEIGHT": {
+        "checked": 2,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum clear height of habitable rooms"
+      },
+      "ROOM-DAYLIGHT": {
+        "checked": 2,
+        "failed": 0,
+        "severity": "error",
+        "title": "Glazing area as a share of net floor area"
+      },
+      "DWELLING-FACILITIES": {
+        "checked": 2,
+        "failed": 0,
+        "severity": "error",
+        "title": "Every dwelling has a kitchen, a bathroom and a WC"
+      },
+      "DOOR-MIN-WIDTH": {
+        "checked": 7,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum door leaf width"
+      },
+      "DOOR-MIN-HEIGHT": {
+        "checked": 7,
+        "failed": 0,
+        "severity": "error",
+        "title": "Minimum door clear height"
+      },
+      "CORRIDOR-WIDTH": {
+        "checked": 1,
+        "failed": 0,
+        "severity": "error",
+        "title": "Clear corridor width with a turning area"
+      },
+      "MOVEMENT-AREA": {
+        "checked": 3,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Movement area within each room"
+      },
+      "ROOM-MIN-AREA": {
+        "checked": 3,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Typical floor areas for habitable rooms"
+      },
+      "ROOM-MIN-WIDTH": {
+        "checked": 1,
+        "failed": 0,
+        "severity": "warning",
+        "title": "Typical clear width of habitable rooms"
+      },
+      "ROOM-HAS-DOOR": {
+        "checked": 5,
+        "failed": 0,
+        "severity": "error",
+        "title": "Every room must be reachable through a door"
+      }
+    }
+  },
+  "results": [
+    {
+      "rule_id": "ROOM-CLEAR-HEIGHT",
+      "severity": "error",
+      "title": "Minimum clear height of habitable rooms",
+      "element_tag": "R-03",
+      "element_name": "Küche",
+      "storey": "Erdgeschoss",
+      "value": 2.5,
+      "limit": 2.4,
+      "passed": true,
+      "message": "Küche: clear height 2.50 m ≥ 2.4 m"
+    },
+    {
+      "rule_id": "ROOM-CLEAR-HEIGHT",
+      "severity": "error",
+      "title": "Minimum clear height of habitable rooms",
+      "element_tag": "R-02",
+      "element_name": "Büro",
+      "storey": "Erdgeschoss",
+      "value": 2.5,
+      "limit": 2.4,
+      "passed": true,
+      "message": "Büro: clear height 2.50 m ≥ 2.4 m"
+    },
+    {
+      "rule_id": "ROOM-DAYLIGHT",
+      "severity": "error",
+      "title": "Glazing area as a share of net floor area",
+      "element_tag": "R-03",
+      "element_name": "Küche",
+      "storey": "Erdgeschoss",
+      "value": 0.139,
+      "limit": 0.125,
+      "passed": true,
+      "message": "Küche: glazing 14% of floor area ≥ 12%"
+    },
+    {
+      "rule_id": "ROOM-DAYLIGHT",
+      "severity": "error",
+      "title": "Glazing area as a share of net floor area",
+      "element_tag": "R-02",
+      "element_name": "Büro",
+      "storey": "Erdgeschoss",
+      "value": 0.132,
+      "limit": 0.125,
+      "passed": true,
+      "message": "Büro: glazing 13% of floor area ≥ 12%"
+    },
+    {
+      "rule_id": "DWELLING-FACILITIES",
+      "severity": "error",
+      "title": "Every dwelling has a kitchen, a bathroom and a WC",
+      "element_tag": "R-01",
+      "element_name": "Bad",
+      "storey": "Erdgeschoss",
+      "value": null,
+      "limit": null,
+      "passed": true,
+      "message": "dwelling has a kitchen"
+    },
+    {
+      "rule_id": "DWELLING-FACILITIES",
+      "severity": "error",
+      "title": "Every dwelling has a kitchen, a bathroom and a WC",
+      "element_tag": "R-01",
+      "element_name": "Bad",
+      "storey": "Erdgeschoss",
+      "value": null,
+      "limit": null,
+      "passed": true,
+      "message": "dwelling has a bathroom"
+    },
+    {
+      "rule_id": "DOOR-MIN-WIDTH",
+      "severity": "error",
+      "title": "Minimum door leaf width",
+      "element_tag": "D-01",
+      "element_name": "D-00",
+      "storey": "Erdgeschoss",
+      "value": 0.9,
+      "limit": 0.9,
+      "passed": true,
+      "message": "D-01 D-00: leaf width 0.900 m ≥ 0.9 m (external)"
+    },
+    {
+      "rule_id": "DOOR-MIN-WIDTH",
+      "severity": "error",
+      "title": "Minimum door leaf width",
+      "element_tag": "D-03",
+      "element_name": "D-01",
+      "storey": "Erdgeschoss",
+      "value": 0.8,
+      "limit": 0.8,
+      "passed": true,
+      "message": "D-03 D-01: leaf width 0.800 m ≥ 0.8 m (interior)"
+    },
+    {
+      "rule_id": "DOOR-MIN-WIDTH",
+      "severity": "error",
+      "title": "Minimum door leaf width",
+      "element_tag": "D-04",
+      "element_name": "D-02",
+      "storey": "Erdgeschoss",
+      "value": 0.8,
+      "limit": 0.8,
+      "passed": true,
+      "message": "D-04 D-02: leaf width 0.800 m ≥ 0.8 m (interior)"
+    },
+    {
+      "rule_id": "DOOR-MIN-WIDTH",
+      "severity": "error",
+      "title": "Minimum door leaf width",
+      "element_tag": "D-02",
+      "element_name": "D-03",
+      "storey": "Erdgeschoss",
+      "value": 0.8,
+      "limit": 0.8,
+      "passed": true,
+      "message": "D-02 D-03: leaf width 0.800 m ≥ 0.8 m (interior)"
+    },
+    {
+      "rule_id": "DOOR-MIN-WIDTH",
+      "severity": "error",
+      "title": "Minimum door leaf width",
+      "element_tag": "D-05",
+      "element_name": "D-04",
+      "storey": "Erdgeschoss",
+      "value": 0.8,
+      "limit": 0.8,
+      "passed": true,
+      "message": "D-05 D-04: leaf width 0.800 m ≥ 0.8 m (interior)"
+    },
+    {
+      "rule_id": "DOOR-MIN-WIDTH",
+      "severity": "error",
+      "title": "Minimum door leaf width",
+      "element_tag": "D-07",
+      "element_name": "D-05",
+      "storey": "Erdgeschoss",
+      "value": 0.8,
+      "limit": 0.8,
+      "passed": true,
+      "message": "D-07 D-05: leaf width 0.800 m ≥ 0.8 m (interior)"
+    },
+    {
+      "rule_id": "DOOR-MIN-WIDTH",
+      "severity": "error",
+      "title": "Minimum door leaf width",
+      "element_tag": "D-06",
+      "element_name": "D-06",
+      "storey": "Erdgeschoss",
+      "value": 0.8,
+      "limit": 0.8,
+      "passed": true,
+      "message": "D-06 D-06: leaf width 0.800 m ≥ 0.8 m (interior)"
+    },
+    {
+      "rule_id": "DOOR-MIN-HEIGHT",
+      "severity": "error",
+      "title": "Minimum door clear height",
+      "element_tag": "D-01",
+      "element_name": "D-00",
+      "storey": "Erdgeschoss",
+      "value": 2.1,
+      "limit": 2.05,
+      "passed": true,
+      "message": "D-01 D-00: height 2.100 m ≥ 2.05 m"
+    },
+    {
+      "rule_id": "DOOR-MIN-HEIGHT",
+      "severity": "error",
+      "title": "Minimum door clear height",
+      "element_tag": "D-03",
+      "element_name": "D-01",
+      "storey": "Erdgeschoss",
+      "value": 2.05,
+      "limit": 2.05,
+      "passed": true,
+      "message": "D-03 D-01: height 2.050 m ≥ 2.05 m"
+    },
+    {
+      "rule_id": "DOOR-MIN-HEIGHT",
+      "severity": "error",
+      "title": "Minimum door clear height",
+      "element_tag": "D-04",
+      "element_name": "D-02",
+      "storey": "Erdgeschoss",
+      "value": 2.05,
+      "limit": 2.05,
+      "passed": true,
+      "message": "D-04 D-02: height 2.050 m ≥ 2.05 m"
+    },
+    {
+      "rule_id": "DOOR-MIN-HEIGHT",
+      "severity": "error",
+      "title": "Minimum door clear height",
+      "element_tag": "D-02",
+      "element_name": "D-03",
+      "storey": "Erdgeschoss",
+      "value": 2.05,
+      "limit": 2.05,
+      "passed": true,
+      "message": "D-02 D-03: height 2.050 m ≥ 2.05 m"
+    },
+    {
+      "rule_id": "DOOR-MIN-HEIGHT",
+      "severity": "error",
+      "title": "Minimum door clear height",
+      "element_tag": "D-05",
+      "element_name": "D-04",
+      "storey": "Erdgeschoss",
+      "value": 2.05,
+      "limit": 2.05,
+      "passed": true,
+      "message": "D-05 D-04: height 2.050 m ≥ 2.05 m"
+    },
+    {
+      "rule_id": "DOOR-MIN-HEIGHT",
+      "severity": "error",
+      "title": "Minimum door clear height",
+      "element_tag": "D-07",
+      "element_name": "D-05",
+      "storey": "Erdgeschoss",
+      "value": 2.05,
+      "limit": 2.05,
+      "passed": true,
+      "message": "D-07 D-05: height 2.050 m ≥ 2.05 m"
+    },
+    {
+      "rule_id": "DOOR-MIN-HEIGHT",
+      "severity": "error",
+      "title": "Minimum door clear height",
+      "element_tag": "D-06",
+      "element_name": "D-06",
+      "storey": "Erdgeschoss",
+      "value": 2.05,
+      "limit": 2.05,
+      "passed": true,
+      "message": "D-06 D-06: height 2.050 m ≥ 2.05 m"
+    },
+    {
+      "rule_id": "CORRIDOR-WIDTH",
+      "severity": "error",
+      "title": "Clear corridor width with a turning area",
+      "element_tag": "R-05",
+      "element_name": "Flur",
+      "storey": "Erdgeschoss",
+      "value": 3.3,
+      "limit": 1.2,
+      "passed": true,
+      "message": "Flur: corridor width 3.30 m ≥ 1.2 m"
+    },
+    {
+      "rule_id": "MOVEMENT-AREA",
+      "severity": "warning",
+      "title": "Movement area within each room",
+      "element_tag": "R-01",
+      "element_name": "Bad",
+      "storey": "Erdgeschoss",
+      "value": 2.1,
+      "limit": 1.2,
+      "passed": true,
+      "message": "Bad: narrowest side 2.10 m ≥ 1.2 m (approximation — no furniture layout in the model)"
+    },
+    {
+      "rule_id": "MOVEMENT-AREA",
+      "severity": "warning",
+      "title": "Movement area within each room",
+      "element_tag": "R-03",
+      "element_name": "Küche",
+      "storey": "Erdgeschoss",
+      "value": 3.35,
+      "limit": 1.2,
+      "passed": true,
+      "message": "Küche: narrowest side 3.35 m ≥ 1.2 m (approximation — no furniture layout in the model)"
+    },
+    {
+      "rule_id": "MOVEMENT-AREA",
+      "severity": "warning",
+      "title": "Movement area within each room",
+      "element_tag": "R-02",
+      "element_name": "Büro",
+      "storey": "Erdgeschoss",
+      "value": 7.4,
+      "limit": 1.2,
+      "passed": true,
+      "message": "Büro: narrowest side 7.40 m ≥ 1.2 m (approximation — no furniture layout in the model)"
+    },
+    {
+      "rule_id": "ROOM-MIN-AREA",
+      "severity": "warning",
+      "title": "Typical floor areas for habitable rooms",
+      "element_tag": "R-01",
+      "element_name": "Bad",
+      "storey": "Erdgeschoss",
+      "value": 8.82,
+      "limit": 4.0,
+      "passed": true,
+      "message": "Bad: 8.82 m² ≥ 4.0 m² required for bathroom"
+    },
+    {
+      "rule_id": "ROOM-MIN-AREA",
+      "severity": "warning",
+      "title": "Typical floor areas for habitable rooms",
+      "element_tag": "R-03",
+      "element_name": "Küche",
+      "storey": "Erdgeschoss",
+      "value": 14.07,
+      "limit": 6.0,
+      "passed": true,
+      "message": "Küche: 14.07 m² ≥ 6.0 m² required for kitchen"
+    },
+    {
+      "rule_id": "ROOM-MIN-AREA",
+      "severity": "warning",
+      "title": "Typical floor areas for habitable rooms",
+      "element_tag": "R-02",
+      "element_name": "Büro",
+      "storey": "Erdgeschoss",
+      "value": 74.37,
+      "limit": 8.0,
+      "passed": true,
+      "message": "Büro: 74.37 m² ≥ 8.0 m² required for office"
+    },
+    {
+      "rule_id": "ROOM-MIN-WIDTH",
+      "severity": "warning",
+      "title": "Typical clear width of habitable rooms",
+      "element_tag": "R-03",
+      "element_name": "Küche",
+      "storey": "Erdgeschoss",
+      "value": 3.35,
+      "limit": 1.8,
+      "passed": true,
+      "message": "Küche: clear width 3.35 m ≥ 1.8 m for kitchen"
+    },
+    {
+      "rule_id": "ROOM-HAS-DOOR",
+      "severity": "error",
+      "title": "Every room must be reachable through a door",
+      "element_tag": "R-01",
+      "element_name": "Bad",
+      "storey": "Erdgeschoss",
+      "value": null,
+      "limit": null,
+      "passed": true,
+      "message": "Bad: has a door"
+    },
+    {
+      "rule_id": "ROOM-HAS-DOOR",
+      "severity": "error",
+      "title": "Every room must be reachable through a door",
+      "element_tag": "R-03",
+      "element_name": "Küche",
+      "storey": "Erdgeschoss",
+      "value": null,
+      "limit": null,
+      "passed": true,
+      "message": "Küche: has a door"
+    },
+    {
+      "rule_id": "ROOM-HAS-DOOR",
+      "severity": "error",
+      "title": "Every room must be reachable through a door",
+      "element_tag": "R-04",
+      "element_name": "Besprechung",
+      "storey": "Erdgeschoss",
+      "value": null,
+      "limit": null,
+      "passed": true,
+      "message": "Besprechung: has a door"
+    },
+    {
+      "rule_id": "ROOM-HAS-DOOR",
+      "severity": "error",
+      "title": "Every room must be reachable through a door",
+      "element_tag": "R-02",
+      "element_name": "Büro",
+      "storey": "Erdgeschoss",
+      "value": null,
+      "limit": null,
+      "passed": true,
+      "message": "Büro: has a door"
+    },
+    {
+      "rule_id": "ROOM-HAS-DOOR",
+      "severity": "error",
+      "title": "Every room must be reachable through a door",
+      "element_tag": "R-06",
+      "element_name": "HWR",
+      "storey": "Erdgeschoss",
+      "value": null,
+      "limit": null,
+      "passed": true,
+      "message": "HWR: has a door"
+    }
+  ]
+}

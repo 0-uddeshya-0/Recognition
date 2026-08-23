@@ -1,0 +1,76 @@
+{
+  "candidate": "generous",
+  "ok": false,
+  "checked": 33,
+  "passed": 30,
+  "failed": 3,
+  "not_evaluated": 2,
+  "blocking_failures": 3,
+  "advisory_failures": 0,
+  "findings": [
+    {
+      "rule_id": "ROOM-DAYLIGHT",
+      "tier": "law",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-03 Küche",
+      "message": "Küche: glazing 0% of floor area < 12%",
+      "citation": "BayBO Art. 45 (2)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-45",
+      "blocking": true
+    },
+    {
+      "rule_id": "ROOM-DAYLIGHT",
+      "tier": "law",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-01 Büro",
+      "message": "Büro: glazing 12% of floor area < 12%",
+      "citation": "BayBO Art. 45 (2)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-45",
+      "blocking": true
+    },
+    {
+      "rule_id": "CORRIDOR-WIDTH",
+      "tier": "standard",
+      "severity": "error",
+      "status": "failed",
+      "element": "R-02 Flur",
+      "message": "Flur: corridor width 1.15 m < 1.2 m",
+      "citation": "DIN 18040-2",
+      "url": "https://www.weka.de/architekten-ingenieure/din-18040-2/",
+      "blocking": true
+    },
+    {
+      "rule_id": "SMOKE-DETECTOR",
+      "tier": "law",
+      "severity": "error",
+      "status": "not_evaluated",
+      "element": "-",
+      "message": "The model carries no smoke-detector data. Reported as NOT EVALUATED rather than passed. Resolve by enriching the model or by collecting a declaration in the brief.",
+      "citation": "BayBO Art. 46 (4)",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayBO-46",
+      "blocking": false
+    },
+    {
+      "rule_id": "THRESHOLD",
+      "tier": "standard",
+      "severity": "error",
+      "status": "not_evaluated",
+      "element": "-",
+      "message": "Threshold heights are not represented in the model. Reported as NOT EVALUATED.",
+      "citation": "DIN 18040-2",
+      "url": "https://nullbarriere.de/din18040-2-tueren.htm",
+      "blocking": false
+    }
+  ],
+  "metrics": {
+    "envelope_m2": 189.0,
+    "room_area_m2": 165.12,
+    "usable_ratio": 0.7921,
+    "circulation_m2": 15.41,
+    "openings": 8,
+    "rooms": 7
+  },
+  "error": ""
+}

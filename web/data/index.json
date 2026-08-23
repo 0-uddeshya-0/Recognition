@@ -43,6 +43,17 @@
       "checked": 57,
       "not_evaluated": 2,
       "failed": 0
+    },
+    {
+      "key": "neubau",
+      "project": "Neubau",
+      "winner": "open",
+      "engine": "local",
+      "candidates": 4,
+      "ok": true,
+      "checked": 33,
+      "not_evaluated": 2,
+      "failed": 0
     }
   ]
 }

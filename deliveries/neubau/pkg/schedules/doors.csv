@@ -1,0 +1,8 @@
+tag,storey,name,type,width_m,height_m,external,connects
+D-01,Erdgeschoss,D-00,Eingangstuer,0.9,2.1,yes,R-02
+D-02,Erdgeschoss,D-03,,0.8,2.05,no,R-02 / R-01
+D-03,Erdgeschoss,D-01,,0.8,2.05,no,R-01 / R-03
+D-04,Erdgeschoss,D-02,,0.8,2.05,no,R-04 / R-03
+D-05,Erdgeschoss,D-04,,0.8,2.05,no,R-02 / R-05
+D-06,Erdgeschoss,D-06,,0.8,2.05,no,R-02 / R-07
+D-07,Erdgeschoss,D-05,,0.8,2.05,no,R-06 / R-05

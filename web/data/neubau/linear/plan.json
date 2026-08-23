@@ -1,0 +1,100 @@
+{
+  "project": "Neubau",
+  "envelope": {
+    "width_m": 16.5,
+    "depth_m": 9.5,
+    "external_wall_m": 0.3,
+    "internal_wall_m": 0.15
+  },
+  "rooms": [
+    {
+      "id": "R-01",
+      "category": "bathroom",
+      "label": "Bad",
+      "target_area_m2": 8.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-02",
+      "category": "kitchen",
+      "label": "Küche",
+      "target_area_m2": 12.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-03",
+      "category": "meeting",
+      "label": "Besprechung",
+      "target_area_m2": 18.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-04",
+      "category": "office",
+      "label": "Büro",
+      "target_area_m2": 60.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-05",
+      "category": "hall",
+      "label": "Flur",
+      "target_area_m2": 10.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-06",
+      "category": "utility",
+      "label": "HWR",
+      "target_area_m2": 6.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-07",
+      "category": "stair",
+      "label": "Stair",
+      "target_area_m2": 12.0,
+      "exterior_wall": true
+    }
+  ],
+  "adjacency": [
+    {
+      "a": "R-05",
+      "b": "R-01",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-02",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-03",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-04",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-06",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-07",
+      "via": "door"
+    }
+  ],
+  "storey_name": "Erdgeschoss",
+  "storey_height_m": 2.5,
+  "circulation_id": "R-05",
+  "glazing_ratio": 0.125,
+  "accessibility_tier": "din18040_2",
+  "rationale": "Linear frontage: Wider, shallower envelope. Every habitable room reaches an exterior wall, which makes the daylight rule easy to satisfy.",
+  "todo_agent": [],
+  "schema": "architectplan/v1"
+}
