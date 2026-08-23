@@ -32,11 +32,12 @@
   <div class="connect-wrap">
     <button id="connect" class="glass-pill" type="button" aria-haspopup="dialog" aria-expanded="false">Connect</button>
     <div id="connect-pop" class="pop hide" role="dialog" aria-label="Connect GitHub">
-      <h3>Trigger runs from this page</h3>
-      <p class="mini">A GitHub token lets the page start drafts and Devin sessions directly.
-        It stays in this browser and goes only to <code>api.github.com</code>. Without one,
-        everything still works — the page hands you each trigger command and follows the run live.</p>
-      <label class="visually-hidden" for="gh-token">Fine-grained token, Contents read &amp; write</label>
+      <h3>Use your own token</h3>
+      <p class="mini">This page ships a restricted demo key (it can only start this repo's
+        workflows — no code, no secrets), so everything already works. A personal
+        fine-grained token (Actions&nbsp;+&nbsp;Contents on this repo) makes polling faster.
+        It stays in this browser and goes only to <code>api.github.com</code>.</p>
+      <label class="visually-hidden" for="gh-token">Fine-grained token, Actions and Contents</label>
       <input id="gh-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
       <div class="pop-row">
         <button id="gh-save" class="pill primary sm" type="button">Connect</button>
@@ -74,25 +75,28 @@
     <p class="mini" style="text-align:center; margin-top:14px">Tap a sheet to inspect it — pick one to build it in 3D, or keep talking and I'll redraft.</p>
   </section>
 
-  <!-- 4 · the model -->
+  <!-- 4 · the model — takes on top, 3D centre, the chosen 2D right below -->
   <section id="st-detail" class="st hide">
-    <div class="detail">
-      <div class="glass viewer">
-        <div id="v3-host"></div>
-        <div id="v3-wait" class="v3-wait">building the model…</div>
-        <div id="hoverchip" class="hoverchip hide"></div>
-        <div class="viewer-foot">
-          <span id="detail-name"></span>
-          <span id="detail-metrics" class="mono"></span>
-        </div>
-      </div>
-      <aside class="detail-side">
+    <div id="takes-strip" class="takes" role="group" aria-label="Switch between the takes"></div>
+    <div class="glass viewer">
+      <div id="v3-host"></div>
+      <div id="v3-wait" class="v3-wait">building the model…</div>
+      <div id="hoverchip" class="hoverchip hide"></div>
+      <div class="viewer-foot">
+        <span id="detail-name"></span>
+        <span id="detail-metrics" class="mono"></span>
+        <span style="flex:1"></span>
         <span id="detail-pill"></span>
-        <button class="thumb" id="sheet-thumb" type="button" aria-label="Open the floor plan"></button>
-        <a id="pdf-link" class="glass-pill hide" href="#" target="_blank" rel="noopener">Sheet PDF ↗</a>
-        <button id="back-opts" class="glass-pill" type="button">← All takes</button>
-        <div id="archive-note" class="mini"></div>
-      </aside>
+      </div>
+    </div>
+    <div class="glass sheet-panel">
+      <div class="sheet-panel-head">
+        <strong>Floor plan</strong>
+        <span class="mini">dimensions in mm · tap the sheet to zoom</span>
+        <span style="flex:1"></span>
+        <a id="pdf-link" class="pill sm hide" href="#" target="_blank" rel="noopener">PDF ↗</a>
+      </div>
+      <button id="sheet-inline" type="button" aria-label="Open the floor plan full screen"></button>
     </div>
   </section>
 </main>
@@ -142,6 +146,7 @@
 
 <div id="toast" class="toast hide" role="status"></div>
 
+<script src="config.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>
