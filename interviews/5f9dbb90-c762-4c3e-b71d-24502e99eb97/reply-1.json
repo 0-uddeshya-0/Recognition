@@ -1,0 +1,105 @@
+{
+  "message": "A farmhouse with two bedrooms, a living room, a kitchen, two washrooms and a pool — got it, and I've taken the pool as an outdoor one beside the house. Two small things: how many people will live there, and would you like a utility or storage room for farm gear? I'm assuming one home, single storey with 2.50 m ceilings unless you say otherwise.",
+  "brief": {
+    "notes": "Farmhouse in Bayern. Client asked for one swimming pool — treated as an outdoor pool on the plot, not an enclosed room. Programme: 2 bedrooms, 1 living room, 1 kitchen, 2 washrooms.",
+    "rooms": [
+      {
+        "count": 2,
+        "label": "bedroom",
+        "category": "bedroom",
+        "min_area_m2": 12
+      },
+      {
+        "count": 1,
+        "label": "living room",
+        "category": "living",
+        "min_area_m2": 22
+      },
+      {
+        "count": 1,
+        "label": "kitchen",
+        "category": "kitchen",
+        "min_area_m2": 10
+      },
+      {
+        "count": 2,
+        "label": "washroom",
+        "category": "bathroom",
+        "min_area_m2": 5
+      }
+    ],
+    "project": "Neubau",
+    "occupants": null,
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 1,
+    "building_class": "detached_house",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "none"
+  },
+  "questions": [
+    {
+      "id": "occupants",
+      "kind": "number",
+      "unit": "people",
+      "blocking": false,
+      "question": "How many people will live in the farmhouse?"
+    },
+    {
+      "id": "utility_room",
+      "kind": "single",
+      "options": [
+        "Yes, one utility room",
+        "No, not needed"
+      ],
+      "blocking": false,
+      "question": "Would you like a utility or storage room for farm gear and laundry?"
+    }
+  ],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "A farmhouse described as one household — a single home unless you tell me otherwise.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "Farmhouses of this size sit comfortably on one floor within your 18 x 24 m plot; say the word and bedrooms can go upstairs instead.",
+      "value": 1,
+      "confidence": "medium"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Ceiling 2.50 m — comfortably above the Bayern minimum of 2.40 m, with room for floor build-up.",
+      "value": 2.5,
+      "confidence": "high"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "No mention of step-free or barrier-free living; not required for a single home.",
+      "value": "none",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms.min_area_m2",
+      "basis": "Comfortable everyday minimums for a family farmhouse; adjust any that feel small.",
+      "value": "bedroom 12, living 22, kitchen 10, bathroom 5",
+      "confidence": "medium"
+    },
+    {
+      "slot": "swimming_pool",
+      "basis": "Pools are usually outdoors unless you want an indoor pool hall, which would change the building considerably.",
+      "value": "outdoor pool on the plot",
+      "confidence": "medium"
+    }
+  ],
+  "done": false,
+  "sealed_brief": null,
+  "contract_error": "",
+  "session_id": "devin-74dc12f6426c4fb68d4ea74f2eaf7597",
+  "session_url": "https://app.devin.ai/sessions/74dc12f6426c4fb68d4ea74f2eaf7597",
+  "round": 1,
+  "engine": "devin"
+}
