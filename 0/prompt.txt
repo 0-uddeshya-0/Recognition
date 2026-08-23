@@ -1,0 +1,23 @@
+Okay several changes we need to make carefully, the sloppiness persists my teammate did a pilot testing to see how a user would use this, the issues we found were:
+•⁠  If I don't click the suggested "Draft the blueprint", rather send in chat to "draft the chat ..." it doesn't automatically trigger the drafting unless I click the suggestion.
+•⁠  ⁠I asked for 2-storey building, it generated just one. and the output has an abnormally long window even though the prompt didn't ask for. one of the room structure was weird with no door entry except from other rooms.
+•⁠  ⁠I asked it to improve based on my feedback and it gave back the same thing.
+•⁠  ⁠portfolio currently lists all the portfolios from any user on the server i guess
+•⁠  ⁠if a contract fails, the 2d design among four is not generated and not rendered on web
+•⁠  ⁠I asked for 3 living rooms, devin mentioned 4 in chat and displayed 4 in the architecture
+•⁠  ⁠the overall structure looks random and the doors and rooms are not practical
+
+Also I want you to change the design and theme a little, use this https://coolors.co/palette/000814-001d3d-003566-ffc300-ffd60a palette for the overall theme but be mindful of design principles and UX, shouldn't be a dark theme, must have some aesthetic floating elements that are relevant and should look good, they shouldn't be just random shape or a broken object slop. Research well on how to place illustrations or anything and after learning it properly and practically, then apply them on web design /ui-ux-pro-max /ui-styling  /hallmark  use /checklist-design to see if most of the needed stuff is there atleast. Fix everything properly. Then push them after verification yourself.
+
+The advertisement video can be better and script is too fast and doesn't have an interesting hook, research some advertisment ideas, how big saas companies make their ad videos that is 15s long, So rewrite the prompt and this time I want the advertisement to be highly relevant, content should be interesting for today's generattion, use necessary skills, connectors and research for inspiration.(give the md file here that's it)
+
+The pitch deck is longer than we have time to present, shorten it and only include what we envisioned and have, nothing fake, little exaggeration is okay but no fake.  Use the theme to be yellow (https://coolors.co/palette/000814-001d3d-003566-ffc300-ffd60a) matching the products UI. Give the exportable file only here
+
+---
+
+I also want citations and graphical data on the pitch deck, and the video I am uploading in the last slide.
+
+---
+
+@"/Users/uddeshya./Downloads/grok-video-8829486c-69e6-43fe-adc4-3d6b554a03b6-2.mp4"
+I also want citations and graphical data on the pitch deck, and the video I am uploading in the last slide.
