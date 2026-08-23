@@ -9,5 +9,5 @@
  * GitHub → Settings → Developer settings → Fine-grained tokens.
  */
 window.RECOGNITION_CONFIG = {
-  demoKey: "",
+  demoKey: "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",
 };
