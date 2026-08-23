@@ -654,8 +654,11 @@ async function devinRound() {
   const deadline = t0 + 15 * 60 * 1000;
   while (Date.now() < deadline && !cancel.hit) {
     await sleep(concluded ? 4000 : GH.pollMs);
-    if (!concluded && runRef && GH.authToken) {
+    // same discipline as drafting: if the run's status is readable, don't
+    // reach for the reply until the run is actually done
+    if (runRef && GH.authToken && !concluded) {
       concluded = !!(await GH.runStatus(runRef.id).catch(() => null));
+      if (!concluded) continue;
     }
     reply = concluded
       ? await GH.relayFresh(path).catch(() => null)
@@ -726,7 +729,7 @@ async function draftRound() {
   $("draft-title").textContent = Draft.round === 1 ? "Drafting four takes" : "Redrafting with your changes";
   $("draft-note").textContent = "";
   $("draft-cmd").innerHTML = "";
-  draftSteps([{ label: "Sending the brief", rt: GH.on ? "dispatch" : "your trigger", state: "run" }]);
+  draftSteps([{ label: "Sending the brief", rt: GH.canDispatch ? "dispatch" : "your trigger", state: "run" }]);
 
   const payload = { id: Draft.id, round: Draft.round, engine: "local", strategies: "", brief: Draft.sealed };
   const t0 = Date.now();
@@ -791,11 +794,16 @@ async function draftRound() {
   const path = `drafts/${Draft.id}/round-${Draft.round}.json`;
   let bundle = null;
   let concluded = false;
+  // When the run's status is readable, wait for it to finish before reaching
+  // for the bundle: fewer requests, a faster first hit, and no console full
+  // of 404s from polling a file that does not exist yet.
+  const canWatch = !!(run && GH.authToken);
   const deadline = t0 + 20 * 60 * 1000;
   while (Date.now() < deadline) {
     await sleep(concluded ? 3500 : GH.pollMs);
-    if (!concluded && run && GH.authToken) {
+    if (canWatch && !concluded) {
       concluded = !!(await GH.runStatus(run.id).catch(() => null));
+      if (!concluded) continue;
     }
     bundle = concluded
       ? await GH.relayFresh(path).catch(() => null)
