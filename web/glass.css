@@ -194,9 +194,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .code-pill.bad { background: rgba(192, 57, 47, 0.14); color: var(--fail); }
 .code-pill:hover { filter: brightness(0.92); }
 
-/* detail: the 3D moment */
-.detail { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; align-items: start; }
-.viewer { position: relative; height: min(62vh, 640px); overflow: hidden; background: var(--glass-soft); }
+/* detail: the 3D moment (layout lives in the takes/sheet-panel block below) */
 #v3-host { position: absolute; inset: 0; cursor: grab; }
 #v3-host:active { cursor: grabbing; }
 .v3-canvas { display: block; width: 100% !important; height: 100% !important; }
@@ -216,14 +214,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 #detail-name { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
 #detail-metrics { font-size: 11.5px; color: var(--ink-2); }
-.detail-side { display: flex; flex-direction: column; gap: 12px; }
-.thumb {
-  border-radius: var(--r-sm); overflow: hidden; padding: 6px; background: rgba(255, 255, 255, 0.8);
-  border: 1px solid var(--glass-line); cursor: zoom-in; transition: transform 0.18s;
-}
-.thumb:hover { transform: translateY(-2px); }
-.thumb svg { display: block; width: 100%; height: auto; }
-#archive-note .cmd { margin-top: 6px; }
 
 /* ---- drawers ------------------------------------------------------------ */
 .drawer {
@@ -356,12 +346,53 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 11px 18px; border-radius: 999px; font-size: 13px; box-shadow: var(--shadow);
 }
 
+/* ---- the takes strip + the chosen sheet --------------------------------- */
+.takes { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.take {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  background: var(--glass-strong); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-line); border-radius: 999px; padding: 8px 15px;
+  font-size: 13px; font-weight: 500; transition: transform 0.16s, background 0.16s;
+}
+.take:hover { transform: translateY(-1px); background: rgba(255, 255, 255, 0.78); }
+.take.on { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent), var(--shadow-soft); font-weight: 600; }
+.take .tdot { font-family: var(--font-mono); font-size: 11px; font-weight: 700; }
+.take .tdot.ok { color: var(--pass); }
+.take .tdot.bad { color: var(--fail); }
+.take .tm { font-size: 11px; color: var(--ink-3); }
+.take.all { color: var(--accent-deep); border-style: dashed; }
+
+.viewer { position: relative; height: min(56vh, 600px); overflow: hidden; background: var(--glass-soft); }
+.sheet-panel { margin-top: 16px; overflow: hidden; }
+.sheet-panel-head { display: flex; align-items: baseline; gap: 12px; padding: 12px 16px 10px; }
+.sheet-panel-head strong { font-family: var(--font-display); font-size: 14.5px; }
+#sheet-inline {
+  display: block; width: 100%; border: 0; padding: 12px 16px 16px;
+  background: rgba(255, 255, 255, 0.86); cursor: zoom-in; text-align: center;
+}
+#sheet-inline:hover { background: rgba(255, 255, 255, 0.95); }
+#sheet-inline svg { max-width: 100%; height: auto; max-height: 46vh; }
+
+.cmd-fold summary { font-size: 12px; color: var(--ink-2); cursor: pointer; padding: 4px 0; }
+
+/* ---- split mode: work on the stage, the conversation at the side -------- */
+@media (min-width: 1100px) {
+  body.split .dock {
+    left: auto; right: 16px; transform: none; top: 16px; bottom: 16px;
+    width: 372px; border-radius: 24px; padding: 14px 14px 14px;
+  }
+  body.split #chat-log { max-height: none; flex: 1; }
+  body.split .stage { padding: 82px calc(372px + 34px) 60px 26px; align-items: stretch; }
+  body.split .st { max-width: none; }
+  body.split .bar { right: calc(372px + 34px); }
+  body.split .options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.split .stage-h { text-align: left; }
+  body.split .drawer { right: calc(372px + 30px); }
+}
+
 /* ---- responsive --------------------------------------------------------- */
 @media (max-width: 900px) {
   .stage { padding: 76px 12px 230px; }
-  .detail { grid-template-columns: 1fr; }
-  .detail-side { flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .thumb { width: 130px; }
   .viewer { height: 46vh; }
   .brand em { display: none; }
 }

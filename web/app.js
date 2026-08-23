@@ -41,12 +41,20 @@ function detectRepo() {
   return "0-uddeshya-0/Recognition";
 }
 
+/* The demo key: a deliberately public, Actions-only credential (it can start
+   workflow runs on this one repository and nothing else — no code, no
+   branches, no secrets, no reads). It is what makes the page seamless for
+   every visitor. A personal token from Connect takes precedence. */
+const DEMO_KEY = (typeof window !== "undefined" && window.RECOGNITION_CONFIG?.demoKey) || "";
+
 const GH = {
   repo: detectRepo(),
   get token() { return localStorage.getItem("recognition.gh_token") || ""; },
   set token(v) { v ? localStorage.setItem("recognition.gh_token", v) : localStorage.removeItem("recognition.gh_token"); },
   get on() { return !!this.token; },
-  get pollMs() { return this.token ? 6000 : 12000; },
+  get authToken() { return this.token || DEMO_KEY; },
+  get canDispatch() { return !!this.authToken; },
+  get pollMs() { return this.authToken ? 5000 : 12000; },
 
   async api(path, opts = {}) {
     const headers = {
@@ -54,20 +62,33 @@ const GH = {
       "X-GitHub-Api-Version": "2022-11-28",
       ...(opts.headers || {}),
     };
-    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    if (this.authToken) headers.Authorization = `Bearer ${this.authToken}`;
     const r = await fetch(`https://api.github.com${path}`, { ...opts, headers });
     if (r.status === 404) return null;
     if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 140)}`);
     return r.status === 204 ? true : r.json();
   },
 
-  dispatch(event_type, client_payload) {
-    return this.api(`/repos/${this.repo}/dispatches`, {
+  /* One trigger path for every credential: workflow_dispatch needs only
+     Actions:write — exactly all the demo key has. */
+  workflowDispatch(file, inputs) {
+    return fetch(`https://api.github.com/repos/${this.repo}/actions/workflows/${file}/dispatches`, {
       method: "POST",
-      body: JSON.stringify({ event_type, client_payload }),
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${this.authToken}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({ ref: "main", inputs }),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 140)}`);
+      return true;
     });
   },
 
+  /* Relay reads. The CDN mirror is free but can lag ~a minute; the API is
+     fresh but unauthenticated calls are scarce (60/h). So poll cheaply while
+     a run is in flight and fetch fresh the moment it completes. */
   async raw(path, ref) {
     if (!this.token) {
       const r = await fetch(
@@ -81,6 +102,26 @@ const GH = {
       { headers: { Accept: "application/vnd.github.raw+json", Authorization: `Bearer ${this.token}` } },
     );
     return r.ok ? r.json() : null;
+  },
+
+  async relayFresh(path) {
+    // the demo key has no Contents scope — unauthenticated works on a public
+    // repo and is spent sparingly (only after a run completes)
+    const headers = { Accept: "application/vnd.github.raw+json" };
+    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    try {
+      const r = await fetch(
+        `https://api.github.com/repos/${this.repo}/contents/${path}?ref=studio-interviews&t=${Date.now()}`,
+        { headers },
+      );
+      if (r.ok) return await r.json();
+    } catch { /* fall through to the mirror */ }
+    return this.raw(path, "studio-interviews");
+  },
+
+  async runStatus(id) {
+    const r = await this.api(`/repos/${this.repo}/actions/runs/${id}`).catch(() => null);
+    return r?.status === "completed" ? (r.conclusion || "failure") : null;
   },
 
   async findRun(workflow, sinceMs) {
@@ -521,24 +562,24 @@ async function devinRound() {
   };
 
   const t0 = Date.now();
-  if (!GH.on) {
-    commandBubble(
-      "This page holds no secret, so it can't start the session itself. Run this in any terminal with gh — I'm already watching for Devin's reply:",
-      triggerCommand("interview.yml", "payload", payload),
-    );
-  } else {
+  if (GH.canDispatch) {
     try {
-      await GH.dispatch("interview", payload);
+      await GH.workflowDispatch("interview.yml", { payload: JSON.stringify(payload) });
     } catch (e) {
       endWait();
       agentSay(`Couldn't start the round: ${e.message}.`);
       return;
     }
+  } else {
+    commandBubble(
+      "This page has no trigger key, so it can't start the session itself. Run this in any terminal with gh — I'm already watching for Devin's reply:",
+      triggerCommand("interview.yml", "payload", payload),
+    );
   }
 
   const wait = addMsg("agent",
-    GH.on ? "Devin is reading the conversation… first reply usually takes 2–4 minutes."
-          : "Waiting for the trigger… once it runs, Devin's reply lands here (tokenless reads lag up to a minute).",
+    GH.canDispatch ? "Devin is reading the conversation… first reply usually takes 2–4 minutes."
+                   : "Waiting for the trigger… once it runs, Devin's reply lands here.",
     { wait: true });
   const meta = el("div", "meta");
   wait.append(meta);
@@ -548,20 +589,29 @@ async function devinRound() {
   setChips([{ label: "Stop waiting", action: () => { cancel.hit = true; } }]);
   const cancel = { hit: false };
 
+  let runRef = null;
   GH.findRun("interview", t0).then((r) => {
     if (r) {
+      runRef = r;
       meta.append(" · ");
       const a = el("a", null, "run ↗"); a.href = r.html_url; a.target = "_blank"; a.rel = "noopener";
       meta.append(a);
     }
   }).catch(() => {});
 
+  // Poll cheaply while the run works; the moment it completes, read fresh.
   const path = `interviews/${Chat.id}/reply-${Chat.round}.json`;
   let reply = null;
+  let concluded = false;
   const deadline = t0 + 15 * 60 * 1000;
   while (Date.now() < deadline && !cancel.hit) {
-    await sleep(GH.pollMs);
-    reply = await GH.raw(path, "studio-interviews").catch(() => null);
+    await sleep(concluded ? 4000 : GH.pollMs);
+    if (!concluded && runRef && GH.authToken) {
+      concluded = !!(await GH.runStatus(runRef.id).catch(() => null));
+    }
+    reply = concluded
+      ? await GH.relayFresh(path).catch(() => null)
+      : await GH.raw(path, "studio-interviews").catch(() => null);
     if (reply && reply.round === Chat.round) break;
     reply = null;
   }
@@ -633,9 +683,9 @@ async function draftRound() {
   const payload = { id: Draft.id, round: Draft.round, engine: "local", strategies: "", brief: Draft.sealed };
   const t0 = Date.now();
 
-  if (GH.on) {
+  if (GH.canDispatch) {
     try {
-      await GH.dispatch("draft", payload);
+      await GH.workflowDispatch("draft.yml", { payload: JSON.stringify(payload) });
     } catch (e) {
       draftSteps([{ label: "Sending the brief", rt: e.message.slice(0, 50), state: "fail" }]);
       Draft.busy = false;
@@ -643,7 +693,11 @@ async function draftRound() {
       return;
     }
   } else {
+    // last-resort fallback (no demo key shipped, no personal token): the
+    // exact trigger, folded away so it never dominates the card
     const cmd = triggerCommand("draft.yml", "payload", payload);
+    const det = el("details", "cmd-fold");
+    det.append(el("summary", null, "No trigger key on this page — show the one command that starts the round"));
     const box = el("div", "cmd");
     const pre = el("pre", "mono", cmd);
     const copy = el("button", "pill sm", "Copy");
@@ -654,14 +708,15 @@ async function draftRound() {
       setTimeout(() => { copy.textContent = "Copy"; }, 2500);
     };
     box.append(pre, copy);
-    $("draft-cmd").append(box);
-    $("draft-note").textContent = "No token connected — run this trigger in any terminal with gh; I'm already watching.";
+    det.append(box);
+    $("draft-cmd").append(det);
+    $("draft-note").textContent = "I'm watching — the round starts the moment the trigger runs.";
   }
 
   // follow the run's real steps
   let run = null;
-  const tries = GH.on ? 25 : 60;
-  for (let i = 0; i < tries && !run; i++) { await sleep(GH.on ? 4000 : 10000); run = await GH.findRun("draft", t0).catch(() => null); }
+  const tries = GH.canDispatch ? 25 : 60;
+  for (let i = 0; i < tries && !run; i++) { await sleep(GH.canDispatch ? 4000 : 10000); run = await GH.findRun("draft", t0).catch(() => null); }
   if (run) {
     const poll = async () => {
       const jobs = await GH.api(`/repos/${GH.repo}/actions/runs/${run.id}/jobs`).catch(() => null);
@@ -678,18 +733,25 @@ async function draftRound() {
     poll();
     var jobTick = setInterval(poll, GH.pollMs);
   } else {
-    $("draft-note").textContent = GH.on
+    $("draft-note").textContent = GH.canDispatch
       ? "No run appeared — check the Actions tab."
       : ($("draft-note").textContent || "") + " (still waiting for the run to start)";
   }
 
-  // and wait for the bundle itself — the artifact is the truth
+  // and wait for the bundle itself — the artifact is the truth. Cheap polls
+  // while the run works; a fresh read the moment it completes.
   const path = `drafts/${Draft.id}/round-${Draft.round}.json`;
   let bundle = null;
+  let concluded = false;
   const deadline = t0 + 20 * 60 * 1000;
   while (Date.now() < deadline) {
-    await sleep(GH.pollMs);
-    bundle = await GH.raw(path, "studio-interviews").catch(() => null);
+    await sleep(concluded ? 3500 : GH.pollMs);
+    if (!concluded && run && GH.authToken) {
+      concluded = !!(await GH.runStatus(run.id).catch(() => null));
+    }
+    bundle = concluded
+      ? await GH.relayFresh(path).catch(() => null)
+      : await GH.raw(path, "studio-interviews").catch(() => null);
     if (bundle && bundle.schema === "draftbundle/v1") break;
     bundle = null;
   }
@@ -781,9 +843,37 @@ function renderOptions(bundle) {
    Selection — the 3D moment, and the quiet archive
    ══════════════════════════════════════════════════════════════════════ */
 
-function selectCandidate(c, { fromPortfolio = false } = {}) {
+/* The takes strip — the alternatives stay one click away above the model.
+   Fundamental UX: a choice you can still see is a choice you can revisit. */
+function renderTakesStrip(cands, selectedName, onPick) {
+  const strip = $("takes-strip");
+  strip.innerHTML = "";
+  cands.forEach((c) => {
+    if (c.error) return;
+    const b = el("button", "take" + (c.name === selectedName ? " on" : ""));
+    b.type = "button";
+    b.append(el("span", `tdot ${c.ok ? "ok" : "bad"}`, c.ok ? "✓" : "✕"));
+    b.append(el("span", "tname", c.label || c.name));
+    const m2 = c.metrics?.envelope_m2;
+    if (m2) b.append(el("span", "tm mono", `${m2} m²`));
+    b.onclick = () => onPick(c);
+    strip.append(b);
+  });
+  if (Draft.bundle && cands === Draft.bundle.candidates) {
+    const all = el("button", "take all", "⌗ compare all");
+    all.type = "button";
+    all.onclick = () => stage("options");
+    strip.append(all);
+  }
+}
+
+function selectCandidate(c, { fromPortfolio = false, stripCands = null, onPick = null } = {}) {
   Draft.selected = c;
   stage("detail");
+
+  const cands = stripCands || Draft.bundle?.candidates || [c];
+  renderTakesStrip(cands, c.name, onPick || ((x) => selectCandidate(x)));
+
   $("detail-name").textContent = c.label || c.name;
   const m = c.metrics || {};
   $("detail-metrics").textContent =
@@ -793,18 +883,17 @@ function selectCandidate(c, { fromPortfolio = false } = {}) {
   pillHost.innerHTML = "";
   pillHost.append(codePill(c));
 
-  const thumb = $("sheet-thumb");
-  thumb.innerHTML = "";
-  if (c.sheet_svg) { thumb.innerHTML = c.sheet_svg; thumb.classList.remove("hide"); }
-  else if (c.sheet_url) {
-    fetch(c.sheet_url).then((r) => (r.ok ? r.text() : "")).then((svg) => { if (svg) thumb.innerHTML = svg; });
-    thumb.classList.remove("hide");
-  } else thumb.classList.add("hide");
+  // the chosen 2D stays in view right below the model
+  const sheet = $("sheet-inline");
+  sheet.innerHTML = "";
+  const putSvg = (svg) => { sheet.innerHTML = svg || '<p class="mini">no sheet for this take</p>'; };
+  if (c.sheet_svg) putSvg(c.sheet_svg);
+  else if (c.sheet_url) fetch(c.sheet_url).then((r) => (r.ok ? r.text() : "")).then(putSvg).catch(() => putSvg(""));
+  else putSvg("");
+  sheet.onclick = () => openSheetModal(c);
 
   const pdf = $("pdf-link");
   if (c.pdf_url) { pdf.href = c.pdf_url; pdf.classList.remove("hide"); } else pdf.classList.add("hide");
-
-  $("back-opts").classList.toggle("hide", fromPortfolio || !Draft.bundle);
 
   const wait = $("v3-wait");
   wait.textContent = "building the model…";
@@ -822,7 +911,7 @@ function selectCandidate(c, { fromPortfolio = false } = {}) {
   } else wait.textContent = "no 3D model in this draft";
 
   if (!fromPortfolio) {
-    agentSay(`${c.label} it is — here's the model. Orbit it, hover a room for its size. Want changes, just say them; want it kept, I'll archive it to the portfolio.`,
+    agentSay(`${c.label} it is — the model's up, the plan sits below it. Orbit, hover a room for its size, switch takes above. Want changes, just say them; want it kept, I'll archive it.`,
       { chips: [{ label: "Archive to portfolio", action: () => archiveSelected() }] });
   }
 }
@@ -830,24 +919,16 @@ function selectCandidate(c, { fromPortfolio = false } = {}) {
 function archiveSelected() {
   const c = Draft.selected;
   if (!c || !Draft.sealed) return;
-  const note = $("archive-note");
-  const payload = { brief_json: Draft.sealed, engine: "local", strategies: c.name };
-  if (GH.on) {
-    GH.dispatch("design-request", payload)
-      .then(() => { note.textContent = "Archiving — the run verifies once more, merges, and the portfolio updates in ~3 min."; })
-      .catch((e) => { note.textContent = "Archive dispatch failed: " + e.message.slice(0, 80); });
+  if (GH.canDispatch) {
+    GH.workflowDispatch("autopilot.yml", { engine: "local", brief_json: JSON.stringify(Draft.sealed) })
+      .then(() => agentSay("Archiving. The run re-verifies everything, merges itself on green, and the design lands in the portfolio in about three minutes."))
+      .catch((e) => agentSay("The archive dispatch failed: " + e.message.slice(0, 90)));
   } else {
-    note.innerHTML = "";
-    const cmd = `gh workflow run autopilot.yml --repo ${GH.repo} --ref main -f engine=local -f brief_json="$(echo ${b64(JSON.stringify(Draft.sealed))} | base64 -d)"`;
-    const box = el("div", "cmd");
-    const pre = el("pre", "mono", cmd);
-    const copy = el("button", "pill sm", "Copy");
-    copy.type = "button";
-    copy.onclick = async () => { try { await navigator.clipboard.writeText(cmd); copy.textContent = "Copied ✓"; } catch {} };
-    box.append(pre, copy);
-    note.append(el("p", "mini", "No token — run this to archive (verifies, merges, publishes):"), box);
+    commandBubble(
+      "No trigger key on this page — this one command archives it (re-verifies, merges, publishes):",
+      `gh workflow run autopilot.yml --repo ${GH.repo} --ref main -f engine=local -f brief_json="$(echo ${b64(JSON.stringify(Draft.sealed))} | base64 -d)"`,
+    );
   }
-  agentSay("Archiving it. The run re-verifies everything, merges itself on green, and the design appears in the portfolio.");
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -878,7 +959,16 @@ async function openPortfolioProject(key, candName) {
     pdf_url: `data/${key}/${name}/sheet.pdf`,
     devin_session: meta.devin_session || "",
   };
-  selectCandidate(c, { fromPortfolio: true });
+  // the strip lists the archived run's other takes, switchable in place
+  const stripCands = run.candidates.map((x) => ({
+    name: x.name, label: x.label || x.name, ok: !!x.ok, error: x.error || "",
+    metrics: x.metrics || {},
+  }));
+  selectCandidate(c, {
+    fromPortfolio: true,
+    stripCands,
+    onPick: (x) => openPortfolioProject(key, x.name),
+  });
   $("detail-name").textContent = c.label;
 }
 
@@ -1214,6 +1304,8 @@ function initSheetControls() {
 function stage(which) {
   ["hero", "drafting", "options", "detail"].forEach((s) =>
     $(`st-${s}`).classList.toggle("hide", s !== which));
+  // once real work is on the stage, the conversation docks to the side
+  document.body.classList.toggle("split", which === "options" || which === "detail");
 }
 
 function openDrawer(id) { closeDrawers(); $(id).classList.remove("hide"); }
@@ -1284,7 +1376,6 @@ async function boot() {
   $("chat-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitUtterance($("chat-input").value); }
   });
-  $("back-opts").onclick = () => stage("options");
   $("specs-pill").onclick = () => { renderSpecs(); openDrawer("specs-drawer"); };
   $("portfolio-pill").onclick = async () => { await renderPortfolio(); openDrawer("portfolio-drawer"); };
   document.querySelectorAll(".drawer-x").forEach((b) => { b.onclick = closeDrawers; });
