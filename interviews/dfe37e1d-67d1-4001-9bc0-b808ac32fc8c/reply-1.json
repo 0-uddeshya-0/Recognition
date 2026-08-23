@@ -1,0 +1,210 @@
+{
+  "message": "Got it — an 8-person startup office on your 18 × 24 m plot: an open studio, a meeting room, a small kitchen and a washroom. Nothing blocking is left open, so I've sealed the brief and listed every value I filled in myself — single unit, 2.50 m ceiling, room sizes, no barrier-free tier. Tell me if any of those should change and I'll adjust.",
+  "brief": {
+    "notes": "I want to make an office for my small startup — we are 8 people, we need an open studio, a meeting room, a small kitchen and a washroom.",
+    "rooms": [
+      {
+        "count": 1,
+        "label": "open studio",
+        "category": "office",
+        "min_area_m2": 60
+      },
+      {
+        "count": 1,
+        "label": "meeting room",
+        "category": "meeting",
+        "min_area_m2": 15
+      },
+      {
+        "count": 1,
+        "label": "small kitchen",
+        "category": "kitchen",
+        "min_area_m2": 8
+      },
+      {
+        "count": 1,
+        "label": "washroom",
+        "category": "bathroom",
+        "min_area_m2": 4.5
+      }
+    ],
+    "project": "Neubau",
+    "occupants": 8,
+    "bundesland": "BY",
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 1,
+    "building_class": "office_building",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "none"
+  },
+  "questions": [],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "Non-residential building — treated as one unit; v1's cited ruleset is Bayern residential.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "Single storey is the only shape v1 builds.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "2.50 m clear height — comfortable for an open studio and above the Bayern minimum of 2.40 m, with room for floor and ceiling build-up.",
+      "value": 2.5,
+      "confidence": "medium"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "Nothing in your description asked for step-free access; a single-unit office isn't pushed into a barrier-free tier by default. Say the word and I'll raise it.",
+      "value": "none",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[office].min_area_m2",
+      "basis": "Open studio for 8 desks at roughly 7–8 m² per person including circulation.",
+      "value": 60,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[meeting].min_area_m2",
+      "basis": "Meeting room seating the whole team of 8 around one table.",
+      "value": 15,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[kitchen].min_area_m2",
+      "basis": "Small kitchenette with counter, fridge and standing room, as you described.",
+      "value": 8,
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms[bathroom].min_area_m2",
+      "basis": "One washroom with WC and basin for a team of 8.",
+      "value": 4.5,
+      "confidence": "medium"
+    },
+    {
+      "slot": "building_class",
+      "basis": "You described an office for your startup, so it's registered as a workplace rather than a home.",
+      "value": "office_building",
+      "confidence": "high"
+    }
+  ],
+  "done": true,
+  "sealed_brief": {
+    "project": "Neubau",
+    "bundesland": "BY",
+    "building_class": "office_building",
+    "plot_width_m": 18,
+    "plot_depth_m": 24,
+    "dwelling_count": 1,
+    "storey_count": 1,
+    "storey_height_m": 2.5,
+    "occupants": 8,
+    "rooms": [
+      {
+        "category": "office",
+        "count": 1,
+        "min_area_m2": 60,
+        "label": "open studio"
+      },
+      {
+        "category": "meeting",
+        "count": 1,
+        "min_area_m2": 15,
+        "label": "meeting room"
+      },
+      {
+        "category": "kitchen",
+        "count": 1,
+        "min_area_m2": 8,
+        "label": "small kitchen"
+      },
+      {
+        "category": "bathroom",
+        "count": 1,
+        "min_area_m2": 4.5,
+        "label": "washroom"
+      }
+    ],
+    "accessibility_tier": "none",
+    "assumptions": [
+      {
+        "slot": "dwelling_count",
+        "value": 1,
+        "basis": "Non-residential building — treated as one unit; v1's cited ruleset is Bayern residential.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_count",
+        "value": 1,
+        "basis": "Single storey is the only shape v1 builds.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_height_m",
+        "value": 2.5,
+        "basis": "2.50 m clear height — comfortable for an open studio and above the Bayern minimum of 2.40 m, with room for floor and ceiling build-up.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "accessibility_tier",
+        "value": "none",
+        "basis": "Nothing in your description asked for step-free access; a single-unit office isn't pushed into a barrier-free tier by default. Say the word and I'll raise it.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[office].min_area_m2",
+        "value": 60,
+        "basis": "Open studio for 8 desks at roughly 7–8 m² per person including circulation.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[meeting].min_area_m2",
+        "value": 15,
+        "basis": "Meeting room seating the whole team of 8 around one table.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[kitchen].min_area_m2",
+        "value": 8,
+        "basis": "Small kitchenette with counter, fridge and standing room, as you described.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms[bathroom].min_area_m2",
+        "value": 4.5,
+        "basis": "One washroom with WC and basin for a team of 8.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "building_class",
+        "value": "office_building",
+        "basis": "You described an office for your startup, so it's registered as a workplace rather than a home.",
+        "confidence": "high",
+        "confirmed": false
+      }
+    ],
+    "notes": "I want to make an office for my small startup — we are 8 people, we need an open studio, a meeting room, a small kitchen and a washroom.",
+    "schema": "designbrief/v1"
+  },
+  "contract_error": "",
+  "session_id": "devin-58170133111243308dbea7e7905ab13e",
+  "session_url": "https://app.devin.ai/sessions/58170133111243308dbea7e7905ab13e",
+  "round": 1,
+  "engine": "devin"
+}
