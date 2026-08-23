@@ -1,0 +1,5 @@
+deploy the cloudflare worker so the plain URL works
+
+---
+
+REDACTED
