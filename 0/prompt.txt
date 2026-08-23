@@ -1,0 +1,9 @@
+Trigger runs from this page
+A GitHub token lets the page start drafts and Devin sessions directly. It stays in this browser and goes only to api.github.com. Without one, everything still works — the page hands you each trigger command and follows the run live.
+
+Fine-grained token, Contents read & write
+github_pat_…
+Connect
+Forget
+
+Why is this? I want the seamless flow instead of "No token connected — run this trigger in any terminal with gh; I'm already watching." and this is a big friction for user, also during demo this looks bad, I wanted the DevinAI to do the task, produce outputs, and also the UI needs to be modified, look at the screenshot, when the design is shown the chat should move to a side bar and on left portion options of 2d designs for selection should be shown and upon selection a 3d model should be constructed on that portion while keeping the chosen 2d design below for viewing. This is like fundamental UI UX, be mindful. And fix everything properly, if there's hindering, tell me the solution and suggestion and I'll do it, but I want seamless results and user flow.
