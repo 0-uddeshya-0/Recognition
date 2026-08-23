@@ -1,0 +1,89 @@
+{
+  "message": "A two-storey office for your company on the 18 × 24 m plot — noted. Tell me roughly how many people will work there and which rooms you want, and I'll shape the rest around that.",
+  "brief": {
+    "notes": "A 2-storey office for my company. Bundesland: BY.",
+    "rooms": [],
+    "project": "Neubau",
+    "occupants": null,
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 2,
+    "building_class": "office_building",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "none"
+  },
+  "questions": [
+    {
+      "id": "occupants",
+      "kind": "number",
+      "unit": "people",
+      "blocking": true,
+      "question": "Roughly how many people will work in the building day to day?"
+    },
+    {
+      "id": "rooms",
+      "kind": "multi",
+      "options": [
+        "open workspace / offices",
+        "meeting room(s)",
+        "reception or lobby",
+        "kitchen / tea point",
+        "washrooms",
+        "storage or technical room"
+      ],
+      "blocking": true,
+      "question": "Which spaces should it have?"
+    },
+    {
+      "id": "meeting_style",
+      "kind": "single",
+      "options": [
+        "mostly quiet focus work",
+        "a balance of focus and meetings",
+        "lots of meetings and client visits"
+      ],
+      "blocking": false,
+      "question": "How does your team mostly work?"
+    },
+    {
+      "id": "anything_else",
+      "kind": "free",
+      "blocking": false,
+      "question": "Anything else we should know about the building?"
+    }
+  ],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "Non-residential building — treated as one unit; the ruleset in force is Bayern residential.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Standard clear ceiling height with floor build-up; comfortable for an office.",
+      "value": 2.5,
+      "confidence": "medium"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "Not requested yet — no barrier-free standard applied unless you tell me it's needed.",
+      "value": "none",
+      "confidence": "low"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "You said a 2-storey office; bedrooms/upper spaces stack around one aligned stair core.",
+      "value": 2,
+      "confidence": "high"
+    }
+  ],
+  "done": false,
+  "sealed_brief": null,
+  "contract_error": "",
+  "session_id": "devin-0e8c6a56cd544f1dbfdc4f0e117863e6",
+  "session_url": "https://app.devin.ai/sessions/0e8c6a56cd544f1dbfdc4f0e117863e6",
+  "round": 1,
+  "engine": "devin"
+}
