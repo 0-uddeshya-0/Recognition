@@ -65,13 +65,38 @@ deploy) behind it.
 
 ## No secret in the page, ever
 
-Reading a public repository needs no credential: runs, job steps, draft
-bundles and interview replies are all followed tokenlessly (API when a token
-exists, the CDN mirror when not). Only *triggering* needs auth — with a
-connected token the page dispatches directly; without one it renders the
-exact `gh workflow run` command (payload base64-wrapped) and live-follows
-whatever the trigger starts. The Devin API key exists only as a repository
-secret, used inside workflows.
+The published page carries **no credential of any kind**, and still starts
+real runs. Three paths, in the order the page prefers them:
+
+1. **The relay** (default, and what the live demo uses) — a Cloudflare Worker
+   holding the GitHub token as a Worker secret. It starts one of three
+   allow-listed workflows and answers four read shapes (`?runs=`, `?run=`,
+   `?jobs=`, `?file=`), each pattern-validated, on this repository only.
+   Deploy: `cd infra && CLOUDFLARE_API_TOKEN=… ./deploy.sh <github_pat_…>`,
+   then set `config.triggerUrl`.
+2. **A personal token** — pasted into Connect, stored in that browser alone,
+   sent only to `api.github.com`. Takes precedence over the relay.
+3. **A demo key by link** — `…/#k=github_pat_…`; the page stores it locally
+   and strips it from the address bar. A fragment never reaches a server and
+   never enters git, which is the point: a GitHub token *committed* to a
+   public repo is auto-revoked by secret scanning within moments.
+
+With none of the three, the page still works — it hands over the exact
+`gh workflow run` command, folded away, and live-follows whatever starts.
+Any 401 drops the offending credential, says so, and degrades rather than
+breaking. The Devin API key exists only as a repository secret, used inside
+workflows, and interview sessions carry an ACU ceiling so a publicly
+reachable trigger cannot run up an unbounded bill.
+
+Why the relay proxies *reads* as well: an anonymous browser gets 60 GitHub
+API calls an hour, and one run's progress polling exhausts that — the
+drafting card would sit on its first step looking stalled while the round
+was in fact fine.
+
+**Cache discipline.** GitHub Pages serves assets with a ten-minute max-age,
+so `index.html` references `glass.css?v=N`, `config.js?v=N` and `app.js?v=N`.
+Bump `N` in the same commit as any `web/` change, or a visitor can run the
+previous build's JS against the new HTML.
 
 ```
 web/

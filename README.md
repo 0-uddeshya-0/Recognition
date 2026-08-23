@@ -60,8 +60,11 @@ because the artifacts it is judged on are produced downstream by code it never r
    re-verifies, merges itself, and the design joins the portfolio with files
    a builder opens (IFC, DXF, PDF).
 
-The page holds no secret: reading is tokenless, and triggering either uses
-your own GitHub token or the exact `gh` command the page hands you.
+Nothing to install, nothing to sign in to, no key in the URL. **The page holds
+no secret at all:** a tiny Cloudflare relay ([`infra/trigger-worker.js`](infra/trigger-worker.js))
+keeps the GitHub token server-side and answers exactly two things — start one
+allow-listed workflow, and read back the handful of run/artifact endpoints the
+page needs. Everything you watch on screen is a real GitHub Actions run.
 
 Locally:
 
@@ -72,14 +75,15 @@ uv run recognition autopilot briefs/familienhaus.json --engine devin
 uv run pytest -q
 ```
 
-The first command takes one brief, explores three structurally different layouts,
+The first command takes one brief, explores four structurally different layouts,
 builds and verifies each, and picks a winner — with nobody choosing.
 
 ```
-autopilot · Familienhaus · engine=local · 3 candidates
-  · compact  PASS — 57 checked · 2 not evaluated · 0 failed
-  · linear   PASS — 57 checked · 2 not evaluated · 0 failed
-  · open     PASS — 54 checked · 2 not evaluated · 0 failed
+autopilot · Familienhaus · engine=local · 4 candidates
+  · compact   PASS — 57 checked · 2 not evaluated · 0 failed
+  · linear    PASS — 57 checked · 2 not evaluated · 0 failed
+  · open      PASS — 54 checked · 2 not evaluated · 0 failed
+  · generous  PASS — 57 checked · 2 not evaluated · 0 failed
 
   winner: open — chosen by the scorer, not a human
 ```
@@ -112,8 +116,13 @@ Full detail in [`docs/architecture/`](docs/architecture/README.md).
 | **L4** | Geometry — IFC4, sheets, mesh, schedules | no |
 | **L5** | Verifier — the only gate | no |
 | **L6** | Iteration — routes a change to the lowest layer that can satisfy it | router |
-| **L7** | Studio — 3D, 2D and findings in the browser | no |
-| **L8** | Orchestration — GitHub Actions, Devin, provenance | no |
+| **L7** | Studio — conversation, blueprints, 3D, findings in the browser | no |
+| **L8** | Orchestration — GitHub Actions, the trigger relay, Devin, provenance | no |
+
+Three workflows carry the product: **`draft`** (a merge-free round of four
+takes, returned as one bundle), **`interview`** (one live Devin turn), and
+**`autopilot`** (the full run that verifies, merges itself on green, and
+publishes to the portfolio).
 
 ### The five sources of truth
 
@@ -198,12 +207,15 @@ recognition/
   rules.py        rule predicates
   score.py        provenance tiers, the verdict, and the ranking
   devin.py        Devin v1 client and parallel fan-out
+  bundle.py       one drafting round → a single JSON the Studio renders
   autopilot.py    the loop
 .agents/skills/   repo skills any agent discovers (@skills:architect-plan …)
 playbooks/        Devin playbooks (interview, detailing, rule changes)
 rules/by/         jurisdiction packs — data, with citations
 briefs/           the triggers
-web/              the Studio — static, live on GitHub Pages
+web/              the Studio — index.html · glass.css · app.js · config.js
+infra/            the trigger relay (Cloudflare Worker) + its deploy script
+.github/workflows/  draft · interview · autopilot · pages
 docs/architecture/  how and why
 ```
 

@@ -68,8 +68,10 @@ Studio. No approval step exists in the workflow — a green verifier *is* the
 merge decision, and a red one merges nothing.
 
 Triggers: the Studio chat, `workflow_dispatch`, `repository_dispatch`, or
-committing a brief. The page holds no secret — it hands any viewer the exact
-`gh workflow run` command and live-follows the run it starts.
+committing a brief. The page holds no secret — a Cloudflare relay keeps the
+token server-side and exposes only "start one allow-listed workflow" plus four
+pattern-validated reads, so a first-time visitor gets the whole loop with
+nothing to install and nothing to sign in to.
 
 ### Verification — the system tells good from bad on its own
 

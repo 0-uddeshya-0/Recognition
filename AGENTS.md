@@ -29,8 +29,16 @@ uv run recognition autopilot briefs/familienhaus.json     # full loop, local eng
 uv run recognition autopilot briefs/<p>.json --engine devin --publish
 uv run recognition interview transcript.json --out reply.json   # one interview round (needs DEVIN_API_KEY)
 uv run recognition run samples/AC20-FZK-Haus.ifc out/fzk  # detailing package for one model
+uv run recognition bundle out/autopilot/<project> --out b.json   # one round → the Studio's payload
 python3 -m http.server 8123 -d web                        # the Studio, exactly as Pages serves it
 ```
+
+Workflows: `draft` (four takes, merge-free, bundle back on the relay branch),
+`interview` (one live Devin turn), `autopilot` (verify → self-merge → publish),
+`pages` (deploy the Studio). The browser reaches them through the Cloudflare
+relay in `infra/`, which holds the trigger token; `web/config.js` points at it.
+Bump the `?v=` on the asset URLs in `web/index.html` with any `web/` change —
+Pages caches assets for ten minutes.
 
 On macOS, `cairosvg` needs `brew install cairo` and
 `export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_FALLBACK_LIBRARY_PATH`.

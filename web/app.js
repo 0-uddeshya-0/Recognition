@@ -1486,7 +1486,23 @@ async function boot() {
   );
 
   const q = new URLSearchParams(location.search);
-  if (q.get("p")) openPortfolioProject(q.get("p"), q.get("c"));
+  if (q.get("p")) { openPortfolioProject(q.get("p"), q.get("c")); return; }
+
+  // A drafting round is shareable: ?draft=<id>&round=<n> reopens the four
+  // takes exactly as the person who ran them saw them.
+  const id = q.get("draft");
+  if (id && /^[A-Za-z0-9-]{1,64}$/.test(id)) {
+    const round = String(parseInt(q.get("round") || "1", 10) || 1);
+    const bundle = await GH.relayFresh(`drafts/${id}/round-${round}.json`).catch(() => null);
+    if (bundle?.schema === "draftbundle/v1") {
+      Draft.id = id; Draft.round = +round; Draft.bundle = bundle;
+      renderOptions(bundle);
+      stage("options");
+      agentSay(`This is a drafting round someone shared — ${bundle.candidates.length} takes on their brief. Open one to see it in 3D, or describe your own building and I'll draft fresh ones.`);
+    } else {
+      toast("That drafting round could not be found.");
+    }
+  }
 }
 
 boot().catch((e) => toast("Could not start: " + e.message));

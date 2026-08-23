@@ -163,10 +163,29 @@ repository secret.
 
 ### L8 — Orchestration & provenance · *infra*
 
-GitHub Actions is the runtime. Devin is invoked from inside a workflow where the API key
-lives as a repository secret. Entire captures every agent session and binds it to the commit
-it produced, so any line of a generated drawing traces back to the conversation that caused
-it. See [ADR-0004](adr/0004-runtime-topology.md).
+GitHub Actions is the runtime, and three workflows carry the product:
+
+| Workflow | What it is | Merges? |
+|---|---|---|
+| `draft` | one round of four takes, returned as a single bundle (sheets, meshes, compacted verdicts inline) | no — a draft is a proposal |
+| `interview` | one live Devin turn, reply written to the relay branch | no |
+| `autopilot` | the full run: plan → build → verify → rank → self-merge on green → publish | yes, itself |
+
+Devin is invoked from inside a workflow where the API key lives as a repository
+secret. Entire captures every agent session and binds it to the commit it produced,
+so any line of a generated drawing traces back to the conversation that caused it.
+See [ADR-0004](adr/0004-runtime-topology.md).
+
+**The trigger relay.** A static page cannot start a workflow without a
+credential, and a GitHub token committed to a public repository is revoked by
+secret scanning within moments. So the page holds nothing: a ~120-line
+Cloudflare Worker ([`infra/trigger-worker.js`](../../infra/trigger-worker.js))
+keeps the token as a Worker secret and exposes a deliberately narrow surface —
+`POST` starts one of three allow-listed workflows, and `GET` answers only
+`?runs=` / `?run=` / `?jobs=` / `?file=`, each validated against a strict
+pattern, on this repository alone. Read-proxying is not a nicety: an anonymous
+browser gets 60 GitHub calls an hour, which a single run's progress polling
+would exhaust, so live progress would degrade into a spinner that looks stuck.
 
 ---
 
