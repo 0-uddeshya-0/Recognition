@@ -152,9 +152,21 @@ const GH = {
     return r.ok ? r.json() : null;
   },
 
+  /* With no credential of our own, GitHub allows 60 anonymous calls an hour
+     — one run's progress polling would eat that and the page would look
+     stalled. When a relay is configured it proxies these few reads with its
+     own token, so progress stays live and artifacts arrive without CDN lag. */
+  get viaRelay() { return !!TRIGGER_URL && !this.authToken; },
+
+  async relayGet(query) {
+    try {
+      const r = await fetch(`${TRIGGER_URL}?${query}&t=${Date.now()}`);
+      return r.ok ? await r.json() : null;
+    } catch { return null; }
+  },
+
   async relayFresh(path) {
-    // the demo key has no Contents scope — unauthenticated works on a public
-    // repo and is spent sparingly (only after a run completes)
+    if (this.viaRelay) return this.relayGet(`file=${encodeURIComponent(path)}`);
     const headers = { Accept: "application/vnd.github.raw+json" };
     if (this.token) headers.Authorization = `Bearer ${this.token}`;
     try {
@@ -168,14 +180,29 @@ const GH = {
   },
 
   async runStatus(id) {
+    if (this.viaRelay) {
+      const d = await this.relayGet(`run=${id}`);
+      return d?.status === "completed" ? (d.conclusion || "failure") : null;
+    }
     const r = await this.api(`/repos/${this.repo}/actions/runs/${id}`).catch(() => null);
     return r?.status === "completed" ? (r.conclusion || "failure") : null;
   },
 
+  async runSteps(id) {
+    if (this.viaRelay) return (await this.relayGet(`jobs=${id}`))?.steps || [];
+    const jobs = await this.api(`/repos/${this.repo}/actions/runs/${id}/jobs`).catch(() => null);
+    return jobs?.jobs?.[0]?.steps || [];
+  },
+
   async findRun(workflow, sinceMs) {
+    const fresh = (r) => Date.parse(r.created_at) >= sinceMs - 20000;
+    if (this.viaRelay) {
+      const list = await this.relayGet(`runs=${workflow}.yml`);
+      return (list || []).find(fresh) || null;
+    }
     const d = await this.api(`/repos/${this.repo}/actions/runs?per_page=12`);
     return (d?.workflow_runs || []).find(
-      (r) => r.path?.endsWith(`/${workflow}.yml`) && Date.parse(r.created_at) >= sinceMs - 20000,
+      (r) => r.path?.endsWith(`/${workflow}.yml`) && fresh(r),
     ) || null;
   },
 };
@@ -656,7 +683,7 @@ async function devinRound() {
     await sleep(concluded ? 4000 : GH.pollMs);
     // same discipline as drafting: if the run's status is readable, don't
     // reach for the reply until the run is actually done
-    if (runRef && GH.authToken && !concluded) {
+    if (runRef && (GH.authToken || GH.viaRelay) && !concluded) {
       concluded = !!(await GH.runStatus(runRef.id).catch(() => null));
       if (!concluded) continue;
     }
@@ -765,13 +792,15 @@ async function draftRound() {
   }
 
   // follow the run's real steps
+  // How fast we may look depends on whose budget we are spending: our own
+  // token or the relay's is fine; anonymous GitHub is 60 calls an hour.
+  const watched = !!GH.authToken || GH.viaRelay;
   let run = null;
-  const tries = GH.canDispatch ? 25 : 60;
-  for (let i = 0; i < tries && !run; i++) { await sleep(GH.canDispatch ? 4000 : 10000); run = await GH.findRun("draft", t0).catch(() => null); }
+  const tries = watched ? 25 : 20;
+  for (let i = 0; i < tries && !run; i++) { await sleep(watched ? 4000 : 15000); run = await GH.findRun("draft", t0).catch(() => null); }
   if (run) {
     const poll = async () => {
-      const jobs = await GH.api(`/repos/${GH.repo}/actions/runs/${run.id}/jobs`).catch(() => null);
-      const steps = jobs?.jobs?.[0]?.steps || [];
+      const steps = await GH.runSteps(run.id);
       const items = steps.filter((s) => !/^Set up|^Complete|Post /.test(s.name)).map((s) => ({
         label: s.name, rt: s.conclusion || s.status,
         state: s.conclusion === "success" ? "done" : s.conclusion ? "fail" : s.status === "in_progress" ? "run" : "pend",
@@ -782,7 +811,7 @@ async function draftRound() {
       }
     };
     poll();
-    var jobTick = setInterval(poll, GH.pollMs);
+    var jobTick = setInterval(poll, watched ? 5000 : 20000);
   } else {
     $("draft-note").textContent = GH.canDispatch
       ? "No run appeared — check the Actions tab."
@@ -797,7 +826,7 @@ async function draftRound() {
   // When the run's status is readable, wait for it to finish before reaching
   // for the bundle: fewer requests, a faster first hit, and no console full
   // of 404s from polling a file that does not exist yet.
-  const canWatch = !!(run && GH.authToken);
+  const canWatch = !!run && watched;
   const deadline = t0 + 20 * 60 * 1000;
   while (Date.now() < deadline) {
     await sleep(concluded ? 3500 : GH.pollMs);
