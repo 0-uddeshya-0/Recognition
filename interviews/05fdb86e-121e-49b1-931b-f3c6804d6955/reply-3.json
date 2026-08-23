@@ -1,0 +1,246 @@
+{
+  "message": "Fifteen people — that's all I need. I've sized two open workspaces of about 45 m², plus one meeting room, a kitchen point, a washroom per floor and the stair core; everything I filled in myself is listed so you can correct it.",
+  "brief": {
+    "notes": "A 2-storey office for my company, around 15 staff. Bundesland: BY. Client's chosen programme: open workspace / offices.",
+    "rooms": [
+      {
+        "count": 2,
+        "label": "open workspace / offices",
+        "category": "office",
+        "min_area_m2": 45
+      },
+      {
+        "count": 1,
+        "label": "meeting room",
+        "category": "meeting",
+        "min_area_m2": 18
+      },
+      {
+        "count": 1,
+        "label": "kitchen / tea point",
+        "category": "kitchen",
+        "min_area_m2": 10
+      },
+      {
+        "count": 2,
+        "label": "washrooms",
+        "category": "bathroom",
+        "min_area_m2": 5
+      },
+      {
+        "count": 1,
+        "label": "storage / technical room",
+        "category": "utility",
+        "min_area_m2": 6
+      },
+      {
+        "count": 1,
+        "label": "stair core",
+        "category": "stair",
+        "min_area_m2": 8
+      }
+    ],
+    "project": "Neubau",
+    "occupants": 15,
+    "plot_depth_m": 24,
+    "plot_width_m": 18,
+    "storey_count": 2,
+    "building_class": "office_building",
+    "dwelling_count": 1,
+    "storey_height_m": 2.5,
+    "accessibility_tier": "none"
+  },
+  "questions": [],
+  "assumptions": [
+    {
+      "slot": "dwelling_count",
+      "basis": "Non-residential building — treated as one unit; the ruleset in force is Bayern residential.",
+      "value": 1,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_count",
+      "basis": "You said a 2-storey office; the upper floor stacks around one aligned stair core.",
+      "value": 2,
+      "confidence": "high"
+    },
+    {
+      "slot": "storey_height_m",
+      "basis": "Standard clear ceiling height plus floor build-up; comfortable for an office.",
+      "value": 2.5,
+      "confidence": "medium"
+    },
+    {
+      "slot": "accessibility_tier",
+      "basis": "Not requested — no barrier-free standard applied unless you tell me it's needed.",
+      "value": "none",
+      "confidence": "low"
+    },
+    {
+      "slot": "rooms.office",
+      "basis": "15 staff at roughly 6 m² per desk, split one workspace per storey.",
+      "value": "2 × open workspace, min 45 m² each",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms.meeting",
+      "basis": "A team of 15 needs one enclosed room for calls and client visits; you didn't answer, so I included one.",
+      "value": "1 × meeting room, min 18 m²",
+      "confidence": "low"
+    },
+    {
+      "slot": "rooms.kitchen",
+      "basis": "Every building needs a kitchen point; sized for 15 people.",
+      "value": "1 × kitchen / tea point, min 10 m²",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms.bathroom",
+      "basis": "One washroom per storey is the practical minimum for 15 staff.",
+      "value": "2 × washroom, min 5 m² each",
+      "confidence": "medium"
+    },
+    {
+      "slot": "rooms.utility",
+      "basis": "Offices need a technical and storage room; not selected, so kept small.",
+      "value": "1 × storage / technical room, min 6 m²",
+      "confidence": "low"
+    },
+    {
+      "slot": "rooms.stair",
+      "basis": "Two storeys need one aligned stair core.",
+      "value": "1 × stair core, min 8 m²",
+      "confidence": "high"
+    }
+  ],
+  "done": true,
+  "sealed_brief": {
+    "project": "Neubau",
+    "bundesland": "BY",
+    "building_class": "office_building",
+    "plot_width_m": 18,
+    "plot_depth_m": 24,
+    "dwelling_count": 1,
+    "storey_count": 2,
+    "storey_height_m": 2.5,
+    "occupants": 15,
+    "rooms": [
+      {
+        "category": "office",
+        "count": 2,
+        "min_area_m2": 45,
+        "label": "open workspace / offices"
+      },
+      {
+        "category": "meeting",
+        "count": 1,
+        "min_area_m2": 18,
+        "label": "meeting room"
+      },
+      {
+        "category": "kitchen",
+        "count": 1,
+        "min_area_m2": 10,
+        "label": "kitchen / tea point"
+      },
+      {
+        "category": "bathroom",
+        "count": 2,
+        "min_area_m2": 5,
+        "label": "washrooms"
+      },
+      {
+        "category": "utility",
+        "count": 1,
+        "min_area_m2": 6,
+        "label": "storage / technical room"
+      },
+      {
+        "category": "stair",
+        "count": 1,
+        "min_area_m2": 8,
+        "label": "stair core"
+      }
+    ],
+    "accessibility_tier": "none",
+    "assumptions": [
+      {
+        "slot": "dwelling_count",
+        "value": 1,
+        "basis": "Non-residential building — treated as one unit; the ruleset in force is Bayern residential.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_count",
+        "value": 2,
+        "basis": "You said a 2-storey office; the upper floor stacks around one aligned stair core.",
+        "confidence": "high",
+        "confirmed": false
+      },
+      {
+        "slot": "storey_height_m",
+        "value": 2.5,
+        "basis": "Standard clear ceiling height plus floor build-up; comfortable for an office.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "accessibility_tier",
+        "value": "none",
+        "basis": "Not requested — no barrier-free standard applied unless you tell me it's needed.",
+        "confidence": "low",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.office",
+        "value": "2 × open workspace, min 45 m² each",
+        "basis": "15 staff at roughly 6 m² per desk, split one workspace per storey.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.meeting",
+        "value": "1 × meeting room, min 18 m²",
+        "basis": "A team of 15 needs one enclosed room for calls and client visits; you didn't answer, so I included one.",
+        "confidence": "low",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.kitchen",
+        "value": "1 × kitchen / tea point, min 10 m²",
+        "basis": "Every building needs a kitchen point; sized for 15 people.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.bathroom",
+        "value": "2 × washroom, min 5 m² each",
+        "basis": "One washroom per storey is the practical minimum for 15 staff.",
+        "confidence": "medium",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.utility",
+        "value": "1 × storage / technical room, min 6 m²",
+        "basis": "Offices need a technical and storage room; not selected, so kept small.",
+        "confidence": "low",
+        "confirmed": false
+      },
+      {
+        "slot": "rooms.stair",
+        "value": "1 × stair core, min 8 m²",
+        "basis": "Two storeys need one aligned stair core.",
+        "confidence": "high",
+        "confirmed": false
+      }
+    ],
+    "notes": "A 2-storey office for my company, around 15 staff. Bundesland: BY. Client's chosen programme: open workspace / offices.",
+    "schema": "designbrief/v1"
+  },
+  "contract_error": "",
+  "session_id": "devin-0e8c6a56cd544f1dbfdc4f0e117863e6",
+  "session_url": "https://app.devin.ai/sessions/0e8c6a56cd544f1dbfdc4f0e117863e6",
+  "round": 3,
+  "engine": "devin"
+}
