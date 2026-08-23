@@ -1,0 +1,100 @@
+{
+  "project": "Neubau",
+  "envelope": {
+    "width_m": 14.0,
+    "depth_m": 13.5,
+    "external_wall_m": 0.3,
+    "internal_wall_m": 0.15
+  },
+  "rooms": [
+    {
+      "id": "R-01",
+      "category": "bathroom",
+      "label": "Bad",
+      "target_area_m2": 9.8,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-02",
+      "category": "kitchen",
+      "label": "Küche",
+      "target_area_m2": 14.6,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-03",
+      "category": "meeting",
+      "label": "Besprechung",
+      "target_area_m2": 22.0,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-04",
+      "category": "office",
+      "label": "Büro",
+      "target_area_m2": 73.2,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-05",
+      "category": "hall",
+      "label": "Flur",
+      "target_area_m2": 12.2,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-06",
+      "category": "utility",
+      "label": "HWR",
+      "target_area_m2": 7.3,
+      "exterior_wall": true
+    },
+    {
+      "id": "R-07",
+      "category": "stair",
+      "label": "Stair",
+      "target_area_m2": 14.6,
+      "exterior_wall": true
+    }
+  ],
+  "adjacency": [
+    {
+      "a": "R-05",
+      "b": "R-01",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-02",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-03",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-04",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-06",
+      "via": "door"
+    },
+    {
+      "a": "R-05",
+      "b": "R-07",
+      "via": "door"
+    }
+  ],
+  "storey_name": "Erdgeschoss",
+  "storey_height_m": 2.5,
+  "circulation_id": "R-05",
+  "glazing_ratio": 0.125,
+  "accessibility_tier": "din18040_2",
+  "rationale": "Generous plan: Squarer envelope, every room a size up and a wide hall. Comfort over cost — the most building for the same programme.",
+  "todo_agent": [],
+  "schema": "architectplan/v1"
+}

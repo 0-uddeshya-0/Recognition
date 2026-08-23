@@ -1,0 +1,120 @@
+{
+  "project": "Neubau",
+  "engine": "local",
+  "winner": "open",
+  "critic": "",
+  "candidates": [
+    {
+      "name": "compact",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 33,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 155.25,
+        "room_area_m2": 134.08,
+        "usable_ratio": 0.7639,
+        "circulation_m2": 15.48,
+        "openings": 9,
+        "rooms": 7
+      },
+      "label": "Compact core",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    },
+    {
+      "name": "generous",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": false,
+      "checked": 33,
+      "failed": 3,
+      "not_evaluated": 2,
+      "blocking_failures": 3,
+      "metrics": {
+        "envelope_m2": 189.0,
+        "room_area_m2": 165.12,
+        "usable_ratio": 0.7921,
+        "circulation_m2": 15.41,
+        "openings": 8,
+        "rooms": 7
+      },
+      "label": "Generous plan",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    },
+    {
+      "name": "linear",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 33,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 156.75,
+        "room_area_m2": 134.33,
+        "usable_ratio": 0.7353,
+        "circulation_m2": 19.08,
+        "openings": 9,
+        "rooms": 7
+      },
+      "label": "Linear frontage",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    },
+    {
+      "name": "open",
+      "files": [
+        "mesh.json",
+        "verdict.json",
+        "plan.json",
+        "design.py",
+        "sheet.svg",
+        "sheet.pdf"
+      ],
+      "ok": true,
+      "checked": 33,
+      "failed": 0,
+      "not_evaluated": 2,
+      "blocking_failures": 0,
+      "metrics": {
+        "envelope_m2": 172.5,
+        "room_area_m2": 151.02,
+        "usable_ratio": 0.8076,
+        "circulation_m2": 11.71,
+        "openings": 9,
+        "rooms": 7
+      },
+      "label": "Open plan",
+      "error": "",
+      "devin_session": "",
+      "pull_request": ""
+    }
+  ]
+}
